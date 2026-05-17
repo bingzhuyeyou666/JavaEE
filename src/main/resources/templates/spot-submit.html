@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>景点申报 - 旅图云</title>
+    <link rel="stylesheet" href="/css/app.css?v=20260517-guide-page">
+</head>
+<body>
+<header class="site-header compact">
+    <div class="brand-row">
+        <a class="brand portal-brand" href="/">
+            <span class="brand-mark">旅</span>
+            <span><strong>旅图云</strong><small>Travel Cloud Map</small></span>
+        </a>
+        <div class="header-right">
+            <div class="brand-slogan">把身边值得被看见的地方推荐给更多游客</div>
+            <div class="account-entry" data-account-bar>
+                <span class="account-avatar" data-account-avatar>游</span>
+                <span><strong data-account-name>游客模式</strong><small data-account-hint>免登录浏览景点</small></span>
+                <a class="account-action" data-account-action href="/login">登录</a>
+            </div>
+        </div>
+    </div>
+    <nav class="portal-nav">
+        <a href="/">首页</a>
+        <a href="/guide">景点导览</a>
+        <a href="/route">线路规划</a>
+        <a href="/me">个人中心</a>
+        <a href="/submit-spot">景点申报</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="page-hero submit-hero">
+        <div>
+            <span class="eyebrow">SPOT SUBMISSION</span>
+            <h1>景点申报</h1>
+            <p>如果你发现某个非官方地点风景好、有文化故事、适合游玩，可以提交周围照片、描述、推荐理由和地址，平台审核后可纳入景点库。</p>
+        </div>
+        <div class="hero-mini-card">
+            <strong>申报建议</strong>
+            <span>照片尽量清晰，描述真实具体，推荐理由说明它为什么值得成为景点。</span>
+        </div>
+    </section>
+
+    <section class="submit-layout">
+        <form class="panel submit-form" onsubmit="submitSpot(event)">
+            <div class="section-title compact-title">
+                <h2>地点信息</h2>
+                <span class="muted">带 * 的内容为必填项</span>
+            </div>
+            <div class="form-grid two-col">
+                <label><span>景点名称 *</span><input id="subName" placeholder="例如：老街观江台" required></label>
+                <label><span>景点类型 *</span><input id="subType" placeholder="自然风光 / 历史人文 / 城市休闲" required></label>
+                <label class="wide"><span>详细地址 *</span><input id="subAddress" placeholder="省市区、街道或附近地标" required></label>
+                <label><span>纬度 *</span><input id="subLat" type="number" step="0.000001" placeholder="例如 28.770100" required></label>
+                <label><span>经度 *</span><input id="subLng" type="number" step="0.000001" placeholder="例如 104.642200" required></label>
+                <label class="wide"><span>周围照片链接</span><textarea id="subPhotos" rows="4" placeholder="每行一个图片 URL，可填写多张周围环境照片"></textarea></label>
+                <label class="wide"><span>景点描述 *</span><textarea id="subDescription" rows="5" placeholder="这里有什么可看、可玩、可拍？周边环境如何？" required></textarea></label>
+                <label class="wide"><span>推荐成为景点的原因 *</span><textarea id="subReason" rows="5" placeholder="说明它为什么值得成为旅图云景点，比如景观独特、文化故事、本地人推荐、交通便利等。" required></textarea></label>
+            </div>
+            <div class="actions submit-actions">
+                <button type="submit">提交审核</button>
+                <a href="/me"><button class="secondary" type="button">查看我的申报</button></a>
+            </div>
+            <p id="submitSpotMessage" class="form-message"></p>
+        </form>
+
+        <aside class="panel submit-guide">
+            <h2>审核更容易通过的材料</h2>
+            <div class="notice-item"><strong>真实地点</strong><br><span class="muted">地址和坐标尽量准确，方便后台核验。</span></div>
+            <div class="notice-item"><strong>周边照片</strong><br><span class="muted">建议提供入口、全景、特色细节和周边环境。</span></div>
+            <div class="notice-item"><strong>推荐理由</strong><br><span class="muted">写清楚它适合什么游客、有什么独特体验。</span></div>
+        </aside>
+    </section>
+</main>
+<script src="/js/app.js"></script>
+</body>
+</html>

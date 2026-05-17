@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${spot.name} + ' - Travel Cloud Map'">Spot Detail</title>
+    <link rel="stylesheet" href="/css/app.css?v=20260517-guide-page">
+</head>
+<body>
+<header class="topbar">
+    <a class="brand" href="/">旅图云</a>
+    <nav class="nav">
+        <a href="/">首页</a>
+        <a href="/guide">景点导览</a>
+        <a href="/route">线路规划</a>
+        <a href="/me">个人中心</a>
+        <a href="/submit-spot">景点申报</a>
+    </nav>
+    <div class="account-entry topbar-account" data-account-bar>
+        <span class="account-avatar" data-account-avatar>游</span>
+        <span><strong data-account-name>游客模式</strong><small data-account-hint>免登录浏览景点</small></span>
+        <a class="account-action" data-account-action href="/login">登录</a>
+    </div>
+</header>
+
+<main class="container spot-page" th:data-spot-id="${spot.id}" th:data-spot-name="${spot.name}" th:data-lat="${spot.latitude}" th:data-lng="${spot.longitude}">
+    <section class="spot-hero-detail" th:style="'background-image:url(' + ${spot.coverImage} + ')'">
+        <div>
+            <span class="eyebrow" th:text="${spot.type}">Type</span>
+            <h1 th:text="${spot.name}">Spot Name</h1>
+            <p th:text="${spot.address}">Address</p>
+        </div>
+    </section>
+
+    <section class="layout">
+        <section>
+            <div class="panel">
+                <div class="pill-row">
+                    <span class="pill gold" th:text="${spot.type}">Type</span>
+                    <span class="pill" th:text="'评分 ' + ${spot.rating}">Rating</span>
+                    <span class="pill" th:text="${spot.price.compareTo(T(java.math.BigDecimal).ZERO) == 0 ? '免费' : '票价 ￥' + spot.price}">Price</span>
+                </div>
+
+                <h2>景点介绍</h2>
+                <p th:text="${spot.description}">Description</p>
+
+                <div class="gallery-grid" th:if="${spot.gallery != null}">
+                    <img th:each="image : ${spot.gallery}" th:src="${image}" th:alt="${spot.name}">
+                </div>
+
+                <h2>成立与发展过程</h2>
+                <p th:text="${spot.history}">History</p>
+
+                <h2>游玩亮点</h2>
+                <p th:text="${spot.highlights}">Highlights</p>
+
+                <h2>旅游攻略</h2>
+                <p th:text="${spot.guide}">Guide</p>
+
+                <p class="muted" th:text="'最佳季节：' + ${spot.bestSeason} + '；注意事项：' + ${spot.notice}">Tips</p>
+                <p class="source-note">资料整理自景区公开介绍、地方文旅资料与公开百科/共享图片资料，适合课程项目展示使用。</p>
+
+                <div class="actions">
+                    <button type="button" onclick="checkIn()">到达打卡</button>
+                    <button class="secondary" type="button" onclick="playTts()">语音播放</button>
+                    <button class="secondary" type="button" onclick="navigateSpot()">一键导航</button>
+                </div>
+                <audio id="audio" controls style="display:none;width:100%;margin-top:12px"></audio>
+            </div>
+
+            <div class="panel">
+                <h2>评论与评分</h2>
+                <textarea id="reviewContent" rows="4" style="width:100%;padding:14px" placeholder="写下你的游玩体验"></textarea>
+                <div class="actions" style="margin-top:10px">
+                    <select id="reviewScore">
+                        <option value="5">5分</option>
+                        <option value="4">4分</option>
+                        <option value="3">3分</option>
+                        <option value="2">2分</option>
+                        <option value="1">1分</option>
+                    </select>
+                    <button type="button" onclick="submitReview()">发布评论</button>
+                </div>
+                <div id="reviews" class="list" style="margin-top:14px"></div>
+            </div>
+        </section>
+
+        <aside>
+            <div class="panel">
+                <h2>实时状态</h2>
+                <p id="crowd">拥堵指数加载中...</p>
+                <div id="weather" class="list"></div>
+            </div>
+
+            <div class="panel ai-panel">
+                <h2>AI 景点小助手</h2>
+                <p class="muted">基于当前景点知识库回答问题，可附带联网参考方向。</p>
+                <div id="aiMessages" class="ai-messages">
+                    <div class="ai-message assistant">你可以问：这个景点的历史、怎么玩、适合什么季节、附近有什么。</div>
+                </div>
+                <div class="ai-input-row">
+                    <input id="aiQuestion" placeholder="例如：这个景点的发展过程是什么？">
+                    <button type="button" onclick="askSpotAssistant()">提问</button>
+                </div>
+                <div class="pill-row ai-suggestions">
+                    <button class="secondary" type="button" onclick="askSuggestedQuestion('这个景点的成立和发展过程是什么？')">发展过程</button>
+                    <button class="secondary" type="button" onclick="askSuggestedQuestion('第一次来这里应该怎么玩？')">游玩建议</button>
+                    <button class="secondary" type="button" onclick="askSuggestedQuestion('这个景点适合什么季节去？')">最佳季节</button>
+                </div>
+            </div>
+
+            <div class="panel">
+                <h2>预约票务</h2>
+                <input id="visitDate" type="date" style="width:100%;margin-bottom:10px">
+                <select id="timeSlot" style="width:100%;margin-bottom:10px">
+                    <option>09:00-11:00</option>
+                    <option>11:00-13:00</option>
+                    <option>13:00-15:00</option>
+                    <option>15:00-17:00</option>
+                </select>
+                <input id="people" type="number" min="1" max="10" value="2" style="width:100%;margin-bottom:10px">
+                <button type="button" onclick="reserve()" style="width:100%">立即预约</button>
+                <p id="reservationResult" class="muted"></p>
+            </div>
+
+            <div class="panel">
+                <h2>百度地图周边设施</h2>
+                <div id="spotFacilityMap" class="map-box baidu-map">Baidu map and nearby facilities loading...</div>
+                <div id="facilityList" class="list" style="margin-top:12px"></div>
+            </div>
+        </aside>
+    </section>
+</main>
+
+<script src="/js/app.js"></script>
+<script>initSpotDetail();</script>
+</body>
+</html>

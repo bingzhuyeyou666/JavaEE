@@ -1,0 +1,129 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>旅图云</title>
+    <link rel="stylesheet" href="/css/app.css?v=20260517-guide-page">
+</head>
+<body>
+<header class="site-header">
+    <div class="mini-bar">
+        <span>中国文旅智慧服务示范平台</span>
+        <span>服务热线：0831-8888888</span>
+    </div>
+    <div class="brand-row">
+        <a class="brand portal-brand" href="/">
+            <span class="brand-mark">旅</span>
+            <span>
+                <strong>旅图云</strong>
+                <small>Travel Cloud Map</small>
+            </span>
+        </a>
+        <div class="header-right">
+            <div class="brand-slogan">让风景、路线、服务和故事在一张图上相遇</div>
+            <div class="account-entry" data-account-bar>
+                <span class="account-avatar" data-account-avatar>游</span>
+                <span><strong data-account-name>游客模式</strong><small data-account-hint>免登录浏览景点</small></span>
+                <a class="account-action" data-account-action href="/login">登录</a>
+            </div>
+        </div>
+    </div>
+    <nav class="portal-nav">
+        <a href="/">首页</a>
+        <a href="/guide">景点导览</a>
+        <a href="/route">线路规划</a>
+        <a href="/me">个人中心</a>
+        <a href="/submit-spot">景点申报</a>
+    </nav>
+</header>
+
+<section class="portal-hero">
+    <button class="hero-arrow hero-prev" type="button" onclick="shiftHero(-1)">‹</button>
+    <div class="hero-slide active" style="background-image:url('https://images.unsplash.com/photo-1536152470836-b943b246224c?auto=format&fit=crop&w=1800&q=80')">
+        <div class="hero-caption">
+            <span>城市漫游</span>
+            <h1>旅图云</h1>
+            <p>全国范围热门景点、附近距离排序、预约票务、足迹打卡、语音导览、拥堵指数与线路规划一站式体验。</p>
+            <a class="text-button" href="/guide">进入景点导览</a>
+        </div>
+    </div>
+    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=1800&q=80')">
+        <div class="hero-caption">
+            <span>古镇人文</span>
+            <h1>发现身边的文化风景</h1>
+            <p>把游玩建议、实时天气、周边设施和评论攻略提前准备好。</p>
+            <a class="text-button" href="/route">规划今日路线</a>
+        </div>
+    </div>
+    <div class="hero-slide" style="background-image:url('https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=1800&q=80')">
+        <div class="hero-caption">
+            <span>轻松出行</span>
+            <h1>从收藏到路线，一键成行</h1>
+            <p>选择2-5个景点，系统自动给出合理游览顺序和分段距离。</p>
+            <a class="text-button" href="/me">查看我的足迹</a>
+        </div>
+    </div>
+    <button class="hero-arrow hero-next" type="button" onclick="shiftHero(1)">›</button>
+    <div class="hero-dots">
+        <button type="button" class="active" onclick="showHero(0)"></button>
+        <button type="button" onclick="showHero(1)"></button>
+        <button type="button" onclick="showHero(2)"></button>
+    </div>
+</section>
+
+<main class="container">
+    <section class="feature-entry-grid">
+        <a class="feature-entry" href="/guide">
+            <span>01</span>
+            <strong>景点导览</strong>
+            <p>按位置、评分、类型快速找到适合游玩的景点。</p>
+        </a>
+        <a class="feature-entry" href="/route">
+            <span>02</span>
+            <strong>线路规划</strong>
+            <p>选择多个景点，生成合理顺序和分段路程。</p>
+        </a>
+        <a class="feature-entry" href="/me">
+            <span>03</span>
+            <strong>个人中心</strong>
+            <p>查看足迹、勋章、预约、评论和景点申报。</p>
+        </a>
+        <a class="feature-entry" href="/submit-spot">
+            <span>04</span>
+            <strong>景点申报</strong>
+            <p>把你发现的非官方好去处推荐给平台审核。</p>
+        </a>
+    </section>
+
+    <section class="notice-strip">
+        <div class="notice-item"><strong>热门活动</strong><br><span class="muted">周末城市慢游活动开放预约，增设讲解场次</span></div>
+        <div class="notice-item"><strong>天气提醒</strong><br><span class="muted">明日局部小雨，栈道慢行，建议携带雨具</span></div>
+        <div class="notice-item"><strong>新景点</strong><br><span class="muted">三江口滨江公园上线，夜景路线同步开放</span></div>
+    </section>
+
+    <div class="section-title">
+        <h2>精选景点</h2>
+        <a class="more-link" href="/guide">查看更多</a>
+    </div>
+    <section class="grid">
+        <article class="card" th:each="spot : ${spots}">
+            <img th:src="${spot.coverImage}" th:alt="${spot.name}">
+            <div class="card-body">
+                <div class="pill-row">
+                    <span class="pill gold" th:text="${spot.type}">自然风光</span>
+                    <span class="pill" th:text="'评分 ' + ${spot.rating}">评分 4.8</span>
+                </div>
+                <h2 th:text="${spot.name}">蜀南竹海</h2>
+                <p class="muted" th:text="${spot.address}">地址</p>
+                <div class="actions">
+                    <a th:href="@{/spots/{id}(id=${spot.id})}"><button type="button">查看详情</button></a>
+                    <a href="/route"><button class="secondary" type="button">去规划路线</button></a>
+                </div>
+            </div>
+        </article>
+    </section>
+</main>
+<script src="/js/app.js"></script>
+</body>
+</html>

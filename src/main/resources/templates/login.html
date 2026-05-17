@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 旅图云</title>
+    <link rel="stylesheet" href="/css/app.css?v=20260517-guide-page">
+</head>
+<body>
+<header class="site-header compact">
+    <div class="brand-row">
+        <a class="brand portal-brand" href="/">
+            <span class="brand-mark">旅</span>
+            <span><strong>旅图云</strong><small>Travel Cloud Map</small></span>
+        </a>
+        <div class="header-right">
+            <div class="brand-slogan">选择身份后进入对应空间，也可以跳过登录继续浏览</div>
+            <div class="account-entry" data-account-bar>
+                <span class="account-avatar" data-account-avatar>游</span>
+                <span><strong data-account-name>游客模式</strong><small data-account-hint>免登录浏览景点</small></span>
+                <a class="account-action" data-account-action href="/login">登录</a>
+            </div>
+        </div>
+    </div>
+    <nav class="portal-nav">
+        <a href="/">首页</a>
+        <a href="/guide">景点导览</a>
+        <a href="/route">线路规划</a>
+        <a href="/me">个人中心</a>
+        <a href="/submit-spot">景点申报</a>
+    </nav>
+</header>
+
+<main class="container admin-login-page">
+    <section class="admin-login-card">
+        <div>
+            <span class="eyebrow">SIGN IN</span>
+            <h1>登录旅图云</h1>
+            <p class="muted">用户登录后进入个人中心；管理员登录后直接进入后台。只想看看景点和路线，可以跳过登录继续浏览。</p>
+            <a class="more-link skip-login-link" href="/">跳过登录，先去浏览</a>
+        </div>
+        <form class="admin-login-form" onsubmit="loginByRole(event)">
+            <div class="login-role-switch" role="radiogroup" aria-label="登录身份">
+                <label>
+                    <input type="radio" name="loginRole" value="user" checked onchange="syncLoginRole()">
+                    <span>用户登录</span>
+                </label>
+                <label>
+                    <input type="radio" name="loginRole" value="admin" onchange="syncLoginRole()">
+                    <span>管理员登录</span>
+                </label>
+            </div>
+            <label>
+                <span>账号</span>
+                <input id="loginUsername" type="text" autocomplete="username" required>
+            </label>
+            <label>
+                <span>密码</span>
+                <input id="loginPassword" type="password" autocomplete="current-password" required>
+            </label>
+            <button id="loginSubmitButton" type="submit">登录个人中心</button>
+            <p id="loginMessage" class="form-message"></p>
+        </form>
+    </section>
+</main>
+<script src="/js/app.js"></script>
+<script>initLoginPage();</script>
+</body>
+</html>

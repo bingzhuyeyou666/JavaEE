@@ -1,0 +1,82 @@
+<!doctype html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人中心 - 旅图云</title>
+    <link rel="stylesheet" href="/css/app.css?v=20260517-guide-page">
+</head>
+<body>
+<header class="site-header compact">
+    <div class="brand-row">
+        <a class="brand portal-brand" href="/">
+            <span class="brand-mark">旅</span>
+            <span><strong>旅图云</strong><small>Travel Cloud Map</small></span>
+        </a>
+        <div class="header-right">
+            <div class="brand-slogan">我的预约、足迹、勋章和景点申报</div>
+            <div class="account-entry" data-account-bar>
+                <span class="account-avatar" data-account-avatar>游</span>
+                <span><strong data-account-name>游客模式</strong><small data-account-hint>免登录浏览景点</small></span>
+                <a class="account-action" data-account-action href="/login">登录</a>
+            </div>
+        </div>
+    </div>
+    <nav class="portal-nav">
+        <a href="/">首页</a>
+        <a href="/guide">景点导览</a>
+        <a href="/route">线路规划</a>
+        <a href="/me">个人中心</a>
+        <a href="/submit-spot">景点申报</a>
+    </nav>
+</header>
+
+<main class="container">
+    <section class="page-hero profile-hero">
+        <div>
+            <span class="eyebrow">USER CENTER</span>
+            <h1>个人中心</h1>
+            <p>集中查看我的足迹地图、预约核销码、解锁勋章和景点申报进度。</p>
+        </div>
+        <div class="hero-mini-card">
+            <strong>Demo 用户</strong>
+            <span>积分 120 · 今日可继续打卡</span>
+        </div>
+    </section>
+
+    <section class="dashboard-grid">
+        <div class="metric-card"><strong>120</strong><span>当前积分</span></div>
+        <div class="metric-card"><strong id="footprintTotal">0</strong><span>打卡景点</span></div>
+        <div class="metric-card"><strong id="badgeTotal">0</strong><span>已获勋章</span></div>
+        <div class="metric-card"><strong id="likeTotal">0</strong><span>获赞量</span></div>
+    </section>
+
+    <section class="profile-layout">
+        <section class="panel">
+            <div class="section-title compact-title">
+                <h2>我的足迹地图</h2>
+                <span class="muted">打卡后景点会高亮显示</span>
+            </div>
+            <div id="footprintMapLive" class="map-box footprint-map baidu-map">Baidu footprint map loading...</div>
+            <h2>我的勋章</h2>
+            <div id="badges" class="pill-row"></div>
+        </section>
+        <aside>
+            <div class="panel">
+                <h2>我的预约</h2>
+                <p class="muted">预约成功后生成核销码，管理员可在后台进行核销。</p>
+                <div id="reservations" class="list"></div>
+            </div>
+            <div class="panel">
+                <h2>景点申报</h2>
+                <p class="muted">发现值得被更多人看见的地点，可以提交照片、描述和推荐理由。</p>
+                <a href="/submit-spot"><button type="button" style="width:100%;margin-top:10px">去申报景点</button></a>
+                <div id="submissions" class="list" style="margin-top:12px"></div>
+            </div>
+        </aside>
+    </section>
+</main>
+<script src="/js/app.js"></script>
+<script>initProfile();</script>
+</body>
+</html>
