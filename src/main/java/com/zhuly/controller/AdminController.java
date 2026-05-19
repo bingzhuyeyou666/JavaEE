@@ -1,9 +1,11 @@
 package com.zhuly.controller;
 
 import com.zhuly.domain.Facility;
+import com.zhuly.domain.HeroSlide;
 import com.zhuly.domain.ScenicSpot;
 import com.zhuly.domain.SpotSubmission;
 import com.zhuly.repository.FacilityRepository;
+import com.zhuly.repository.HeroSlideRepository;
 import com.zhuly.repository.ReviewRepository;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
@@ -18,6 +20,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -28,6 +32,7 @@ public class AdminController {
     private final FacilityRepository facilityRepository;
     private final ReviewRepository reviewRepository;
     private final SpotSubmissionRepository submissionRepository;
+    private final HeroSlideRepository heroSlideRepository;
 
     @GetMapping("/spots")
     public List<ScenicSpot> spots() {
@@ -53,6 +58,46 @@ public class AdminController {
     @GetMapping("/facilities")
     public List<Facility> facilities() {
         return facilityRepository.findAll();
+    }
+
+    @GetMapping("/home/hero")
+    public List<HeroSlide> heroSlides() {
+        return heroSlideRepository.findAllByOrderBySortOrderAsc();
+    }
+
+    @PutMapping("/home/hero")
+    public List<HeroSlide> updateHeroSlides(@RequestBody List<HeroSlide> slides) {
+        heroSlideRepository.deleteAll();
+        for (int i = 0; i < slides.size(); i++) {
+            HeroSlide slide = slides.get(i);
+            slide.setId(null);
+            slide.setSortOrder(i + 1);
+        }
+        return heroSlideRepository.saveAll(slides);
+    }
+
+    @GetMapping("/home/featured")
+    public List<Long> featuredSpotIds() {
+        return spotRepository.findByApprovedTrueAndHomeFeaturedTrueOrderByHomeFeaturedSortAsc()
+                .stream()
+                .map(ScenicSpot::getId)
+                .collect(Collectors.toList());
+    }
+
+    @PutMapping("/home/featured")
+    public List<Long> updateFeaturedSpotIds(@RequestBody Map<String, List<Long>> body) {
+        List<Long> ids = body.get("spotIds");
+        if (ids == null) {
+            ids = java.util.Collections.emptyList();
+        }
+        List<ScenicSpot> spots = spotRepository.findAll();
+        for (ScenicSpot spot : spots) {
+            int index = ids.indexOf(spot.getId());
+            spot.setHomeFeatured(index >= 0);
+            spot.setHomeFeaturedSort(index >= 0 ? index + 1 : 0);
+        }
+        spotRepository.saveAll(spots);
+        return ids;
     }
 
     @GetMapping("/submissions")

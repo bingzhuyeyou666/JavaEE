@@ -84,7 +84,6 @@ input:focus, select:focus, textarea:focus {
   color: var(--muted);
   font-size: 13px;
 }
-`r`n
 .brand-row {
   min-height: 96px;
   display: flex;
@@ -258,6 +257,269 @@ input:focus, select:focus, textarea:focus {
   border-radius: 999px;
   color: #fff;
   background: rgba(12, 48, 92, 0.5);
+}
+
+.guide-landing {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background:
+    radial-gradient(circle at 50% 46%, rgba(93, 174, 255, 0.2), transparent 26%),
+    radial-gradient(circle at 50% 54%, rgba(34, 72, 138, 0.36), transparent 50%),
+    linear-gradient(180deg, #06101c 0%, #08172d 45%, #0d2747 100%);
+  overflow: hidden;
+}
+
+.guide-intro-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: radial-gradient(circle at 50% 50%, rgba(119, 197, 255, 0.06), transparent 44%);
+  box-shadow: none;
+  perspective: 1100px;
+  transform-style: preserve-3d;
+}
+
+.starfield {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  transform: translateZ(-180px) scale(1.12);
+}
+
+.star {
+  position: absolute;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 0 12px rgba(150, 214, 255, 0.9);
+  animation: starPulse 3.8s ease-in-out infinite;
+}
+
+.guide-intro-copy {
+  position: absolute;
+  top: 7vh;
+  left: 50%;
+  z-index: 2;
+  width: min(520px, calc(100% - 40px));
+  margin: 0;
+  text-align: center;
+  color: #fff;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(-50%, -8px, 80px);
+  transition: opacity 0.45s ease, transform 0.45s ease;
+}
+
+.guide-intro-copy.revealed {
+  opacity: 1;
+  transform: translate3d(-50%, 0, 80px);
+}
+
+.intro-eyebrow {
+  display: inline-flex;
+  min-height: 28px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: #bbdcff;
+  background: rgba(119, 197, 255, 0.1);
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.guide-intro-copy h1 {
+  margin: 14px 0 12px;
+  font-size: clamp(34px, 4.4vw, 58px);
+  letter-spacing: 0;
+}
+
+.guide-intro-copy p {
+  margin: 0;
+  line-height: 1.8;
+  color: rgba(233, 246, 255, 0.9);
+  font-size: 16px;
+}
+
+.guide-orbit {
+  position: absolute;
+  left: 50%;
+  top: 52%;
+  width: min(88vw, 980px);
+  height: min(74vh, 680px);
+  margin: 0;
+  border-radius: 50%;
+  border: 1px solid rgba(119, 197, 255, 0.12);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  transform: translate3d(-50%, -50%, -20px) rotateX(58deg) rotateZ(-12deg);
+  transform-style: preserve-3d;
+}
+
+.guide-orbit::before,
+.guide-orbit::after {
+  content: "";
+  position: absolute;
+  inset: 14% 18%;
+  border: 1px dashed rgba(119, 197, 255, 0.12);
+  border-radius: 50%;
+}
+
+.guide-orbit::after {
+  inset: 30% 32%;
+}
+
+.orbit-spot {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  min-width: 118px;
+  max-width: 146px;
+  padding: 10px 12px;
+  border: 1px solid rgba(178, 224, 255, 0.26);
+  border-radius: 10px;
+  color: #fff;
+  background: linear-gradient(145deg, rgba(18, 45, 78, 0.86), rgba(7, 20, 38, 0.76));
+  box-shadow: 0 20px 44px rgba(0, 0, 0, 0.24), 0 0 24px rgba(119, 197, 255, 0.14);
+  opacity: 0;
+  transform: translate3d(-50%, -50%, -80px) rotateX(-58deg) rotateZ(12deg) scale(0.86);
+  transform-style: preserve-3d;
+}
+
+.orbit-spot.visible {
+  opacity: 1;
+  transform: translate3d(calc(-50% + var(--x, 0px)), calc(-50% + var(--y, 0px)), var(--z, 0px)) rotateX(-58deg) rotateZ(12deg) scale(var(--scale, 1));
+  transition: transform 0.55s ease var(--delay, 0ms), opacity 0.42s ease var(--delay, 0ms);
+}
+
+.orbit-spot strong,
+.orbit-spot small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.orbit-spot strong {
+  margin-bottom: 4px;
+  font-size: 14px;
+}
+
+.orbit-spot small {
+  color: rgba(203, 230, 255, 0.76);
+  font-size: 12px;
+}
+
+.center-locate-button {
+  position: absolute;
+  z-index: 3;
+  width: 148px;
+  height: 148px;
+  border-radius: 50%;
+  border: 1px solid rgba(170, 222, 255, 0.35);
+  background:
+    radial-gradient(circle at 50% 45%, rgba(255, 255, 255, 0.98), rgba(119, 197, 255, 0.7) 56%, rgba(18, 83, 160, 0.86) 100%);
+  box-shadow:
+    0 0 0 18px rgba(119, 197, 255, 0.08),
+    0 0 48px rgba(119, 197, 255, 0.34),
+    0 18px 42px rgba(5, 18, 38, 0.38);
+  color: #09315d;
+  font-size: 16px;
+  font-weight: 900;
+  flex-direction: column;
+  transform: translateZ(160px);
+}
+
+.center-locate-button.loading {
+  animation: pulseButton 1.3s ease-in-out infinite;
+}
+
+.guide-radar {
+  position: absolute;
+  left: 28px;
+  bottom: 30px;
+  z-index: 3;
+  width: min(420px, calc(100% - 56px));
+  padding: 14px 16px;
+  border: 1px solid rgba(179, 223, 255, 0.2);
+  border-radius: 10px;
+  color: #fff;
+  background: rgba(5, 17, 34, 0.48);
+  backdrop-filter: blur(10px);
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 12px, 120px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.guide-radar.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 120px);
+}
+
+.guide-radar strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 18px;
+}
+
+.guide-radar span,
+.guide-radar small {
+  display: block;
+  color: rgba(221, 238, 255, 0.88);
+  line-height: 1.6;
+}
+
+.guide-actions {
+  position: absolute;
+  right: 28px;
+  bottom: 30px;
+  z-index: 3;
+  display: flex;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate3d(0, 12px, 120px);
+  transition: opacity 0.35s ease, transform 0.35s ease;
+}
+
+.guide-actions.visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translate3d(0, 0, 120px);
+}
+
+.next-step-fab {
+  position: absolute;
+  right: 28px;
+  bottom: 98px;
+  z-index: 4;
+  min-width: 120px;
+  border-radius: 999px;
+  box-shadow: 0 18px 32px rgba(47, 141, 245, 0.3);
+}
+
+body.guide-open {
+  overflow: hidden;
+}
+
+@keyframes starPulse {
+  0%, 100% { opacity: 0.3; transform: scale(0.85); }
+  50% { opacity: 1; transform: scale(1.3); }
+}
+
+@keyframes pulseButton {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 18px rgba(119, 197, 255, 0.08), 0 0 48px rgba(119, 197, 255, 0.34), 0 18px 42px rgba(5, 18, 38, 0.38); }
+  50% { transform: scale(1.04); box-shadow: 0 0 0 26px rgba(119, 197, 255, 0.11), 0 0 56px rgba(119, 197, 255, 0.46), 0 18px 42px rgba(5, 18, 38, 0.38); }
 }
 
 .container { margin-top: 30px; margin-bottom: 64px; }

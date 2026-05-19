@@ -11,4 +11,11 @@ public class WeatherForecast {
     private String temperature;
     private String rainfall;
     private String wind;
+    private String period;
+    private String dayCondition;
+    private String low;
+    private String high;
+    private String nightCondition;
+    private String icon;
+    private String advice;
 }

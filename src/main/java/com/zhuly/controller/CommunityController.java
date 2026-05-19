@@ -5,6 +5,7 @@ import com.zhuly.domain.SpotSubmission;
 import com.zhuly.dto.ReviewRequest;
 import com.zhuly.dto.SpotSubmissionRequest;
 import com.zhuly.repository.ReviewRepository;
+import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -27,6 +28,7 @@ import java.util.Map;
 public class CommunityController {
 
     private final ReviewRepository reviewRepository;
+    private final ScenicSpotRepository spotRepository;
     private final SpotSubmissionRepository submissionRepository;
 
     @GetMapping("/spots/{spotId}/reviews")
@@ -37,15 +39,21 @@ public class CommunityController {
     @PostMapping("/reviews")
     public Review review(@RequestParam(defaultValue = "1") Long userId,
                          @Valid @RequestBody ReviewRequest request) {
+        spotRepository.findById(request.getSpotId())
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
         Review review = new Review();
         review.setUserId(userId);
         review.setSpotId(request.getSpotId());
         review.setScore(request.getScore());
-        review.setContent(request.getContent());
+        review.setContent(request.getContent().trim());
         review.setParentId(request.getParentId());
+        review.setSource("USER");
         review.setCreatedAt(LocalDateTime.now());
         if (request.getParentId() != null) {
             reviewRepository.findById(request.getParentId()).ifPresent(parent -> {
+                if (!request.getSpotId().equals(parent.getSpotId())) {
+                    throw new IllegalArgumentException("回复的评论不属于当前景点");
+                }
                 parent.setReplyCount(parent.getReplyCount() + 1);
                 reviewRepository.save(parent);
             });
@@ -54,10 +62,16 @@ public class CommunityController {
     }
 
     @PostMapping("/reviews/{id}/like")
-    public Review like(@PathVariable Long id) {
+    public Review like(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId) {
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("评论不存在"));
-        review.setLikes(review.getLikes() + 1);
+        if (review.getLikedUserIds().contains(userId)) {
+            review.getLikedUserIds().remove(userId);
+            review.setLikes(Math.max(0, review.getLikes() - 1));
+        } else {
+            review.getLikedUserIds().add(userId);
+            review.setLikes(review.getLikes() + 1);
+        }
         return reviewRepository.save(review);
     }
 

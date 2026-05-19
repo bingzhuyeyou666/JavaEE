@@ -18,6 +18,7 @@ import com.zhuly.service.TtsService;
 import com.zhuly.service.WeatherService;
 import javax.validation.Valid;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -46,6 +47,20 @@ public class TravelFeatureController {
     private final SpotAssistantService spotAssistantService;
     private final ScenicSpotRepository spotRepository;
     private final FacilityRepository facilityRepository;
+
+    @Value("${travel.map.api-key:}")
+    private String baiduMapAk;
+
+    @Value("${travel.map.enabled:false}")
+    private boolean baiduMapEnabled;
+
+    @GetMapping("/config")
+    public Map<String, Object> config() {
+        Map<String, Object> body = new HashMap<>();
+        body.put("baiduMapAk", baiduMapAk);
+        body.put("baiduMapEnabled", baiduMapEnabled);
+        return body;
+    }
 
     @PostMapping("/spots/{spotId}/check-ins")
     public CheckInResponse checkIn(@PathVariable Long spotId,
@@ -120,7 +135,9 @@ public class TravelFeatureController {
 
     @GetMapping("/spots/{spotId}/weather")
     public List<WeatherForecast> weather(@PathVariable Long spotId) {
-        return weatherService.threeDays();
+        return spotRepository.findById(spotId)
+                .map(spot -> weatherService.threeDays(spot.getLatitude(), spot.getLongitude()))
+                .orElseGet(() -> weatherService.threeDays(null, null));
     }
 
     @PostMapping("/routes/plan")

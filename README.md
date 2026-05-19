@@ -67,3 +67,27 @@ jdbc:h2:mem:zhuly
 ## 默认演示账号
 
 当前前端固定使用 `userId=1` 的 demo 用户，便于快速演示。接入登录后，把前端 `currentUserId` 替换为登录用户 ID 即可。
+## React + Vite frontend
+
+The React frontend is in `frontend/`.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Dev URL: `http://localhost:5173/app/`
+
+The Vite dev server proxies `/api` to `http://localhost:8080`, so keep Spring Boot running with:
+
+```bash
+mvn spring-boot:run
+```
+
+Production build output is written to `src/main/resources/static/app/`:
+
+```bash
+cd frontend
+npm run build
+```

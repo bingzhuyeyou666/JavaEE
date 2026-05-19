@@ -115,9 +115,22 @@ public class DataInitializer implements CommandLineRunner {
         spot.setHighlights(highlights);
         spot.setBestSeason(season);
         spot.setNotice(notice);
-        String spotImage = spotImage(name, "景点图片");
-        spot.setCoverImage(spotImage);
-        spot.setGallery(Arrays.asList(spotImage, spotImage(name, "风景照片"), spotImage(name, "旅游实拍")));
+        List<String> resolvedGallery = new ArrayList<>();
+        if (gallery != null) {
+            for (String image : gallery) {
+                if (image != null && !image.trim().isEmpty() && !resolvedGallery.contains(image)) {
+                    resolvedGallery.add(image);
+                }
+            }
+        }
+        if (resolvedGallery.isEmpty()) {
+            resolvedGallery.add(spotImage(name, "景区图片"));
+        }
+        while (resolvedGallery.size() < 3) {
+            resolvedGallery.add(spotImage(name, resolvedGallery.size() == 1 ? "风景照片" : "游客实拍"));
+        }
+        spot.setCoverImage(resolvedGallery.get(0));
+        spot.setGallery(resolvedGallery);
         return spot;
     }
 

@@ -552,10 +552,58 @@ async function initSpotDetail() {
     const crowd = await api(`/api/spots/${spotId}/crowd-index`);
     document.querySelector('#crowd').innerHTML = `当前人流：<strong class="status-${crowd.color}">${crowd.level}</strong>，${crowd.currentCount}/${crowd.maxCapacity}`;
     const weather = await api(`/api/spots/${spotId}/weather`);
-    document.querySelector('#weather').innerHTML = weather.map(item => `
-        <div class="list-item"><strong>${item.date} ${item.condition}</strong><br>
-        <span class="muted">${item.temperature}，降水 ${item.rainfall}，${item.wind}</span></div>`).join('');
+    renderWeatherPanel(weather);
     await loadReviews();
+}
+
+function summarizeSpotWeather(items) {
+    const rows = Array.isArray(items) ? items : [];
+    if (!rows.length) return '天气概览';
+    if (rows.some(item => (item.condition || '').includes('雨'))) return '有降雨风险';
+    if (rows.some(item => (item.condition || '').includes('晴'))) return '晴好可游';
+    return '天气平稳';
+}
+
+function weatherSymbol(icon) {
+    return {
+        rain: '☔',
+        cloud: '☁',
+        mist: '〰',
+        sun: '☀',
+        now: '◉'
+    }[icon] || '☀';
+}
+
+function renderWeatherPanel(items) {
+    const host = document.querySelector('#weather');
+    if (!host) return;
+    const rows = Array.isArray(items) ? items : [];
+    const current = rows[0] || {};
+    const days = rows.slice(1, 4);
+    host.className = 'weather-panel';
+    host.innerHTML = `
+        <div class="weather-snapshot">
+            <div class="weather-core">
+                <div>
+                    <span class="weather-tag">${summarizeSpotWeather(rows)}</span>
+                    <strong>${current.temperature || '--'}</strong>
+                    <p>${current.condition || '--'}</p>
+                </div>
+                <div class="weather-icon">${weatherSymbol(current.icon)}</div>
+            </div>
+            <div class="weather-advice">${current.advice || '天气数据加载中，请稍后查看。'}</div>
+        </div>
+        <div class="weather-days">
+            ${days.map(item => `
+                <article class="weather-day">
+                    <span>${item.period || item.date || '--'}</span>
+                    <strong>${item.temperature || '--'}</strong>
+                    <p>${item.condition || '--'}</p>
+                    <small>${item.wind || '--'} · ${item.rainfall || '--'}</small>
+                </article>
+            `).join('')}
+        </div>
+    `;
 }
 
 async function checkIn() {

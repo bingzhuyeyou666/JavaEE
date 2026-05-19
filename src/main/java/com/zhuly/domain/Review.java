@@ -11,7 +11,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 @Getter
 @Setter
@@ -34,7 +36,11 @@ public class Review {
 
     private Long parentId;
     private int likes;
+    @ElementCollection(fetch = FetchType.EAGER)
+    private Set<Long> likedUserIds = new HashSet<Long>();
     private boolean hidden;
     private LocalDateTime createdAt;
     private int replyCount;
+    private String source;
+    private String sourceReviewKey;
 }

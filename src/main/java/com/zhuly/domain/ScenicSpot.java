@@ -54,4 +54,6 @@ public class ScenicSpot {
     private String bestSeason;
     private String notice;
     private boolean approved = true;
+    private boolean homeFeatured = false;
+    private int homeFeaturedSort = 0;
 }

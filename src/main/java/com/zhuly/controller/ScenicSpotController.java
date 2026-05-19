@@ -4,6 +4,7 @@ import com.zhuly.domain.ScenicSpot;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.service.CheckInService;
 import com.zhuly.service.GeoUtils;
+import com.zhuly.service.SpotGalleryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -26,6 +27,7 @@ public class ScenicSpotController {
 
     private final ScenicSpotRepository spotRepository;
     private final CheckInService checkInService;
+    private final SpotGalleryService spotGalleryService;
 
     @GetMapping
     public List<Map<String, Object>> list(@RequestParam(required = false) String keyword,
@@ -47,7 +49,12 @@ public class ScenicSpotController {
 
     @GetMapping("/{id}")
     public ScenicSpot detail(@PathVariable Long id) {
-        return spotRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        ScenicSpot spot = spotRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        spot.setGallery(spotGalleryService.ensureGallery(spot));
+        if (spot.getCoverImage() == null || spot.getCoverImage().trim().isEmpty()) {
+            spot.setCoverImage(spot.getGallery().get(0));
+        }
+        return spot;
     }
 
     private Map<String, Object> toListItem(ScenicSpot spot, BigDecimal lat, BigDecimal lng, boolean checkedIn) {
