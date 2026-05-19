@@ -106,7 +106,7 @@ public class SpotGalleryService {
         while (urls.size() < 3) {
             addIfPresent(urls, bingThumbnailImage(spot.getName() + " 景区 " + urls.size()));
         }
-        return new ArrayList<>(new ArrayList<>(urls).subList(0, Math.max(3, urls.size())));
+        return new ArrayList<>(urls).subList(0, Math.max(3, urls.size()));
     }
 
     private String resolveForQuery(String query) {

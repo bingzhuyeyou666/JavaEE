@@ -28,6 +28,7 @@ import './styles.css';
 const userId = 1;
 const routeKey = 'travelCloudChosenRoute';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
+const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
 const navItems = [
   ['/', '首页'],
@@ -77,6 +78,22 @@ function readLocationState(key, fallback) {
 
 function saveLocationState(key, location) {
   writeStorageJson(key, location);
+}
+
+function readSessionFlag(key) {
+  try {
+    return window.sessionStorage?.getItem(key) === 'true';
+  } catch (error) {
+    return false;
+  }
+}
+
+function writeSessionFlag(key, value) {
+  try {
+    window.sessionStorage?.setItem(key, value ? 'true' : 'false');
+  } catch (error) {
+    // Session storage can be unavailable; the UI still works without the flag.
+  }
 }
 
 function cx(...names) {
@@ -401,17 +418,16 @@ function BaiduMap({ center = defaultLocation, markers = [], route = false, polyl
 
 function GuideLanding() {
   const storedLocation = useNearbyLocation();
-  const [location, setLocation] = useState(storedLocation);
-  const [spots, setSpots] = useState([]);
-  const [revealedCount, setRevealedCount] = useState(0);
-  const [status, setStatus] = useState('');
+  const sessionLocated = readSessionFlag(sessionLocatedKey);
+  const initialLocation = sessionLocated ? storedLocation : null;
+  const [location, setLocation] = useState(initialLocation);
+  const [nearbySignals, setNearbySignals] = useState([]);
   const [loading, setLoading] = useState(false);
-  const [readyToEnter, setReadyToEnter] = useState(Boolean(storedLocation));
+  const [readyToEnter, setReadyToEnter] = useState(Boolean(initialLocation));
 
   useEffect(() => {
     if (!readyToEnter || !location) return;
     let alive = true;
-    setLoading(true);
     fetchNearbySpots(location)
       .then((data) => {
         if (!alive) return;
@@ -419,54 +435,33 @@ function GuideLanding() {
           ? data
               .slice()
               .sort((a, b) => Number(a.distanceKm ?? 99999) - Number(b.distanceKm ?? 99999))
-              .slice(0, 7)
+              .slice(0, 9)
           : [];
-        setSpots(list);
-        setRevealedCount(0);
-        setStatus(list.length ? `${list.length} 个附近景点正在逐渐浮现。` : '当前区域暂未找到足够的景点。');
+        setNearbySignals(list);
       })
-      .catch((error) => {
-        if (alive) setStatus(error.message);
-      })
-      .finally(() => {
-        if (alive) setLoading(false);
+      .catch(() => {
+        if (alive) setNearbySignals([]);
       });
     return () => {
       alive = false;
     };
   }, [readyToEnter, location]);
 
-  useEffect(() => {
-    if (!spots.length) return;
-    const timer = window.setInterval(() => {
-      setRevealedCount((value) => {
-        if (value >= spots.length) {
-          window.clearInterval(timer);
-          return value;
-        }
-        return value + 1;
-      });
-    }, 240);
-    return () => window.clearInterval(timer);
-  }, [spots]);
-
   function handleLocate() {
+    if (readyToEnter && location) return;
     setLoading(true);
-    setStatus('星空定位中...');
     locateByBrowser(
       (nextLocation) => {
         const normalized = { ...nextLocation, label: nextLocation.label || '当前位置' };
         setLocation(normalized);
         saveLocationState(nearbyLocationKey, normalized);
+        writeSessionFlag(sessionLocatedKey, true);
         setReadyToEnter(true);
-        setStatus('位置已锁定，附近景点开始浮现。');
       },
-      setStatus
+      () => {}
     );
     window.setTimeout(() => setLoading(false), 1200);
   }
-
-  const visibleSpots = spots.slice(0, revealedCount);
   const hasLocated = readyToEnter && Boolean(location);
 
   useEffect(() => {
@@ -477,68 +472,58 @@ function GuideLanding() {
   return (
     <main className="guide-landing">
       <section className="guide-intro-stage">
+        <div className="locate-ui-header">
+          <span>旅图云定位</span>
+          <strong>附近景点雷达</strong>
+        </div>
         <div className="starfield" aria-hidden="true">
-          {Array.from({ length: 42 }).map((_, index) => (
+          {Array.from({ length: 96 }).map((_, index) => (
             <span
               key={index}
               className="star"
               style={{
-                left: `${(index * 17) % 100}%`,
-                top: `${(index * 29) % 100}%`,
-                animationDelay: `${(index % 8) * 0.22}s`
+                '--x': `${(index * 37) % 100}vw`,
+                '--y': `${(index * 61) % 100}vh`,
+                '--size': `${1 + (index % 4)}px`,
+                '--duration': `${9 + (index % 7) * 1.7}s`,
+                '--delay': `${(index % 12) * -0.7}s`
               }}
             />
           ))}
         </div>
-        <div className={cx('guide-intro-copy', hasLocated && 'revealed')}>
-          <span className="intro-eyebrow">定位探索</span>
-          <h1>先在星空里找到你</h1>
-          <p>点击中心定位按钮后，系统会以你的当前位置为圆心，把附近景点按半径从近到远依次点亮，再进入附近景点页面。</p>
+        <div className="particle-stream stream-a" aria-hidden="true" />
+        <div className="particle-stream stream-b" aria-hidden="true" />
+        <div className="guide-locate-text">
+          {loading ? '正在定位你所在的位置' : hasLocated ? '定位完成，附近景点已准备好' : '点击定位，发现附近景点'}
         </div>
-        <div className="guide-orbit" aria-hidden="true">
-          {visibleSpots.map((spot, index) => {
-            const angle = index * 2.45 - Math.PI / 2;
-            const radius = 150 + index * 62;
-            const x = Math.cos(angle) * radius;
-            const y = Math.sin(angle) * radius;
-            const z = (index % 3 - 1) * 58;
-            const scale = 1 - index * 0.025;
+        <div className="nearby-signal-layer" aria-hidden="true">
+          {nearbySignals.map((spot, index) => {
+            const angle = index * 2.3999632297 - Math.PI / 2;
+            const radius = 94 + index * 34;
             return (
               <div
-                key={spot.id}
-                className="orbit-spot visible"
+                key={spot.id || index}
+                className="nearby-signal"
                 style={{
-                  '--x': `${x}px`,
-                  '--y': `${y}px`,
-                  '--z': `${z}px`,
-                  '--scale': scale,
-                  '--delay': `${index * 120}ms`
+                  '--x': `${Math.cos(angle) * radius}px`,
+                  '--y': `${Math.sin(angle) * radius}px`,
+                  '--delay': `${index * 140}ms`,
+                  '--size': `${9 + (index % 3) * 2}px`
                 }}
               >
-                <strong>{spot.name}</strong>
-                <small>{spot.distanceKm !== undefined ? `${spot.distanceKm} km` : spot.type}</small>
+                <span className="signal-dot" />
+                <span className="signal-name">{spot.name}</span>
               </div>
             );
           })}
         </div>
         <button className={cx('center-locate-button', loading && 'loading')} type="button" onClick={handleLocate}>
           <MapPin size={18} />
-          {loading ? '正在定位' : location ? '重新定位' : '开始定位'}
+          {loading ? '正在定位' : hasLocated ? '已定位' : '开始定位'}
         </button>
-        <div className={cx('guide-radar', hasLocated && 'visible')}>
-          <strong>{location?.label || '未定位'}</strong>
-          <span>{status}</span>
-          <small>{location ? `${Number(location.lat).toFixed(4)}, ${Number(location.lng).toFixed(4)}` : '获取当前位置后，附近景点会开始浮现。'}</small>
-        </div>
-        <div className={cx('guide-actions', hasLocated && 'visible')}>
-          <button className="secondary" type="button" onClick={handleLocate}>重新定位</button>
-          <button className="secondary" type="button" onClick={() => {
-            const fallback = defaultLocation;
-            setLocation(fallback);
-            saveLocationState(nearbyLocationKey, fallback);
-            setReadyToEnter(true);
-            setStatus('已切换到默认城市，附近景点正在生成。');
-          }}>默认城市</button>
+        <div className={cx('locate-status-bar', hasLocated && 'ready')}>
+          <span>{hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
+          <strong>{hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
         {readyToEnter && (
           <button className="next-step-fab" type="button" onClick={() => navigateTo('/guide/nearby')}>
