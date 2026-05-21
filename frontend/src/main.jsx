@@ -8,6 +8,8 @@ import {
   Headphones,
   Heart,
   House,
+  Image,
+  Lightbulb,
   LogIn,
   LogOut,
   Map,
@@ -22,7 +24,9 @@ import {
   Sparkles,
   Star,
   Trash2,
-  UserRound
+  UserRound,
+  Users,
+  Video
 } from 'lucide-react';
 import './styles.css';
 
@@ -31,24 +35,37 @@ const routeKey = 'travelCloudChosenRoute';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
+const squareCategories = ['全部', '景点影像', '旅游拼团', '旅游心得', '注意事项', '提问求助'];
 const navItems = [
   ['/', '首页', House],
   ['/guide', '景点导览', Compass],
   ['/route', '路线规划', Navigation],
+  ['/square', '旅行广场', Users],
   ['/me', '个人中心', UserRound],
   ['/submit-spot', '景点申报', Plus]
 ];
 
 async function api(url, options = {}) {
-  const response = await fetch(url, {
-    headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
-    ...options
-  });
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: '请求失败' }));
-    throw new Error(error.message || '请求失败');
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), options.timeoutMs || 12000);
+  try {
+    const { timeoutMs, ...fetchOptions } = options;
+    const response = await fetch(url, {
+      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      signal: options.signal || controller.signal,
+      ...fetchOptions
+    });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '请求失败' }));
+      throw new Error(error.message || '请求失败');
+    }
+    return response.json();
+  } catch (error) {
+    if (error.name === 'AbortError') throw new Error('请求超时，请稍后重试。');
+    throw error;
+  } finally {
+    window.clearTimeout(timer);
   }
-  return response.json();
 }
 
 function readStorageJson(key, fallback) {
@@ -168,10 +185,10 @@ function Header({ account, refreshAccount, path }) {
     <header className="site-header">
       <div className="brand-row">
         <Link href="/" className="brand">
-          <span className="brand-mark">旅</span>
+          <span className="brand-mark">星</span>
           <span>
-            <strong>旅图云</strong>
-            <small>Travel Cloud Map</small>
+            <strong>星涌</strong>
+            <small>Star Surge Map</small>
           </span>
         </Link>
         <div className="header-right">
@@ -203,7 +220,7 @@ function Header({ account, refreshAccount, path }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '旅图云', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '星涌', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
@@ -252,7 +269,7 @@ function Hero({ spots, slides = defaultHeroSlides }) {
         <span className="orbit-line line-b" />
         <strong>星图导航</strong>
       </div>
-      <div className="hero-quick-panel" aria-label="旅图云能力概览">
+      <div className="hero-quick-panel" aria-label="星涌能力概览">
         <div><strong>AI</strong><span>把灵感变成路线</span></div>
         <div><strong>实时</strong><span>天气、拥挤、设施同屏判断</span></div>
         <div><strong>星图</strong><span>发现、收藏、打卡形成旅行宇宙</span></div>
@@ -299,7 +316,7 @@ function Home({ addRoute }) {
     <>
       <Hero spots={featuredSpots} slides={slides} />
       <main className="container">
-        <section className="signature-stage" aria-label="旅图云核心亮点">
+        <section className="signature-stage" aria-label="星涌核心亮点">
           <div className="signature-copy">
             <span className="section-kicker">核心竞争力</span>
             <h2>不是景点列表，而是一张会行动的旅行星图</h2>
@@ -321,6 +338,7 @@ function Home({ addRoute }) {
           {[
             ['/guide', Compass, '景点导览', '按位置、评分和类型快速找到适合游玩的景点。'],
             ['/route', Navigation, '路线规划', '选择多个景点，生成合理顺序和分段路程。'],
+            ['/square', Users, '旅行广场', '发布影像、拼团、心得和注意事项，与游客交流。'],
             ['/me', UserRound, '个人中心', '查看足迹、勋章、预约和景点申报。'],
             ['/submit-spot', Plus, '景点申报', '把你发现的非官方好去处推荐给平台审核。']
           ].map(([href, Icon, title, body]) => (
@@ -331,7 +349,7 @@ function Home({ addRoute }) {
             </Link>
           ))}
         </section>
-        <section className="product-story" aria-label="旅图云产品能力">
+        <section className="product-story" aria-label="星涌产品能力">
           <div>
             <span className="section-kicker">从灵感到抵达</span>
             <h2>一个面向真实出行的文旅工作台</h2>
@@ -493,6 +511,7 @@ function GuideLanding() {
   const [nearbySignals, setNearbySignals] = useState([]);
   const [loading, setLoading] = useState(false);
   const [readyToEnter, setReadyToEnter] = useState(Boolean(initialLocation));
+  const [scanBurst, setScanBurst] = useState(false);
 
   useEffect(() => {
     if (!readyToEnter || !location) return;
@@ -519,6 +538,7 @@ function GuideLanding() {
   function handleLocate() {
     if (readyToEnter && location) return;
     setLoading(true);
+    setScanBurst(true);
     locateByBrowser(
       (nextLocation) => {
         const normalized = { ...nextLocation, label: nextLocation.label || '当前位置' };
@@ -530,6 +550,7 @@ function GuideLanding() {
       () => {}
     );
     window.setTimeout(() => setLoading(false), 1200);
+    window.setTimeout(() => setScanBurst(false), 1800);
   }
   const hasLocated = readyToEnter && Boolean(location);
 
@@ -540,9 +561,9 @@ function GuideLanding() {
 
   return (
     <main className="guide-landing">
-      <section className="guide-intro-stage">
+      <section className={cx('guide-intro-stage', loading && 'scanning', scanBurst && 'bursting', hasLocated && 'located')}>
         <div className="locate-ui-header">
-          <span>旅图云定位</span>
+          <span>星涌定位</span>
           <strong>附近景点雷达</strong>
         </div>
         <div className="starfield" aria-hidden="true">
@@ -561,11 +582,20 @@ function GuideLanding() {
           ))}
         </div>
         <div className="cosmic-grid" aria-hidden="true" />
+        <div className="warp-tunnel" aria-hidden="true" />
+        <div className="scan-core" aria-hidden="true">
+          <span className="scan-ring ring-1" />
+          <span className="scan-ring ring-2" />
+          <span className="scan-ring ring-3" />
+          <span className="scan-beam beam-a" />
+          <span className="scan-beam beam-b" />
+          <span className="scan-sweep" />
+        </div>
         <div className="particle-stream stream-a" aria-hidden="true" />
         <div className="particle-stream stream-b" aria-hidden="true" />
         <div className="particle-stream stream-c" aria-hidden="true" />
         <div className="guide-locate-text">
-          {loading ? '正在定位你所在的位置' : hasLocated ? '定位完成，附近景点已准备好' : '点击定位，发现附近景点'}
+          {loading ? '星图正在折叠，锁定你的坐标' : hasLocated ? '定位完成，附近景点已点亮' : '点击定位，点亮附近景点星图'}
         </div>
         <div className="nearby-signal-layer" aria-hidden="true">
           {nearbySignals.map((spot, index) => {
@@ -593,8 +623,8 @@ function GuideLanding() {
           {loading ? '正在定位' : hasLocated ? '已定位' : '开始定位'}
         </button>
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
-          <span>{hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
-          <strong>{hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
+          <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
+          <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
         {readyToEnter && (
           <button className="next-step-fab" type="button" onClick={() => navigateTo('/guide/nearby')}>
@@ -622,10 +652,19 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
   }, [data, sort]);
 
   return (
-    <main className="container">
-      <PageHero icon={Compass} title="附近景点" body="已按当前位置筛出周边景点，你可以继续筛选、加入路线，或者直接去详情页看看。" />
-      <div className="layout guide-layout">
-        <section>
+    <main className="container guide-page">
+      <section className="guide-command">
+        <div className="guide-command-copy">
+          <span className="section-kicker">附近探索星图</span>
+          <h1>发现附近，把风景串成路线</h1>
+          <p>搜索、筛选、定位和路线收集被放进同一个探索舱，适合边发现边规划。</p>
+          <div className="guide-command-stats">
+            <span><strong>{spots.length || '--'}</strong> 个信号</span>
+            <span><strong>{route.length}</strong> 个已选</span>
+            <span><strong>{location.label}</strong> 当前锚点</span>
+          </div>
+        </div>
+        <div className="guide-search-console">
           <div className="toolbar">
             <label><Search size={16} /><input value={keyword} onChange={(e) => setKeyword(e.target.value)} placeholder="搜索景点名称" /></label>
             <select value={type} onChange={(e) => setType(e.target.value)}>
@@ -641,7 +680,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
             </select>
             <button className="secondary" onClick={() => { setKeyword(''); setType(''); setSort('distance'); }}>清空</button>
           </div>
-          <div className="location-strip">
+          <div className="location-strip guide-location-strip">
             <MapPin size={18} />
             <strong>{location.label}</strong>
             <span>{Number(location.lat).toFixed(4)}, {Number(location.lng).toFixed(4)}</span>
@@ -649,11 +688,26 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
             <button className="secondary" onClick={() => setLocation({ lat: 31.23, lng: 121.47, label: '上海市中心' })}>上海</button>
             <button className="secondary" onClick={() => setLocation(defaultLocation)}>宜宾</button>
           </div>
+        </div>
+      </section>
+      <div className="layout guide-layout">
+        <section className="guide-results">
+          <div className="guide-results-title">
+            <span>DISCOVERY FEED</span>
+            <strong>{sort === 'distance' ? '距离优先' : sort === 'rating' ? '评分优先' : '票价优先'}</strong>
+          </div>
           {locationMessage && <div className="message">{locationMessage}</div>}
           {error && <div className="message error">{error}</div>}
-          {loading ? <Loading /> : <section className="grid">{spots.map((spot) => <SpotCard key={spot.id} spot={spot} addRoute={addRoute} />)}</section>}
+          {loading ? <Loading /> : spots.length ? (
+            <section className="grid guide-card-cloud">{spots.map((spot) => <SpotCard key={spot.id} spot={spot} addRoute={addRoute} />)}</section>
+          ) : (
+            <div className="empty-state search-empty">
+              <strong>没有找到匹配景点</strong>
+              <span>换个关键词，或清空筛选查看附近全部景点。</span>
+            </div>
+          )}
         </section>
-        <aside className="panel sticky">
+        <aside className="panel sticky route-capsule">
           <PanelTitle icon={Map} title="当前位置地图" />
           <BaiduMap center={location} markers={[location]} className="side-map" />
           <PanelTitle icon={Navigation} title="已选路线" meta={`${route.length} / 5`} />
@@ -736,8 +790,11 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
           <div className="choice-list">
             {(spots || []).slice(0, 12).map((spot) => (
               <button className="choice" key={spot.id} onClick={() => addRoute(spot)}>
-                <strong>{spot.name}</strong>
-                <small>{spot.type} · {spot.rating} 分</small>
+                <img src={spot.coverImage} alt={spot.name} />
+                <span>
+                  <strong>{spot.name}</strong>
+                  <small>{spot.type} · {spot.rating} 分</small>
+                </span>
               </button>
             ))}
           </div>
@@ -948,7 +1005,7 @@ function SpotDetail({ id, addRoute }) {
           <div className="actions">
             <button onClick={checkIn}><BadgeCheck size={16} /> 到达打卡</button>
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
-            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('旅图云景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
+            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('星涌景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
           <div className="gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
           <InfoGrid items={[['开放时间', spot.openHours], ['门票', `¥${spot.price || 0}`], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
@@ -1123,6 +1180,210 @@ function CommentItem({ review, replies, onLike, onReply }) {
   );
 }
 
+function splitMediaUrls(value) {
+  return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
+}
+
+function Square() {
+  const [category, setCategory] = useState('全部');
+  const [tick, setTick] = useState(0);
+  const [activePostId, setActivePostId] = useState(null);
+  const [message, setMessage] = useState('');
+  const [form, setForm] = useState({
+    category: '景点影像',
+    title: '',
+    content: '',
+    locationName: '',
+    tripDate: '',
+    imageUrls: '',
+    videoUrls: ''
+  });
+  const [commentText, setCommentText] = useState('');
+  const postsState = useAsync(() => api(`/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
+  const commentsState = useAsync(
+    () => activePostId ? api(`/api/community/square/posts/${activePostId}/comments`) : Promise.resolve([]),
+    [activePostId, tick]
+  );
+  const posts = postsState.data || [];
+  const activePost = posts.find((post) => post.id === activePostId) || posts[0];
+  useEffect(() => {
+    if (!activePostId && posts.length) setActivePostId(posts[0].id);
+    if (activePostId && posts.length && !posts.some((post) => post.id === activePostId)) setActivePostId(posts[0].id);
+  }, [posts, activePostId]);
+
+  function update(key, value) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function submitPost(event) {
+    event.preventDefault();
+    try {
+      const post = await api(`/api/community/square/posts?userId=${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({
+          ...form,
+          imageUrls: splitMediaUrls(form.imageUrls),
+          videoUrls: splitMediaUrls(form.videoUrls)
+        })
+      });
+      setMessage('发布成功，已同步到旅行广场。');
+      setActivePostId(post.id);
+      setForm({ category: '景点影像', title: '', content: '', locationName: '', tripDate: '', imageUrls: '', videoUrls: '' });
+      setTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function likePost(postId) {
+    await api(`/api/community/square/posts/${postId}/like?userId=${userId}`, { method: 'POST' });
+    setTick((value) => value + 1);
+  }
+
+  async function submitComment(event) {
+    event.preventDefault();
+    if (!activePost) return;
+    await api(`/api/community/square/posts/${activePost.id}/comments?userId=${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({ content: commentText })
+    });
+    setCommentText('');
+    setTick((value) => value + 1);
+  }
+
+  return (
+    <main className="container">
+      <PageHero icon={Users} title="旅行广场" body="发布景点影像、拼团邀约、旅游心得和注意事项，让真实旅途经验流动起来。" />
+      <div className="square-shell">
+        <section className="panel square-composer">
+          <PanelTitle icon={Send} title="发布帖子" meta="图片 / 视频 / 文案" />
+          {message && <div className="message">{message}</div>}
+          <form className="form" onSubmit={submitPost}>
+            <label>类型
+              <select value={form.category} onChange={(e) => update('category', e.target.value)}>
+                {squareCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}
+              </select>
+            </label>
+            <label>关联地点
+              <input value={form.locationName} onChange={(e) => update('locationName', e.target.value)} placeholder="如 蜀南竹海" />
+            </label>
+            <label className="wide">标题
+              <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="给大家一个清楚的主题" required />
+            </label>
+            <label className="wide">正文
+              <textarea value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="分享路线、费用、避坑点、集合信息或你的旅行故事" required />
+            </label>
+            <label>出行日期
+              <input type="date" value={form.tripDate} onChange={(e) => update('tripDate', e.target.value)} />
+            </label>
+            <label>图片 URL
+              <textarea value={form.imageUrls} onChange={(e) => update('imageUrls', e.target.value)} placeholder="多个地址可换行或逗号分隔" />
+            </label>
+            <label className="wide">视频 URL
+              <textarea value={form.videoUrls} onChange={(e) => update('videoUrls', e.target.value)} placeholder="可填写 mp4 等视频地址，多个地址换行" />
+            </label>
+            <button><Send size={16} /> 发布到广场</button>
+          </form>
+        </section>
+        <section className="square-feed">
+          <div className="square-tabs">
+            {squareCategories.map((item) => (
+              <button key={item} type="button" className={item === category ? 'active' : ''} onClick={() => setCategory(item)}>
+                {item}
+              </button>
+            ))}
+          </div>
+          {postsState.loading ? <Loading /> : posts.length ? posts.map((post) => (
+            <SquarePostCard
+              key={post.id}
+              post={post}
+              active={activePost?.id === post.id}
+              onSelect={() => setActivePostId(post.id)}
+              onLike={() => likePost(post.id)}
+            />
+          )) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
+        </section>
+        <aside className="panel square-discussion">
+          <PanelTitle icon={MessageCircle} title="帖子讨论" meta={activePost ? activePost.title : '未选择'} />
+          {activePost ? (
+            <>
+              <div className="square-discussion-head">
+                <span className="pill gold">{activePost.category}</span>
+                <strong>{activePost.title}</strong>
+                <p>{activePost.content}</p>
+              </div>
+              <div className="review-list">
+                {(commentsState.data || []).length ? (commentsState.data || []).map((comment) => (
+                  <div className="comment-item reply" key={comment.id}>
+                    <div className="comment-avatar small">{(comment.authorName || '游').slice(0, 1)}</div>
+                    <div className="comment-body">
+                      <div className="comment-topline">
+                        <strong>{comment.authorName || `游客${comment.userId || ''}`}</strong>
+                        <span>{comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : ''}</span>
+                      </div>
+                      <p>{comment.content}</p>
+                    </div>
+                  </div>
+                )) : <div className="empty-state compact">还没有讨论，先说两句。</div>}
+              </div>
+              <form className="ai-input" onSubmit={submitComment}>
+                <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="回复这个帖子" required />
+                <button aria-label="发送评论"><Send size={16} /></button>
+              </form>
+            </>
+          ) : <div className="empty-state compact">选择一个帖子查看讨论。</div>}
+        </aside>
+      </div>
+    </main>
+  );
+}
+
+function SquarePostCard({ post, active, onSelect, onLike }) {
+  const liked = (post.likedUserIds || []).includes(userId);
+  const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
+  return (
+    <article className={cx('square-post', active && 'active')} onClick={onSelect}>
+      <div className="square-post-top">
+        <div className="comment-avatar">{(post.authorName || '旅').slice(0, 1)}</div>
+        <div>
+          <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
+          <span>{time}</span>
+        </div>
+        <span className="pill gold">{post.category}</span>
+      </div>
+      <h2>{post.title}</h2>
+      <p>{post.content}</p>
+      {(post.locationName || post.tripDate) && (
+        <div className="square-meta">
+          {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
+          {post.tripDate && <span><CalendarDays size={14} /> {post.tripDate}</span>}
+        </div>
+      )}
+      {!!post.imageUrls?.length && (
+        <div className="square-media-grid">
+          {post.imageUrls.slice(0, 4).map((url) => <img key={url} src={url} alt={post.title} />)}
+        </div>
+      )}
+      {!!post.videoUrls?.length && (
+        <div className="square-video-list">
+          {post.videoUrls.slice(0, 2).map((url) => <video key={url} src={url} controls />)}
+        </div>
+      )}
+      <div className="square-actions">
+        <button type="button" className={cx('heart-button', liked && 'liked')} onClick={(event) => { event.stopPropagation(); onLike(); }}>
+          <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+          <span>{post.likes || 0}</span>
+        </button>
+        <button type="button" className="reply-button" onClick={(event) => { event.stopPropagation(); onSelect(); }}>
+          <MessageCircle size={16} /> {post.commentCount || 0}
+        </button>
+        {!!post.imageUrls?.length && <span><Image size={15} /> {post.imageUrls.length}</span>}
+        {!!post.videoUrls?.length && <span><Video size={15} /> {post.videoUrls.length}</span>}
+      </div>
+    </article>
+  );
+}
+
 function summarizeWeather(list) {
   const rows = Array.isArray(list) ? list : [];
   if (!rows.length) {
@@ -1233,7 +1494,7 @@ function Login({ refreshAccount }) {
   return (
     <main className="container narrow">
       <section className="panel login-card">
-        <PanelTitle icon={LogIn} title="登录旅图云" meta={role === 'admin' ? '管理员' : '游客'} />
+        <PanelTitle icon={LogIn} title="登录星涌" meta={role === 'admin' ? '管理员' : '游客'} />
         <div className="segmented">
           <button type="button" className={role === 'user' ? 'active' : ''} onClick={() => setRole('user')}>游客</button>
           <button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}>管理员</button>
@@ -1440,6 +1701,7 @@ function App() {
   if (path === '/guide') page = <GuideLanding />;
   if (path === '/guide/nearby') page = <Guide {...props} />;
   if (path === '/route') page = <RoutePage {...props} />;
+  if (path === '/square') page = <Square />;
   if (path === '/me') page = <Profile />;
   if (path === '/submit-spot') page = <SubmitSpot />;
   if (path === '/login') page = <Login refreshAccount={refreshAccount} />;
@@ -1452,7 +1714,7 @@ function App() {
       <Header account={account} refreshAccount={refreshAccount} path={path} />
       {page}
       <footer className="footer">
-        <span>旅图云 · 智慧文旅综合服务平台</span>
+        <span>星涌 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
           await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});
