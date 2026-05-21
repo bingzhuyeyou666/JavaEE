@@ -7,6 +7,7 @@ import {
   Compass,
   Headphones,
   Heart,
+  House,
   LogIn,
   LogOut,
   Map,
@@ -31,11 +32,11 @@ const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
 const navItems = [
-  ['/', '首页'],
-  ['/guide', '景点导览'],
-  ['/route', '路线规划'],
-  ['/me', '个人中心'],
-  ['/submit-spot', '景点申报']
+  ['/', '首页', House],
+  ['/guide', '景点导览', Compass],
+  ['/route', '路线规划', Navigation],
+  ['/me', '个人中心', UserRound],
+  ['/submit-spot', '景点申报', Plus]
 ];
 
 async function api(url, options = {}) {
@@ -44,8 +45,8 @@ async function api(url, options = {}) {
     ...options
   });
   if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: '璇锋眰澶辫触' }));
-    throw new Error(error.message || '璇锋眰澶辫触');
+    const error = await response.json().catch(() => ({ message: '请求失败' }));
+    throw new Error(error.message || '请求失败');
   }
   return response.json();
 }
@@ -122,12 +123,13 @@ function usePath() {
   return path;
 }
 
-function Link({ href, children, className }) {
+function Link({ href, children, className, ...props }) {
   const browserHref = normalizeAppHref(href);
   return (
     <a
       className={className}
       href={browserHref}
+      {...props}
       onClick={(event) => {
         if (event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
         event.preventDefault();
@@ -154,12 +156,13 @@ function useAsync(loader, deps) {
   return state;
 }
 
-function Header({ account, refreshAccount }) {
+function Header({ account, refreshAccount, path }) {
   const isAdmin = account.admin?.loggedIn;
   const isUser = account.user?.loggedIn;
   const label = isAdmin ? `管理员 ${account.admin.username || 'admin'}` : isUser ? `游客 ${account.user.username || 'demo'}` : '游客模式';
   const hint = isAdmin ? '运营后台已登录' : isUser ? '足迹与预约已同步' : '免登录浏览景点';
   const actionHref = isAdmin ? '/admin' : isUser ? '/me' : '/login';
+  const isActive = (href) => href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
 
   return (
     <header className="site-header">
@@ -188,8 +191,9 @@ function Header({ account, refreshAccount }) {
         </div>
       </div>
       <nav className="portal-nav">
-        {navItems.map(([href, text]) => (
-          <Link key={href} href={href}>
+        {navItems.map(([href, text, Icon]) => (
+          <Link key={href} href={href} className={isActive(href) ? 'active' : ''} aria-current={isActive(href) ? 'page' : undefined}>
+            <Icon size={16} />
             {text}
           </Link>
         ))}
@@ -199,9 +203,9 @@ function Header({ account, refreshAccount }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '旅图云', body: '热门景点、路线规划、预约票务、足迹打卡与智能导览的一站式体验。', actionText: '进入导览', actionHref: '/guide' },
-  { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '发现身边的文化风景', body: '把游玩建议、实时天气、周边设施和评论攻略提前准备好。', actionText: '进入导览', actionHref: '/guide' },
-  { imageUrl: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一键成行', body: '选择 2-5 个景点，系统自动给出合理游览顺序和分段路程。', actionText: '规划路线', actionHref: '/route' }
+  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '旅图云', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
 
 function Hero({ spots, slides = defaultHeroSlides }) {
@@ -213,16 +217,46 @@ function Hero({ spots, slides = defaultHeroSlides }) {
   }, [heroSlides.length]);
   return (
     <section className="hero">
+      <div className="hero-starwash" aria-hidden="true">
+        {Array.from({ length: 32 }).map((_, index) => (
+          <span
+            key={index}
+            style={{
+              '--x': `${(index * 29) % 100}%`,
+              '--y': `${(index * 47) % 100}%`,
+              '--delay': `${(index % 9) * -0.28}s`
+            }}
+          />
+        ))}
+      </div>
       {heroSlides.map((slide, index) => (
         <div key={`${slide.title}-${index}`} className={cx('hero-slide', active === index && 'active')} style={{ backgroundImage: `url(${slide.imageUrl})` }}>
           <div className="hero-caption">
             <span>{slide.eyebrow}</span>
             <h1>{slide.title}</h1>
             <p>{slide.body}</p>
-            <Link className="primary-link" href={slide.actionHref || '/guide'}>{slide.actionText || '进入导览'}</Link>
+            <div className="hero-actions">
+              <Link className="primary-link" href={slide.actionHref || '/guide'}>{slide.actionText || '进入导览'}</Link>
+              <Link className="secondary hero-secondary" href="/route"><Navigation size={16} /> 规划路线</Link>
+            </div>
           </div>
         </div>
       ))}
+      <div className="hero-orbit-map" aria-hidden="true">
+        <span className="orbit-ring ring-a" />
+        <span className="orbit-ring ring-b" />
+        <span className="orbit-node node-a" />
+        <span className="orbit-node node-b" />
+        <span className="orbit-node node-c" />
+        <span className="orbit-line line-a" />
+        <span className="orbit-line line-b" />
+        <strong>星图导航</strong>
+      </div>
+      <div className="hero-quick-panel" aria-label="旅图云能力概览">
+        <div><strong>AI</strong><span>把灵感变成路线</span></div>
+        <div><strong>实时</strong><span>天气、拥挤、设施同屏判断</span></div>
+        <div><strong>星图</strong><span>发现、收藏、打卡形成旅行宇宙</span></div>
+      </div>
       <div className="hero-dots">
         {heroSlides.map((slide, index) => (
           <button key={`${slide.title}-dot-${index}`} className={active === index ? 'active' : ''} onClick={() => setActive(index)} aria-label={`切换到第 ${index + 1} 张`} />
@@ -236,11 +270,13 @@ function Hero({ spots, slides = defaultHeroSlides }) {
 function SpotCard({ spot, addRoute }) {
   return (
     <article className="card">
-      <img src={spot.coverImage} alt={spot.name} />
+      <div className="card-media">
+        <img src={spot.coverImage} alt={spot.name} />
+        <span className="rating-badge"><Star size={14} fill="currentColor" /> {spot.rating}</span>
+      </div>
       <div className="card-body">
         <div className="pill-row">
           <span className="pill gold">{spot.type}</span>
-          <span className="pill"><Star size={14} /> {spot.rating}</span>
           {spot.distanceKm !== undefined && spot.distanceKm !== 99999 && <span className="pill">{spot.distanceKm} km</span>}
           {spot.checkedIn && <span className="pill"><BadgeCheck size={14} /> 已打卡</span>}
         </div>
@@ -263,6 +299,24 @@ function Home({ addRoute }) {
     <>
       <Hero spots={featuredSpots} slides={slides} />
       <main className="container">
+        <section className="signature-stage" aria-label="旅图云核心亮点">
+          <div className="signature-copy">
+            <span className="section-kicker">核心竞争力</span>
+            <h2>不是景点列表，而是一张会行动的旅行星图</h2>
+            <p>把附近发现、路线排序、天气拥挤、预约票务、足迹打卡串成同一条体验链，让用户从“想去哪”直接走到“怎么去”。</p>
+          </div>
+          <div className="constellation-board" aria-hidden="true">
+            <span className="constellation-line c-line-a" />
+            <span className="constellation-line c-line-b" />
+            <span className="constellation-line c-line-c" />
+            {['发现', '判断', '规划', '抵达', '沉淀'].map((label, index) => (
+              <span className={`constellation-point point-${index + 1}`} key={label}>
+                <i />
+                <strong>{label}</strong>
+              </span>
+            ))}
+          </div>
+        </section>
         <section className="feature-grid">
           {[
             ['/guide', Compass, '景点导览', '按位置、评分和类型快速找到适合游玩的景点。'],
@@ -277,6 +331,17 @@ function Home({ addRoute }) {
             </Link>
           ))}
         </section>
+        <section className="product-story" aria-label="旅图云产品能力">
+          <div>
+            <span className="section-kicker">从灵感到抵达</span>
+            <h2>一个面向真实出行的文旅工作台</h2>
+          </div>
+          <div className="story-grid">
+            <article><strong>01</strong><span>发现</span><p>从精选景点和附近雷达开始，快速确认值得去的地方。</p></article>
+            <article><strong>02</strong><span>判断</span><p>把门票、天气、拥挤、设施、评论放在同一屏判断。</p></article>
+            <article><strong>03</strong><span>成行</span><p>加入路线、智能排序、打开导航，把计划变成行动。</p></article>
+          </div>
+        </section>
         <SectionTitle title="精选景点" href="/guide" />
         {loading ? <Loading /> : <section className="grid">{featuredSpots.map((spot) => <SpotCard key={spot.id} spot={spot} addRoute={addRoute} />)}</section>}
       </main>
@@ -288,13 +353,17 @@ function SectionTitle({ title, href }) {
   return (
     <div className="section-title">
       <h2>{title}</h2>
-      {href && <Link className="more-link" href={href}>鏌ョ湅鏇村</Link>}
+      {href && <Link className="more-link" href={href}>查看更多</Link>}
     </div>
   );
 }
 
 function Loading() {
-  return <div className="empty-state">正在加载...</div>;
+  return (
+    <div className="skeleton-grid" aria-label="正在加载">
+      {Array.from({ length: 3 }).map((_, index) => <div className="skeleton-card" key={index} />)}
+    </div>
+  );
 }
 
 function useNearbyLocation() {
@@ -384,7 +453,7 @@ function BaiduMap({ center = defaultLocation, markers = [], route = false, polyl
     points.forEach((point, index) => {
       const item = markers[index] || center;
       const marker = new BMap.Marker(point);
-      marker.setLabel(new BMap.Label(item.name || item.label || `浣嶇疆 ${index + 1}`, { offset: new BMap.Size(18, -10) }));
+      marker.setLabel(new BMap.Label(item.name || item.label || `位置 ${index + 1}`, { offset: new BMap.Size(18, -10) }));
       map.addOverlay(marker);
     });
     if (route && points.length > 1) {
@@ -477,22 +546,24 @@ function GuideLanding() {
           <strong>附近景点雷达</strong>
         </div>
         <div className="starfield" aria-hidden="true">
-          {Array.from({ length: 96 }).map((_, index) => (
+          {Array.from({ length: 190 }).map((_, index) => (
             <span
               key={index}
               className="star"
               style={{
                 '--x': `${(index * 37) % 100}vw`,
                 '--y': `${(index * 61) % 100}vh`,
-                '--size': `${1 + (index % 4)}px`,
-                '--duration': `${9 + (index % 7) * 1.7}s`,
-                '--delay': `${(index % 12) * -0.7}s`
+                '--size': `${index % 17 === 0 ? 3 : 1 + (index % 3)}px`,
+                '--duration': `${2.4 + (index % 8) * 0.45}s`,
+                '--delay': `${(index % 18) * -0.22}s`
               }}
             />
           ))}
         </div>
+        <div className="cosmic-grid" aria-hidden="true" />
         <div className="particle-stream stream-a" aria-hidden="true" />
         <div className="particle-stream stream-b" aria-hidden="true" />
+        <div className="particle-stream stream-c" aria-hidden="true" />
         <div className="guide-locate-text">
           {loading ? '正在定位你所在的位置' : hasLocated ? '定位完成，附近景点已准备好' : '点击定位，发现附近景点'}
         </div>
@@ -598,14 +669,14 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
 }
 
 function SelectedRoute({ route, removeRoute }) {
-  if (!route.length) return <div className="empty-state compact">杩樻病鏈夐€夋嫨鏅偣</div>;
+  if (!route.length) return <div className="empty-state compact">还没有选择景点，先从导览页加入路线。</div>;
   return (
     <div className="selected-list">
       {route.map((item, index) => (
         <div className="selected-item" key={item.id}>
           <span>{index + 1}</span>
           <strong>{item.name}</strong>
-          <button className="icon-button ghost" onClick={() => removeRoute(item.id)} title="绉婚櫎"><Trash2 size={16} /></button>
+          <button className="icon-button ghost" onClick={() => removeRoute(item.id)} title="移除"><Trash2 size={16} /></button>
         </div>
       ))}
     </div>
@@ -647,15 +718,15 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
             <MapPin size={18} />
             <strong>出发地：{origin.label}</strong>
             <span>{Number(origin.lat).toFixed(4)}, {Number(origin.lng).toFixed(4)}</span>
-            <button className="secondary" type="button" onClick={locateOrigin}>瀹氫綅</button>
+            <button className="secondary" type="button" onClick={locateOrigin}>定位</button>
             <button className="secondary" type="button" onClick={() => setOrigin({ lat: 39.9042, lng: 116.4074, label: '北京市中心' })}>北京</button>
             <button className="secondary" type="button" onClick={() => setOrigin({ lat: 31.2304, lng: 121.4737, label: '上海市中心' })}>上海</button>
             <button className="secondary" type="button" onClick={() => setOrigin(defaultLocation)}>宜宾</button>
           </div>
           <SelectedRoute route={route} removeRoute={removeRoute} />
           <div className="actions">
-            <button onClick={plan}><Sparkles size={16} /> 鏅鸿兘鎺掑簭</button>
-            <button className="secondary" onClick={clearRoute}><Trash2 size={16} /> 娓呯┖</button>
+            <button onClick={plan}><Sparkles size={16} /> 智能排序</button>
+            <button className="secondary" onClick={clearRoute}><Trash2 size={16} /> 清空</button>
           </div>
           {message && <div className="message">{message}</div>}
           <RouteResult result={result} origin={origin} />
@@ -950,7 +1021,7 @@ function SpotDetail({ id, addRoute }) {
                 <strong>{currentWeather.temperature || '--'}</strong>
                 <p>{currentWeather.condition || '--'}</p>
               </div>
-              <div className="weather-icon">{weatherIcon(currentWeather.icon)}</div>
+              <div className="weather-icon"><WeatherSymbol icon={currentWeather.icon} /></div>
             </div>
             <div className="metrics single weather-metrics">
               <Metric value={crowd.data?.level || '--'} label="拥挤指数" />
@@ -971,7 +1042,7 @@ function SpotDetail({ id, addRoute }) {
           <div className="ai-box">
             {answer && <div className="ai-answer">{answer}</div>}
             <div className="ai-input">
-              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="闂棶鏅偣鏀荤暐" />
+              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="询问景点攻略" />
               <button onClick={async () => {
                 if (!question.trim()) return;
                 const data = await api(`/api/spots/${id}/assistant`, { method: 'POST', body: JSON.stringify({ question }) });
@@ -1055,7 +1126,7 @@ function CommentItem({ review, replies, onLike, onReply }) {
 function summarizeWeather(list) {
   const rows = Array.isArray(list) ? list : [];
   if (!rows.length) {
-    return { label: '澶╂皵姒傝', text: '鏆傛棤澶╂皵鏁版嵁' };
+      return { label: '天气概览', text: '暂无天气数据' };
   }
       const rainCount = rows.filter((item) => (item.condition || '').includes('雨')).length;
       const sunnyCount = rows.filter((item) => (item.condition || '').includes('晴')).length;
@@ -1063,15 +1134,19 @@ function summarizeWeather(list) {
   return { label, text: rows[0]?.advice || '' };
 }
 
-function weatherIcon(icon) {
-  const icons = {
-    rain: '☔',
-    cloud: '☁',
-    mist: '〰',
-    sun: '☀',
-    now: '◉'
-  };
-  return icons[icon] || '☀';
+function WeatherSymbol({ icon }) {
+  const shape = {
+    rain: 'M8 18h16M11 22h10M13 26h6M12 10c2.2-4.4 9.8-4.4 12 0 4.8.6 7.5 5.8 5.2 10H6.8C4.5 15.8 7.2 10.6 12 10Z',
+    cloud: 'M7 21h20c3.5 0 5.7-3.8 3.9-6.8-1-1.8-2.8-2.9-4.7-3-2-4.8-9.4-5.6-12.4-.9-3.8.2-6.8 2.4-6.8 5.8 0 2.8 2.2 4.9 5 4.9Z',
+    mist: 'M6 12h22M9 18h18M6 24h22',
+    sun: 'M17 6v4M17 24v4M6 17h4M24 17h4M9.2 9.2l2.8 2.8M22 22l2.8 2.8M24.8 9.2 22 12M12 22l-2.8 2.8M17 12a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z',
+    now: 'M17 8a9 9 0 1 1 0 18 9 9 0 0 1 0-18ZM17 13a4 4 0 1 0 0 8 4 4 0 0 0 0-8Z'
+  }[icon] || 'M17 6v4M17 24v4M6 17h4M24 17h4M9.2 9.2l2.8 2.8M22 22l2.8 2.8M24.8 9.2 22 12M12 22l-2.8 2.8M17 12a5 5 0 1 1 0 10 5 5 0 0 1 0-10Z';
+  return (
+    <svg viewBox="0 0 34 34" role="img" aria-label="天气图标">
+      <path d={shape} fill="none" stroke="currentColor" strokeWidth="2.4" strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
+  );
 }
 
 function Profile() {
@@ -1374,7 +1449,7 @@ function App() {
 
   return (
     <>
-      <Header account={account} refreshAccount={refreshAccount} />
+      <Header account={account} refreshAccount={refreshAccount} path={path} />
       {page}
       <footer className="footer">
         <span>旅图云 · 智慧文旅综合服务平台</span>
