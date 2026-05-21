@@ -1,6 +1,7 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
+  ArrowLeft,
   BadgeCheck,
   CalendarDays,
   Car,
@@ -26,7 +27,8 @@ import {
   Trash2,
   UserRound,
   Users,
-  Video
+  Video,
+  X
 } from 'lucide-react';
 import './styles.css';
 
@@ -36,6 +38,11 @@ const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
 const squareCategories = ['全部', '景点影像', '旅游拼团', '旅游心得', '注意事项', '提问求助'];
+const squarePostTypes = [
+  ['NOTE', '图文笔记', '像小红书一样展示图片、标签和旅行灵感'],
+  ['DISCUSSION', '讨论帖', '像贴吧一样开帖交流，评论按楼层展开'],
+  ['QUESTION', '问答帖', '像知乎一样提出问题，沉淀高质量回答']
+];
 const navItems = [
   ['/', '首页', House],
   ['/guide', '景点导览', Compass],
@@ -1184,35 +1191,70 @@ function splitMediaUrls(value) {
   return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
 }
 
+function postTypeLabel(type) {
+  return squarePostTypes.find(([value]) => value === type)?.[1] || '图文笔记';
+}
+
 function Square() {
   const [category, setCategory] = useState('全部');
   const [tick, setTick] = useState(0);
-  const [activePostId, setActivePostId] = useState(null);
+  const [composerOpen, setComposerOpen] = useState(false);
   const [message, setMessage] = useState('');
+  const [uploading, setUploading] = useState('');
   const [form, setForm] = useState({
+    postType: 'NOTE',
     category: '景点影像',
     title: '',
     content: '',
     locationName: '',
     tripDate: '',
     imageUrls: '',
-    videoUrls: ''
+    videoUrls: '',
+    tags: ''
   });
-  const [commentText, setCommentText] = useState('');
-  const postsState = useAsync(() => api(`/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
-  const commentsState = useAsync(
-    () => activePostId ? api(`/api/community/square/posts/${activePostId}/comments`) : Promise.resolve([]),
-    [activePostId, tick]
-  );
+  const postsState = useAsync(() => api(category === '全部' ? '/api/community/square/posts' : `/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
   const posts = postsState.data || [];
-  const activePost = posts.find((post) => post.id === activePostId) || posts[0];
   useEffect(() => {
-    if (!activePostId && posts.length) setActivePostId(posts[0].id);
-    if (activePostId && posts.length && !posts.some((post) => post.id === activePostId)) setActivePostId(posts[0].id);
-  }, [posts, activePostId]);
+    if (!composerOpen) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setComposerOpen(false);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [composerOpen]);
 
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  async function uploadMedia(files, type) {
+    const selected = Array.from(files || []);
+    if (!selected.length) return;
+    setUploading(type);
+    setMessage('');
+    try {
+      const body = new FormData();
+      selected.forEach((file) => body.append('files', file));
+      const response = await fetch(`/api/community/square/uploads?type=${type}`, {
+        method: 'POST',
+        body
+      });
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ message: '上传失败' }));
+        throw new Error(error.message || '上传失败');
+      }
+      const data = await response.json();
+      const key = type === 'video' ? 'videoUrls' : 'imageUrls';
+      setForm((current) => {
+        const nextUrls = [...splitMediaUrls(current[key]), ...(data.urls || [])];
+        return { ...current, [key]: nextUrls.join('\n') };
+      });
+      setMessage('媒体上传成功，发布时会自动附加到帖子。');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setUploading('');
+    }
   }
 
   async function submitPost(event) {
@@ -1223,68 +1265,33 @@ function Square() {
         body: JSON.stringify({
           ...form,
           imageUrls: splitMediaUrls(form.imageUrls),
-          videoUrls: splitMediaUrls(form.videoUrls)
+          videoUrls: splitMediaUrls(form.videoUrls),
+          tags: splitMediaUrls(form.tags)
         })
       });
       setMessage('发布成功，已同步到旅行广场。');
-      setActivePostId(post.id);
-      setForm({ category: '景点影像', title: '', content: '', locationName: '', tripDate: '', imageUrls: '', videoUrls: '' });
+      setForm({ postType: 'NOTE', category: '景点影像', title: '', content: '', locationName: '', tripDate: '', imageUrls: '', videoUrls: '', tags: '' });
+      setComposerOpen(false);
       setTick((value) => value + 1);
+      navigateTo(`/square/posts/${post.id}`);
     } catch (error) {
       setMessage(error.message);
     }
   }
 
-  async function likePost(postId) {
-    await api(`/api/community/square/posts/${postId}/like?userId=${userId}`, { method: 'POST' });
-    setTick((value) => value + 1);
-  }
-
-  async function submitComment(event) {
-    event.preventDefault();
-    if (!activePost) return;
-    await api(`/api/community/square/posts/${activePost.id}/comments?userId=${userId}`, {
-      method: 'POST',
-      body: JSON.stringify({ content: commentText })
-    });
-    setCommentText('');
-    setTick((value) => value + 1);
-  }
-
   return (
     <main className="container">
-      <PageHero icon={Users} title="旅行广场" body="发布景点影像、拼团邀约、旅游心得和注意事项，让真实旅途经验流动起来。" />
+      <PageHero icon={Users} title="旅行广场" body="像小红书一样晒图文，像贴吧一样开帖讨论，像知乎一样沉淀旅行问答。" />
+      <div className="square-command-bar">
+        <div>
+          <strong>旅行社区</strong>
+          <span>发现旅行灵感、拼团邀约和真实问答。</span>
+        </div>
+        <button type="button" onClick={() => { setMessage(''); setComposerOpen(true); }}>
+          <Plus size={16} /> 发布
+        </button>
+      </div>
       <div className="square-shell">
-        <section className="panel square-composer">
-          <PanelTitle icon={Send} title="发布帖子" meta="图片 / 视频 / 文案" />
-          {message && <div className="message">{message}</div>}
-          <form className="form" onSubmit={submitPost}>
-            <label>类型
-              <select value={form.category} onChange={(e) => update('category', e.target.value)}>
-                {squareCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}
-              </select>
-            </label>
-            <label>关联地点
-              <input value={form.locationName} onChange={(e) => update('locationName', e.target.value)} placeholder="如 蜀南竹海" />
-            </label>
-            <label className="wide">标题
-              <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="给大家一个清楚的主题" required />
-            </label>
-            <label className="wide">正文
-              <textarea value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="分享路线、费用、避坑点、集合信息或你的旅行故事" required />
-            </label>
-            <label>出行日期
-              <input type="date" value={form.tripDate} onChange={(e) => update('tripDate', e.target.value)} />
-            </label>
-            <label>图片 URL
-              <textarea value={form.imageUrls} onChange={(e) => update('imageUrls', e.target.value)} placeholder="多个地址可换行或逗号分隔" />
-            </label>
-            <label className="wide">视频 URL
-              <textarea value={form.videoUrls} onChange={(e) => update('videoUrls', e.target.value)} placeholder="可填写 mp4 等视频地址，多个地址换行" />
-            </label>
-            <button><Send size={16} /> 发布到广场</button>
-          </form>
-        </section>
         <section className="square-feed">
           <div className="square-tabs">
             {squareCategories.map((item) => (
@@ -1297,90 +1304,308 @@ function Square() {
             <SquarePostCard
               key={post.id}
               post={post}
-              active={activePost?.id === post.id}
-              onSelect={() => setActivePostId(post.id)}
-              onLike={() => likePost(post.id)}
+              onSelect={() => navigateTo(`/square/posts/${post.id}`)}
             />
           )) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
         </section>
-        <aside className="panel square-discussion">
-          <PanelTitle icon={MessageCircle} title="帖子讨论" meta={activePost ? activePost.title : '未选择'} />
-          {activePost ? (
-            <>
-              <div className="square-discussion-head">
-                <span className="pill gold">{activePost.category}</span>
-                <strong>{activePost.title}</strong>
-                <p>{activePost.content}</p>
-              </div>
-              <div className="review-list">
-                {(commentsState.data || []).length ? (commentsState.data || []).map((comment) => (
-                  <div className="comment-item reply" key={comment.id}>
-                    <div className="comment-avatar small">{(comment.authorName || '游').slice(0, 1)}</div>
-                    <div className="comment-body">
-                      <div className="comment-topline">
-                        <strong>{comment.authorName || `游客${comment.userId || ''}`}</strong>
-                        <span>{comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : ''}</span>
-                      </div>
-                      <p>{comment.content}</p>
-                    </div>
-                  </div>
-                )) : <div className="empty-state compact">还没有讨论，先说两句。</div>}
-              </div>
-              <form className="ai-input" onSubmit={submitComment}>
-                <input value={commentText} onChange={(e) => setCommentText(e.target.value)} placeholder="回复这个帖子" required />
-                <button aria-label="发送评论"><Send size={16} /></button>
-              </form>
-            </>
-          ) : <div className="empty-state compact">选择一个帖子查看讨论。</div>}
-        </aside>
       </div>
+      {composerOpen && (
+        <div className="square-modal-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setComposerOpen(false);
+        }}>
+          <section className="panel square-composer square-modal" role="dialog" aria-modal="true" aria-label="发布帖子">
+            <div className="square-modal-head">
+              <PanelTitle icon={Send} title="发布帖子" meta={postTypeLabel(form.postType)} />
+              <button type="button" className="icon-button ghost" onClick={() => setComposerOpen(false)} aria-label="关闭发布窗口">
+                <X size={18} />
+              </button>
+            </div>
+            {message && <div className="message">{message}</div>}
+            <form className="form square-post-form" onSubmit={submitPost}>
+              <div className="square-type-switch wide">
+                {squarePostTypes.map(([value, label, desc]) => (
+                  <button
+                    key={value}
+                    type="button"
+                    className={form.postType === value ? 'active' : ''}
+                    onClick={() => update('postType', value)}
+                  >
+                    <strong>{label}</strong>
+                    <small>{desc}</small>
+                  </button>
+                ))}
+              </div>
+              <label>类型
+                <select value={form.category} onChange={(e) => update('category', e.target.value)}>
+                  {squareCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}
+                </select>
+              </label>
+              <label>关联地点
+                <input value={form.locationName} onChange={(e) => update('locationName', e.target.value)} placeholder="如 蜀南竹海" />
+              </label>
+              <label className="wide">标题
+                <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="给大家一个清楚的主题" required />
+              </label>
+              <label className="wide">正文
+                <textarea value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="分享路线、费用、避坑点、集合信息或你的旅行故事" required />
+              </label>
+              <div className="square-meta-fields wide">
+                <label>出行日期
+                  <input type="date" value={form.tripDate} onChange={(e) => update('tripDate', e.target.value)} />
+                </label>
+                <label>标签
+                  <input value={form.tags} onChange={(e) => update('tags', e.target.value)} placeholder="亲子游, 避坑, 周末游" />
+                </label>
+              </div>
+              <div className="square-upload-row wide">
+                <MediaUploader
+                  icon={Image}
+                  title="上传图片"
+                  hint="支持 JPG、PNG、WebP、GIF，单张不超过 10MB"
+                  accept="image/*"
+                  uploading={uploading === 'image'}
+                  urls={splitMediaUrls(form.imageUrls)}
+                  onFiles={(files) => uploadMedia(files, 'image')}
+                  onRemove={(url) => update('imageUrls', splitMediaUrls(form.imageUrls).filter((item) => item !== url).join('\n'))}
+                />
+                <MediaUploader
+                  icon={Video}
+                  title="上传视频"
+                  hint="支持 MP4、WebM、MOV，单个不超过 80MB"
+                  accept="video/*"
+                  uploading={uploading === 'video'}
+                  urls={splitMediaUrls(form.videoUrls)}
+                  onFiles={(files) => uploadMedia(files, 'video')}
+                  onRemove={(url) => update('videoUrls', splitMediaUrls(form.videoUrls).filter((item) => item !== url).join('\n'))}
+                />
+              </div>
+              <div className="square-modal-actions">
+                <button type="button" className="secondary" onClick={() => setComposerOpen(false)}>取消</button>
+                <button><Send size={16} /> 发布到广场</button>
+              </div>
+            </form>
+          </section>
+        </div>
+      )}
     </main>
   );
 }
 
-function SquarePostCard({ post, active, onSelect, onLike }) {
-  const liked = (post.likedUserIds || []).includes(userId);
+function SquarePostCard({ post, onSelect }) {
   const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
+  const cover = post.imageUrls?.[0];
+  const isQuestion = post.postType === 'QUESTION';
+  const isDiscussion = post.postType === 'DISCUSSION';
   return (
-    <article className={cx('square-post', active && 'active')} onClick={onSelect}>
+    <article className={cx('square-post', post.postType?.toLowerCase())} onClick={onSelect}>
+      {cover && (
+        <div className="square-cover">
+          <img src={cover} alt={post.title} />
+          {!!post.imageUrls?.length && post.imageUrls.length > 1 && <span>{post.imageUrls.length} 图</span>}
+        </div>
+      )}
       <div className="square-post-top">
         <div className="comment-avatar">{(post.authorName || '旅').slice(0, 1)}</div>
         <div>
           <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
           <span>{time}</span>
         </div>
-        <span className="pill gold">{post.category}</span>
+        <span className="pill gold">{postTypeLabel(post.postType)}</span>
       </div>
-      <h2>{post.title}</h2>
+      <h2>{isQuestion ? `问：${post.title}` : post.title}</h2>
       <p>{post.content}</p>
+      {!!post.tags?.length && <div className="square-tag-row">{post.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
       {(post.locationName || post.tripDate) && (
         <div className="square-meta">
           {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
           {post.tripDate && <span><CalendarDays size={14} /> {post.tripDate}</span>}
         </div>
       )}
-      {!!post.imageUrls?.length && (
+      {!cover && !!post.imageUrls?.length && (
         <div className="square-media-grid">
           {post.imageUrls.slice(0, 4).map((url) => <img key={url} src={url} alt={post.title} />)}
         </div>
       )}
       {!!post.videoUrls?.length && (
         <div className="square-video-list">
-          {post.videoUrls.slice(0, 2).map((url) => <video key={url} src={url} controls />)}
+          {post.videoUrls.slice(0, 2).map((url) => <video key={url} src={url} controls onClick={(event) => event.stopPropagation()} />)}
         </div>
       )}
       <div className="square-actions">
-        <button type="button" className={cx('heart-button', liked && 'liked')} onClick={(event) => { event.stopPropagation(); onLike(); }}>
-          <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
-          <span>{post.likes || 0}</span>
-        </button>
-        <button type="button" className="reply-button" onClick={(event) => { event.stopPropagation(); onSelect(); }}>
-          <MessageCircle size={16} /> {post.commentCount || 0}
-        </button>
+        <span><Heart size={16} /> {post.likes || 0}</span>
+        <span>{isQuestion ? <Lightbulb size={16} /> : <MessageCircle size={16} />} {isQuestion ? `${post.commentCount || 0} 回答` : isDiscussion ? `${post.commentCount || 0} 楼` : post.commentCount || 0}</span>
         {!!post.imageUrls?.length && <span><Image size={15} /> {post.imageUrls.length}</span>}
         {!!post.videoUrls?.length && <span><Video size={15} /> {post.videoUrls.length}</span>}
+        <button type="button" className="reply-button" onClick={(event) => { event.stopPropagation(); onSelect(); }}>
+          进入帖子
+        </button>
       </div>
     </article>
+  );
+}
+
+function SquarePostDetail({ id }) {
+  const [tick, setTick] = useState(0);
+  const [commentText, setCommentText] = useState('');
+  const [message, setMessage] = useState('');
+  const postState = useAsync(() => api(`/api/community/square/posts/${id}`), [id, tick]);
+  const commentsState = useAsync(() => api(`/api/community/square/posts/${id}/comments`), [id, tick]);
+  const post = postState.data;
+  const comments = commentsState.data || [];
+
+  async function likePost() {
+    try {
+      await api(`/api/community/square/posts/${id}/like?userId=${userId}`, { method: 'POST' });
+      setTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function submitComment(event) {
+    event.preventDefault();
+    try {
+      await api(`/api/community/square/posts/${id}/comments?userId=${userId}`, {
+        method: 'POST',
+        body: JSON.stringify({ content: commentText })
+      });
+      setCommentText('');
+      setTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  if (postState.loading) {
+    return <main className="container"><Loading /></main>;
+  }
+
+  if (postState.error || !post) {
+    return (
+      <main className="container narrow">
+        <div className="empty-state">帖子不存在或已被删除。</div>
+        <button className="secondary" onClick={() => navigateTo('/square')}><ArrowLeft size={16} /> 返回广场</button>
+      </main>
+    );
+  }
+
+  const liked = (post.likedUserIds || []).includes(userId);
+  const isQuestion = post.postType === 'QUESTION';
+  const isDiscussion = post.postType === 'DISCUSSION';
+  const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
+
+  return (
+    <main className="container square-detail-page">
+      <button type="button" className="secondary square-back" onClick={() => navigateTo('/square')}>
+        <ArrowLeft size={16} /> 返回广场
+      </button>
+      <article className="panel square-detail-card">
+        <div className="square-detail-top">
+          <div className="comment-avatar">{(post.authorName || '旅').slice(0, 1)}</div>
+          <div>
+            <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
+            <span>{time}</span>
+          </div>
+          <div className="pill-row">
+            <span className="pill gold">{post.category}</span>
+            <span className="pill">{postTypeLabel(post.postType)}</span>
+          </div>
+        </div>
+        <h1>{isQuestion ? `问：${post.title}` : post.title}</h1>
+        <p className="square-detail-content">{post.content}</p>
+        {!!post.tags?.length && <div className="square-tag-row">{post.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}
+        {(post.locationName || post.tripDate) && (
+          <div className="square-meta">
+            {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
+            {post.tripDate && <span><CalendarDays size={14} /> {post.tripDate}</span>}
+          </div>
+        )}
+        {!!post.imageUrls?.length && (
+          <div className="square-detail-gallery">
+            {post.imageUrls.map((url) => <img key={url} src={url} alt={post.title} />)}
+          </div>
+        )}
+        {!!post.videoUrls?.length && (
+          <div className="square-video-list">
+            {post.videoUrls.map((url) => <video key={url} src={url} controls />)}
+          </div>
+        )}
+        <div className="square-detail-actions">
+          <button type="button" className={cx('heart-button detail-like', liked && 'liked')} onClick={likePost}>
+            <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+            {liked ? '已点赞' : '点赞'} {post.likes || 0}
+          </button>
+          <span>{isQuestion ? <Lightbulb size={16} /> : <MessageCircle size={16} />} {isQuestion ? `${post.commentCount || 0} 个回答` : isDiscussion ? `${post.commentCount || 0} 层讨论` : `${post.commentCount || 0} 条评论`}</span>
+        </div>
+        {message && <div className="message error">{message}</div>}
+      </article>
+      <section className="panel square-comment-panel">
+        <PanelTitle icon={isQuestion ? Lightbulb : MessageCircle} title={isQuestion ? '回答' : '评论'} meta={`${comments.length} 条`} />
+        <form className="review-composer square-detail-composer" onSubmit={submitComment}>
+          <div className="comment-avatar">我</div>
+          <div className="composer-main">
+            <textarea
+              value={commentText}
+              onChange={(event) => setCommentText(event.target.value)}
+              placeholder={isQuestion ? '写下你的回答' : '写下你的评论'}
+              required
+            />
+            <div className="composer-actions">
+              <span className="muted">{isQuestion ? '回答会展示在帖子下方。' : '评论会展示在帖子下方。'}</span>
+              <button><Send size={16} /> 发布</button>
+            </div>
+          </div>
+        </form>
+        <div className="review-list">
+          {comments.length ? comments.map((comment, index) => (
+            <div className={cx('comment-item reply', isQuestion && 'answer')} key={comment.id}>
+              <div className="comment-avatar small">{(comment.authorName || '游').slice(0, 1)}</div>
+              <div className="comment-body">
+                <div className="comment-topline">
+                  <strong>{comment.authorName || `游客${comment.userId || ''}`}</strong>
+                  <span>{isDiscussion ? `${index + 2} 楼 · ` : ''}{comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : ''}</span>
+                </div>
+                <p>{comment.content}</p>
+              </div>
+            </div>
+          )) : <div className="empty-state compact">{isQuestion ? '还没有回答，来写第一条。' : '还没有评论，来写第一条。'}</div>}
+        </div>
+      </section>
+    </main>
+  );
+}
+
+function MediaUploader({ icon: Icon, title, hint, accept, uploading, urls, onFiles, onRemove }) {
+  const inputId = `${title}-${accept}`;
+  return (
+    <div className="media-uploader">
+      <div className="media-uploader-head">
+        <span><Icon size={18} /> {title}</span>
+        <label htmlFor={inputId}>{uploading ? '上传中...' : '选择文件'}</label>
+        <input
+          id={inputId}
+          type="file"
+          accept={accept}
+          multiple
+          disabled={uploading}
+          onChange={(event) => {
+            onFiles(event.target.files);
+            event.target.value = '';
+          }}
+        />
+      </div>
+      <small>{hint}</small>
+      {!!urls.length && (
+        <div className="media-chip-list">
+          {urls.map((url) => (
+            <button key={url} type="button" onClick={() => onRemove(url)} title="移除这个文件">
+              {url.split('/').pop()}
+              <Trash2 size={14} />
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1702,6 +1927,8 @@ function App() {
   if (path === '/guide/nearby') page = <Guide {...props} />;
   if (path === '/route') page = <RoutePage {...props} />;
   if (path === '/square') page = <Square />;
+  const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
+  if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} />;
   if (path === '/me') page = <Profile />;
   if (path === '/submit-spot') page = <SubmitSpot />;
   if (path === '/login') page = <Login refreshAccount={refreshAccount} />;

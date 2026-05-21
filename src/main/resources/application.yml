@@ -22,6 +22,10 @@ spring:
         format_sql: true
   thymeleaf:
     cache: false
+  servlet:
+    multipart:
+      max-file-size: 80MB
+      max-request-size: 120MB
 
 travel:
   map:

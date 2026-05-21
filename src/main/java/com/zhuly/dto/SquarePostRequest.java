@@ -23,8 +23,10 @@ public class SquarePostRequest {
     @NotBlank(message = "请选择帖子类型")
     private String category;
 
+    private String postType;
     private String locationName;
     private String tripDate;
     private List<String> imageUrls = new ArrayList<String>();
     private List<String> videoUrls = new ArrayList<String>();
+    private List<String> tags = new ArrayList<String>();
 }

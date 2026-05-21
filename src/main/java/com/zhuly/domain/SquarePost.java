@@ -27,6 +27,7 @@ public class SquarePost {
 
     private Long userId;
     private String authorName;
+    private String postType;
     private String category;
     private String title;
 
@@ -38,6 +39,9 @@ public class SquarePost {
 
     @ElementCollection
     private List<String> videoUrls = new ArrayList<String>();
+
+    @ElementCollection
+    private List<String> tags = new ArrayList<String>();
 
     private String locationName;
     private String tripDate;

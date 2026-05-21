@@ -15,6 +15,7 @@ import com.zhuly.repository.SquarePostRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,19 +23,30 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import javax.validation.Valid;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/community")
 @RequiredArgsConstructor
 public class CommunityController {
+
+    private static final List<String> IMAGE_TYPES = Arrays.asList("image/jpeg", "image/png", "image/webp", "image/gif");
+    private static final List<String> VIDEO_TYPES = Arrays.asList("video/mp4", "video/webm", "video/quicktime");
 
     private final ReviewRepository reviewRepository;
     private final ScenicSpotRepository spotRepository;
@@ -102,7 +114,7 @@ public class CommunityController {
     @Transactional(readOnly = true)
     public List<Map<String, Object>> squarePosts(@RequestParam(required = false) String category) {
         List<SquarePost> posts;
-        if (category != null && category.trim().length() > 0 && !"全部".equals(category.trim())) {
+        if (category != null && category.trim().length() > 0 && !isAllCategory(category)) {
             posts = squarePostRepository.findByCategoryAndHiddenFalseOrderByCreatedAtDesc(category.trim());
         } else {
             posts = squarePostRepository.findByHiddenFalseOrderByCreatedAtDesc();
@@ -110,12 +122,25 @@ public class CommunityController {
         return posts.stream().map(this::squarePostBody).collect(Collectors.toList());
     }
 
+    @GetMapping("/square/posts/{id}")
+    @Transactional(readOnly = true)
+    public Map<String, Object> squarePostDetail(@PathVariable Long id) {
+        SquarePost post = squarePostRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("帖子不存在"));
+        if (post.isHidden()) {
+            throw new IllegalArgumentException("帖子不存在");
+        }
+        return squarePostBody(post);
+    }
+
     @PostMapping("/square/posts")
+    @Transactional
     public Map<String, Object> squarePost(@RequestParam(defaultValue = "1") Long userId,
                                           @Valid @RequestBody SquarePostRequest request) {
         SquarePost post = new SquarePost();
         post.setUserId(userId);
         post.setAuthorName("游客" + userId);
+        post.setPostType(trimToDefault(request.getPostType(), "NOTE"));
         post.setCategory(request.getCategory().trim());
         post.setTitle(request.getTitle().trim());
         post.setContent(request.getContent().trim());
@@ -123,8 +148,36 @@ public class CommunityController {
         post.setTripDate(trimToNull(request.getTripDate()));
         post.setImageUrls(cleanUrls(request.getImageUrls()));
         post.setVideoUrls(cleanUrls(request.getVideoUrls()));
+        post.setTags(cleanUrls(request.getTags()));
         post.setCreatedAt(LocalDateTime.now());
         return squarePostBody(squarePostRepository.save(post));
+    }
+
+    @PostMapping("/square/uploads")
+    public Map<String, Object> uploadSquareMedia(@RequestParam(defaultValue = "image") String type,
+                                                 @RequestParam("files") MultipartFile[] files) throws IOException {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("请选择要上传的文件");
+        }
+        String mediaType = "video".equalsIgnoreCase(type) ? "video" : "image";
+        Path uploadRoot = Paths.get("data", "uploads", "square", mediaType).toAbsolutePath().normalize();
+        Files.createDirectories(uploadRoot);
+        List<String> urls = new ArrayList<String>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            validateMediaFile(mediaType, file);
+            String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+            String filename = UUID.randomUUID().toString().replace("-", "") + (extension == null ? "" : "." + extension.toLowerCase());
+            Path target = uploadRoot.resolve(filename).normalize();
+            if (!target.startsWith(uploadRoot)) {
+                throw new IllegalArgumentException("文件名不合法");
+            }
+            file.transferTo(target.toFile());
+            urls.add("/uploads/square/" + mediaType + "/" + filename);
+        }
+        return Collections.singletonMap("urls", urls);
     }
 
     @PostMapping("/square/posts/{id}/like")
@@ -212,11 +265,13 @@ public class CommunityController {
         body.put("id", post.getId());
         body.put("userId", post.getUserId());
         body.put("authorName", post.getAuthorName());
+        body.put("postType", post.getPostType());
         body.put("category", post.getCategory());
         body.put("title", post.getTitle());
         body.put("content", post.getContent());
         body.put("imageUrls", new ArrayList<String>(post.getImageUrls()));
         body.put("videoUrls", new ArrayList<String>(post.getVideoUrls()));
+        body.put("tags", new ArrayList<String>(post.getTags()));
         body.put("locationName", post.getLocationName());
         body.put("tripDate", post.getTripDate());
         body.put("likes", post.getLikes());
@@ -224,5 +279,27 @@ public class CommunityController {
         body.put("commentCount", post.getCommentCount());
         body.put("createdAt", post.getCreatedAt());
         return body;
+    }
+
+    private String trimToDefault(String value, String defaultValue) {
+        String trimmed = trimToNull(value);
+        return trimmed == null ? defaultValue : trimmed;
+    }
+
+    private boolean isAllCategory(String category) {
+        String trimmed = category == null ? "" : category.trim();
+        return "ALL".equalsIgnoreCase(trimmed) || "\u5168\u90e8".equals(trimmed);
+    }
+
+    private void validateMediaFile(String type, MultipartFile file) {
+        String contentType = file.getContentType();
+        boolean valid = "video".equals(type) ? VIDEO_TYPES.contains(contentType) : IMAGE_TYPES.contains(contentType);
+        if (!valid) {
+            throw new IllegalArgumentException("不支持的文件类型");
+        }
+        long maxSize = "video".equals(type) ? 80L * 1024L * 1024L : 10L * 1024L * 1024L;
+        if (file.getSize() > maxSize) {
+            throw new IllegalArgumentException("文件过大");
+        }
     }
 }
