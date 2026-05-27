@@ -3,10 +3,82 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>星涌</title>
+    <meta http-equiv="Cache-Control" content="no-store" />
+    <title>&#26143;&#28044;</title>
+    <style>
+      .html-theme-dock {
+        position: fixed;
+        right: 18px;
+        top: 154px;
+        z-index: 9999;
+        display: grid;
+        gap: 6px;
+        padding: 6px;
+        border: 1px solid rgba(147, 197, 253, .28);
+        border-radius: 16px;
+        background: rgba(8, 14, 32, .88);
+        box-shadow: 0 18px 44px rgba(3, 7, 18, .34);
+        backdrop-filter: blur(16px);
+      }
+      .html-theme-dock button {
+        min-width: 92px;
+        min-height: 38px;
+        border: 0;
+        border-radius: 12px;
+        color: rgba(219, 234, 254, .78);
+        background: transparent;
+        font: 700 13px "Microsoft YaHei", sans-serif;
+        cursor: pointer;
+      }
+      .html-theme-dock button.active {
+        color: #fff;
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+      }
+      body[data-theme="day"] .html-theme-dock {
+        border-color: rgba(42, 79, 126, .16);
+        background: rgba(255, 255, 255, .9);
+      }
+      body[data-theme="day"] .html-theme-dock button {
+        color: #526579;
+      }
+      body[data-theme="day"] .html-theme-dock button.active {
+        color: #fff;
+      }
+    </style>
   </head>
   <body>
+    <div class="html-theme-dock" role="group" aria-label="&#20027;&#39064;&#20999;&#25442;">
+      <button type="button" data-theme-pick="night">&#26143;&#22812;&#40657;</button>
+      <button type="button" data-theme-pick="day">&#26085;&#20809;&#30333;</button>
+    </div>
     <div id="root"></div>
+    <script>
+      (function () {
+        var key = 'travelCloudTheme';
+        function applyTheme(theme) {
+          var next = theme === 'day' ? 'day' : 'night';
+          document.documentElement.dataset.theme = next;
+          document.body.dataset.theme = next;
+          if (!document.getElementById('daylight-html-guard')) {
+            var style = document.createElement('style');
+            style.id = 'daylight-html-guard';
+            style.textContent = 'html[data-theme="day"] .portal-nav a,body[data-theme="day"] .portal-nav a{color:#263a59!important}html[data-theme="day"] .portal-nav a.active,body[data-theme="day"] .portal-nav a.active{color:#0f172a!important}html[data-theme="day"] .container :where(.panel,.card,.toolbar,.location-strip,.selected-item,.choice,.list-item){color:#172033!important;background:rgba(255,255,255,.92)!important}';
+            document.head.appendChild(style);
+          }
+          try { localStorage.setItem(key, JSON.stringify(next)); } catch (error) {}
+          document.querySelectorAll('[data-theme-pick]').forEach(function (button) {
+            button.classList.toggle('active', button.dataset.themePick === next);
+          });
+        }
+        var saved = 'night';
+        try { saved = JSON.parse(localStorage.getItem(key) || '"night"'); } catch (error) {}
+        applyTheme(saved);
+        document.addEventListener('click', function (event) {
+          var button = event.target.closest('[data-theme-pick]');
+          if (button) applyTheme(button.dataset.themePick);
+        });
+      })();
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

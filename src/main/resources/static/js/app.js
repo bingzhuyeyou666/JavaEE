@@ -12,6 +12,8 @@ let routeMap;
 let routeDriving;
 let spotMap;
 let footprintMap;
+let currentCulturalProducts = [];
+let selectedCulturalProductId = null;
 
 function showHero(index) {
     const slides = document.querySelectorAll('.hero-slide');
@@ -549,11 +551,79 @@ async function initSpotDetail() {
     const {spotId} = detailContext();
     document.querySelector('#visitDate').valueAsDate = new Date();
     await initSpotMap();
+    await loadCulturalProducts();
     const crowd = await api(`/api/spots/${spotId}/crowd-index`);
     document.querySelector('#crowd').innerHTML = `当前人流：<strong class="status-${crowd.color}">${crowd.level}</strong>，${crowd.currentCount}/${crowd.maxCapacity}`;
     const weather = await api(`/api/spots/${spotId}/weather`);
     renderWeatherPanel(weather);
     await loadReviews();
+}
+
+async function loadCulturalProducts() {
+    const host = document.querySelector('#culturalProducts');
+    if (!host) return;
+    const {spotId} = detailContext();
+    currentCulturalProducts = await api(`/api/spots/${spotId}/products`).catch(() => []);
+    if (!currentCulturalProducts.length) {
+        host.innerHTML = '<p class="muted">暂无文创商品。</p>';
+        return;
+    }
+    selectedCulturalProductId = selectedCulturalProductId || currentCulturalProducts[0].id;
+    host.innerHTML = currentCulturalProducts.map(product => culturalProductCard(product, true)).join('');
+}
+
+function culturalProductCard(product, selectable) {
+    const checked = selectedCulturalProductId === product.id ? 'checked' : '';
+    const choose = selectable ? `
+        <label class="shop-choice">
+            <input type="radio" name="culturalProduct" value="${product.id}" ${checked} onchange="selectCulturalProduct(${product.id})">
+            <span>选择</span>
+        </label>` : '';
+    return `
+        <article class="cultural-product-card">
+            <img src="${product.imageUrl}" alt="${escapeHtml(product.name)}">
+            <div>
+                <div class="pill-row">
+                    <span class="pill gold">${escapeHtml(product.category || '文创')}</span>
+                    <span class="pill">库存 ${product.stock ?? 0}</span>
+                </div>
+                <strong>${escapeHtml(product.name)}</strong>
+                <p>${escapeHtml(product.description || '')}</p>
+                <div class="shop-buy-row">
+                    <span class="shop-price">¥${Number(product.price || 0).toFixed(2)}</span>
+                    ${choose}
+                </div>
+            </div>
+        </article>`;
+}
+
+function selectCulturalProduct(id) {
+    selectedCulturalProductId = id;
+}
+
+async function submitCulturalOrder() {
+    if (!selectedCulturalProductId) {
+        alert('请先选择一件文创商品');
+        return;
+    }
+    const resultBox = document.querySelector('#shopOrderResult');
+    const body = {
+        productId: selectedCulturalProductId,
+        quantity: 1,
+        receiverName: document.querySelector('#shopReceiverName').value.trim(),
+        receiverPhone: document.querySelector('#shopReceiverPhone').value.trim(),
+        shippingAddress: document.querySelector('#shopAddress').value.trim()
+    };
+    try {
+        const result = await api(`/api/cultural-orders?userId=${currentUserId}`, {
+            method: 'POST',
+            body: JSON.stringify(body)
+        });
+        resultBox.textContent = `下单成功：${result.orderNo}，合计 ¥${Number(result.totalAmount || 0).toFixed(2)}`;
+        await loadCulturalProducts();
+    } catch (error) {
+        resultBox.textContent = error.message || '下单失败';
+    }
 }
 
 function summarizeSpotWeather(items) {
@@ -773,6 +843,7 @@ async function askSpotAssistant() {
         });
         loading.innerHTML = `
             <div>${escapeHtml(result.answer).replace(/\n/g, '<br>')}</div>
+            ${renderAssistantProducts(result.productRecommendations || [])}
             <div class="ai-links">
                 <strong>联网搜索参考：</strong>
                 ${result.webSearchSuggestions.map((link, index) => `<a href="${link}" target="_blank">参考 ${index + 1}</a>`).join('')}
@@ -781,6 +852,27 @@ async function askSpotAssistant() {
         loading.textContent = error.message;
     }
     messages.scrollTop = messages.scrollHeight;
+}
+
+function renderAssistantProducts(products) {
+    if (!products.length) return '';
+    return `
+        <div class="ai-product-recommendations">
+            <strong>文创推荐</strong>
+            ${products.map(product => `
+                <button class="ai-product-chip" type="button" onclick="focusCulturalProduct(${product.id})">
+                    ${escapeHtml(product.name)} · ¥${Number(product.price || 0).toFixed(2)}
+                </button>
+            `).join('')}
+        </div>`;
+}
+
+function focusCulturalProduct(id) {
+    selectedCulturalProductId = id;
+    document.querySelectorAll('input[name="culturalProduct"]').forEach(input => {
+        input.checked = Number(input.value) === id;
+    });
+    document.querySelector('.cultural-shop-panel')?.scrollIntoView({behavior: 'smooth', block: 'start'});
 }
 
 function escapeHtml(value) {

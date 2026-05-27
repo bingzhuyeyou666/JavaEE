@@ -2,6 +2,7 @@ package com.zhuly.controller;
 
 import com.zhuly.domain.ScenicSpot;
 import com.zhuly.repository.ScenicSpotRepository;
+import com.zhuly.service.BaiduPlaceService;
 import com.zhuly.service.CheckInService;
 import com.zhuly.service.GeoUtils;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +20,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import org.springframework.transaction.annotation.Transactional;
 
 @RestController
 @RequestMapping("/api/spots")
@@ -27,6 +29,7 @@ public class ScenicSpotController {
 
     private final ScenicSpotRepository spotRepository;
     private final CheckInService checkInService;
+    private final BaiduPlaceService baiduPlaceService;
 
     @GetMapping
     public List<Map<String, Object>> list(@RequestParam(required = false) String keyword,
@@ -54,6 +57,7 @@ public class ScenicSpotController {
     }
 
     @GetMapping("/{id}")
+    @Transactional
     public ScenicSpot detail(@PathVariable Long id) {
         ScenicSpot spot = spotRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Scenic spot not found"));
@@ -63,6 +67,7 @@ public class ScenicSpotController {
         if ((spot.getCoverImage() == null || spot.getCoverImage().trim().isEmpty()) && !spot.getGallery().isEmpty()) {
             spot.setCoverImage(spot.getGallery().get(0));
         }
+        spot.setPhone(baiduPlaceService.phoneFor(spot));
         return spot;
     }
 

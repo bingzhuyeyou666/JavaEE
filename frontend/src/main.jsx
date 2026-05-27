@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import {
   ArrowLeft,
@@ -16,14 +16,17 @@ import {
   Map,
   MapPin,
   MessageCircle,
+  Moon,
   Navigation,
   Plus,
   RefreshCw,
   Search,
   Send,
   ShieldCheck,
+  ShoppingBag,
   Sparkles,
   Star,
+  Sun,
   Trash2,
   UserRound,
   Users,
@@ -34,14 +37,197 @@ import './styles.css';
 
 const userId = 1;
 const routeKey = 'travelCloudChosenRoute';
+const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
+const daylightContrastStyleId = 'daylight-contrast-guard';
+const daylightContrastCss = `
+html[data-theme="day"] body,
+body[data-theme="day"] {
+  color: #172033 !important;
+}
+html[data-theme="day"] .site-header,
+body[data-theme="day"] .site-header {
+  background: linear-gradient(180deg, rgba(255,255,255,.96), rgba(246,250,255,.9)) !important;
+}
+html[data-theme="day"] .portal-nav,
+html[data-theme="day"] .portal-nav a,
+body[data-theme="day"] .portal-nav,
+body[data-theme="day"] .portal-nav a {
+  color: #263a59 !important;
+}
+html[data-theme="day"] .portal-nav a.active,
+html[data-theme="day"] .portal-nav a:hover,
+body[data-theme="day"] .portal-nav a.active,
+body[data-theme="day"] .portal-nav a:hover {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like,.cultural-shop),
+body[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like,.cultural-shop) {
+  color: #172033 !important;
+  background: rgba(255,255,255,.92) !important;
+  border-color: rgba(31,60,96,.18) !important;
+}
+html[data-theme="day"] .container :where(h1,h2,h3,h4,strong,label,.panel-title,.panel-title span,.card h2,.choice strong,.selected-item strong,.metric strong,.list-item strong,.toolbar label),
+body[data-theme="day"] .container :where(h1,h2,h3,h4,strong,label,.panel-title,.panel-title span,.card h2,.choice strong,.selected-item strong,.metric strong,.list-item strong,.toolbar label) {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .container :where(p,small,.muted,.card .muted,.choice small,.metric span,.list-item p,.panel-title small),
+body[data-theme="day"] .container :where(p,small,.muted,.card .muted,.choice small,.metric span,.list-item p,.panel-title small) {
+  color: #526579 !important;
+}
+html[data-theme="day"] .container :where(button.secondary,.secondary,.icon-button.ghost,button.ghost),
+body[data-theme="day"] .container :where(button.secondary,.secondary,.icon-button.ghost,button.ghost) {
+  color: #17365f !important;
+  background: rgba(255,255,255,.9) !important;
+  border-color: rgba(31,60,96,.22) !important;
+}
+html[data-theme="day"] .detail-hero,
+html[data-theme="day"] .detail-hero *,
+html[data-theme="day"] .page-hero,
+html[data-theme="day"] .page-hero *,
+html[data-theme="day"] .hero-caption,
+html[data-theme="day"] .hero-caption *,
+html[data-theme="day"] .weather-core,
+html[data-theme="day"] .weather-core *,
+body[data-theme="day"] .detail-hero,
+body[data-theme="day"] .detail-hero *,
+body[data-theme="day"] .page-hero,
+body[data-theme="day"] .page-hero *,
+body[data-theme="day"] .hero-caption,
+body[data-theme="day"] .hero-caption *,
+body[data-theme="day"] .weather-core,
+body[data-theme="day"] .weather-core * {
+  color: #fffaf0 !important;
+}
+html[data-theme="day"] .weather-core .weather-tag,
+body[data-theme="day"] .weather-core .weather-tag {
+  color: #17365f !important;
+  background: rgba(255,255,255,.92) !important;
+}
+html[data-theme="day"] .cultural-shop :where(.panel-title,.panel-title span,h2,h3,.cultural-product strong),
+body[data-theme="day"] .cultural-shop :where(.panel-title,.panel-title span,h2,h3,.cultural-product strong) {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .cultural-shop :where(.muted,.cultural-product small,.cultural-product p),
+body[data-theme="day"] .cultural-shop :where(.muted,.cultural-product small,.cultural-product p) {
+  color: #526579 !important;
+}
+html[data-theme="day"] .cultural-product em,
+body[data-theme="day"] .cultural-product em {
+  color: #b45309 !important;
+}
+html[data-theme="day"] .signature-stage,
+body[data-theme="day"] .signature-stage {
+  color: #0f172a !important;
+  background: rgba(255,255,255,.92) !important;
+  border-color: rgba(35,63,103,.18) !important;
+}
+html[data-theme="day"] .signature-copy h2,
+body[data-theme="day"] .signature-copy h2 {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .signature-copy p,
+body[data-theme="day"] .signature-copy p {
+  color: #526579 !important;
+}
+html[data-theme="day"] .constellation-board,
+body[data-theme="day"] .constellation-board {
+  background: rgba(241,247,255,.82) !important;
+  border-color: rgba(35,63,103,.16) !important;
+}
+html[data-theme="day"] .constellation-point,
+html[data-theme="day"] .constellation-point strong,
+body[data-theme="day"] .constellation-point,
+body[data-theme="day"] .constellation-point strong {
+  color: #17365f !important;
+}
+html[data-theme="day"] .constellation-point strong,
+body[data-theme="day"] .constellation-point strong {
+  background: rgba(255,255,255,.82) !important;
+  border-color: rgba(35,63,103,.18) !important;
+}
+html[data-theme="day"] .guide-command-stats span,
+body[data-theme="day"] .guide-command-stats span {
+  color: #526579 !important;
+  background: rgba(235,243,255,.86) !important;
+  border-color: rgba(35,63,103,.18) !important;
+}
+html[data-theme="day"] .guide-command-stats strong,
+body[data-theme="day"] .guide-command-stats strong {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .locate-ui-header,
+html[data-theme="day"] .explore-range-panel,
+html[data-theme="day"] .guide-locate-text,
+html[data-theme="day"] .locate-status-bar,
+body[data-theme="day"] .locate-ui-header,
+body[data-theme="day"] .explore-range-panel,
+body[data-theme="day"] .guide-locate-text,
+body[data-theme="day"] .locate-status-bar {
+  color: #0f172a !important;
+  background: rgba(255,255,255,.88) !important;
+  border-color: rgba(35,63,103,.2) !important;
+}
+html[data-theme="day"] .locate-ui-header span,
+html[data-theme="day"] .locate-status-bar span,
+html[data-theme="day"] .explore-range-panel span,
+body[data-theme="day"] .locate-ui-header span,
+body[data-theme="day"] .locate-status-bar span,
+body[data-theme="day"] .explore-range-panel span {
+  color: #2563eb !important;
+}
+html[data-theme="day"] .locate-ui-header strong,
+html[data-theme="day"] .locate-status-bar strong,
+html[data-theme="day"] .explore-range-panel strong,
+body[data-theme="day"] .locate-ui-header strong,
+body[data-theme="day"] .locate-status-bar strong,
+body[data-theme="day"] .explore-range-panel strong {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .badge-showcase,
+body[data-theme="day"] .badge-showcase {
+  color: #0f172a !important;
+  background: rgba(255,255,255,.9) !important;
+}
+html[data-theme="day"] .footprint-badge-card,
+body[data-theme="day"] .footprint-badge-card {
+  color: #0f172a !important;
+  background: rgba(246,250,255,.92) !important;
+  border-color: rgba(35,63,103,.18) !important;
+}
+html[data-theme="day"] .badge-copy strong,
+body[data-theme="day"] .badge-copy strong {
+  color: #0f172a !important;
+}
+html[data-theme="day"] .badge-copy p,
+body[data-theme="day"] .badge-copy p {
+  color: #526579 !important;
+}
+html[data-theme="day"] .badge-copy span,
+body[data-theme="day"] .badge-copy span {
+  color: #17365f !important;
+  background: rgba(219,234,254,.92) !important;
+}
+html[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span,
+body[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span {
+  color: #7c2d12 !important;
+  background: #fde68a !important;
+}
+`;
 const squareCategories = ['全部', '景点影像', '旅游拼团', '旅游心得', '注意事项', '提问求助'];
 const squarePostTypes = [
   ['NOTE', '图文笔记', '像小红书一样展示图片、标签和旅行灵感'],
   ['DISCUSSION', '讨论帖', '像贴吧一样开帖交流，评论按楼层展开'],
   ['QUESTION', '问答帖', '像知乎一样提出问题，沉淀高质量回答']
+];
+const footprintBadgeCatalog = [
+  { key: 'first', title: '初遇', subtitle: '完成第 1 个景点打卡', required: 1, image: '/app/badges/badge-first-step.png' },
+  { key: 'explorer', title: '初探', subtitle: '累计打卡 3 个景点', required: 3, image: '/app/badges/badge-explorer.png' },
+  { key: 'ranger', title: '行侠', subtitle: '累计打卡 10 个景点', required: 10, image: '/app/badges/badge-ranger.png' },
+  { key: 'city-walker', title: '城市漫游家', subtitle: '累计打卡 20 个景点', required: 20, image: '/app/badges/badge-city-walker.png' },
+  { key: 'grand-tour', title: '远行者', subtitle: '累计打卡 50 个景点', required: 50, image: '/app/badges/badge-grand-tour.png' }
 ];
 const navItems = [
   ['/', '首页', House],
@@ -125,6 +311,14 @@ function cx(...names) {
   return names.filter(Boolean).join(' ');
 }
 
+function ensureDaylightContrastStyle() {
+  if (document.getElementById(daylightContrastStyleId)) return;
+  const style = document.createElement('style');
+  style.id = daylightContrastStyleId;
+  style.textContent = daylightContrastCss;
+  document.head.appendChild(style);
+}
+
 function normalizeAppHref(href) {
   return window.location.port === '5173' && href.startsWith('/') ? `/app${href === '/' ? '/' : href}` : href;
 }
@@ -180,7 +374,7 @@ function useAsync(loader, deps) {
   return state;
 }
 
-function Header({ account, refreshAccount, path }) {
+function Header({ account, refreshAccount, path, theme, setTheme }) {
   const isAdmin = account.admin?.loggedIn;
   const isUser = account.user?.loggedIn;
   const label = isAdmin ? `管理员 ${account.admin.username || 'admin'}` : isUser ? `游客 ${account.user.username || 'demo'}` : '游客模式';
@@ -200,6 +394,14 @@ function Header({ account, refreshAccount, path }) {
         </Link>
         <div className="header-right">
           <p>让风景、路线、服务和故事在一张图上相遇。</p>
+          <div className="theme-switch" role="group" aria-label="切换主题">
+            <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')} title="星夜黑">
+              <Moon size={15} /> 星夜黑
+            </button>
+            <button className={theme === 'day' ? 'active' : ''} type="button" onClick={() => setTheme('day')} title="日光白">
+              <Sun size={15} /> 日光白
+            </button>
+          </div>
           <Link href={actionHref} className="account-entry">
             <span className="avatar">{isAdmin ? <ShieldCheck size={18} /> : <UserRound size={18} />}</span>
             <span>
@@ -409,6 +611,7 @@ function locateByBrowser(onSuccess, onStatus) {
       onSuccess({
         lat: position.coords.latitude,
         lng: position.coords.longitude,
+        accuracy: position.coords.accuracy,
         label: '当前位置'
       });
       onStatus?.('定位成功，已按当前位置刷新结果。');
@@ -456,6 +659,20 @@ function useBaiduMap() {
 
 function fetchNearbySpots(location) {
   return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}&userId=${userId}`);
+}
+
+function formatDistanceKm(distanceKm) {
+  const value = Number(distanceKm);
+  if (!Number.isFinite(value) || value === 99999) return '距离计算中';
+  return `${new Intl.NumberFormat('zh-CN', {
+    maximumFractionDigits: value >= 100 ? 0 : 1
+  }).format(value)} km`;
+}
+
+function formatTicketPrice(price) {
+  const value = Number(price || 0);
+  if (!Number.isFinite(value) || value <= 0) return '免费';
+  return `¥${new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(value)}`;
 }
 
 function BaiduMap({ center = defaultLocation, markers = [], route = false, polyline = false, className = '' }) {
@@ -515,10 +732,17 @@ function GuideLanding() {
   const sessionLocated = readSessionFlag(sessionLocatedKey);
   const initialLocation = sessionLocated ? storedLocation : null;
   const [location, setLocation] = useState(initialLocation);
-  const [nearbySignals, setNearbySignals] = useState([]);
+  const [allNearbySignals, setAllNearbySignals] = useState([]);
+  const [exploreRadius, setExploreRadius] = useState(20);
   const [loading, setLoading] = useState(false);
   const [readyToEnter, setReadyToEnter] = useState(Boolean(initialLocation));
   const [scanBurst, setScanBurst] = useState(false);
+  const [showSuccessToast, setShowSuccessToast] = useState(false);
+  const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+  const [mapScale, setMapScale] = useState(1);
+  const panDragRef = useRef(null);
+  const suppressLocateClickRef = useRef(false);
+  const suppressSignalClickRef = useRef(false);
 
   useEffect(() => {
     if (!readyToEnter || !location) return;
@@ -530,12 +754,11 @@ function GuideLanding() {
           ? data
               .slice()
               .sort((a, b) => Number(a.distanceKm ?? 99999) - Number(b.distanceKm ?? 99999))
-              .slice(0, 9)
           : [];
-        setNearbySignals(list);
+        setAllNearbySignals(list);
       })
       .catch(() => {
-        if (alive) setNearbySignals([]);
+        if (alive) setAllNearbySignals([]);
       });
     return () => {
       alive = false;
@@ -543,9 +766,16 @@ function GuideLanding() {
   }, [readyToEnter, location]);
 
   function handleLocate() {
-    if (readyToEnter && location) return;
+    if (suppressLocateClickRef.current) {
+      suppressLocateClickRef.current = false;
+      return;
+    }
     setLoading(true);
     setScanBurst(true);
+    setReadyToEnter(false);
+    setAllNearbySignals([]);
+    setPanOffset({ x: 0, y: 0 });
+    setMapScale(1);
     locateByBrowser(
       (nextLocation) => {
         const normalized = { ...nextLocation, label: nextLocation.label || '当前位置' };
@@ -553,6 +783,8 @@ function GuideLanding() {
         saveLocationState(nearbyLocationKey, normalized);
         writeSessionFlag(sessionLocatedKey, true);
         setReadyToEnter(true);
+        setShowSuccessToast(true);
+        window.setTimeout(() => setShowSuccessToast(false), 1800);
       },
       () => {}
     );
@@ -561,74 +793,276 @@ function GuideLanding() {
   }
   const hasLocated = readyToEnter && Boolean(location);
 
+  const starPoints = useMemo(() => {
+    let seed = 928371;
+    const random = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    return Array.from({ length: 560 }, (_, index) => {
+      const cluster = index % 19 === 0;
+      const anchorX = random() * 100;
+      const anchorY = random() * 100;
+      return {
+        x: cluster ? anchorX + (random() - 0.5) * 1.8 : random() * 100,
+        y: cluster ? anchorY + (random() - 0.5) * 1.8 : random() * 100,
+        size: index % 53 === 0 ? 2.7 : index % 17 === 0 ? 1.8 : 0.7 + random() * 0.9,
+        duration: 3 + random() * 4.8,
+        delay: -random() * 5,
+        warmth: random()
+      };
+    });
+  }, []);
+
+  const nearbySignals = useMemo(() => {
+    return allNearbySignals
+      .filter((spot) => Number(spot.distanceKm ?? 99999) <= exploreRadius)
+      .slice(0, 36);
+  }, [allNearbySignals, exploreRadius]);
+
   useEffect(() => {
     document.body.classList.add('guide-open');
     return () => document.body.classList.remove('guide-open');
   }, []);
 
+  function startPanDrag(event) {
+    const fromCenterControl = event.target.closest('.center-locate-button');
+    if (!hasLocated || (!fromCenterControl && event.target.closest('button, a, input, textarea, select, .signal-preview'))) return;
+    panDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      x: panOffset.x,
+      y: panOffset.y,
+      moved: false
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function movePanDrag(event) {
+    if (!panDragRef.current) return;
+    const nextX = panDragRef.current.x + event.clientX - panDragRef.current.startX;
+    const nextY = panDragRef.current.y + event.clientY - panDragRef.current.startY;
+    if (Math.hypot(event.clientX - panDragRef.current.startX, event.clientY - panDragRef.current.startY) > 4) {
+      panDragRef.current.moved = true;
+    }
+    setPanOffset({
+      x: Math.max(-900, Math.min(900, nextX)),
+      y: Math.max(-560, Math.min(560, nextY))
+    });
+  }
+
+  function endPanDrag(event) {
+    if (panDragRef.current?.moved) {
+      suppressSignalClickRef.current = true;
+      if (event.target.closest('.center-locate-button')) {
+        suppressLocateClickRef.current = true;
+      }
+      window.setTimeout(() => {
+        suppressLocateClickRef.current = false;
+        suppressSignalClickRef.current = false;
+      }, 0);
+    }
+    panDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
+  function zoomStarMap(event) {
+    if (!hasLocated || event.target.closest('button, a, input, textarea, select, .signal-preview')) return;
+    event.preventDefault();
+    const rect = event.currentTarget.getBoundingClientRect();
+    const pointerX = event.clientX - rect.left - rect.width / 2;
+    const pointerY = event.clientY - rect.top - rect.height / 2;
+    const nextScale = Math.max(0.55, Math.min(3.2, mapScale * (event.deltaY < 0 ? 1.12 : 0.9)));
+    const ratio = nextScale / mapScale;
+    setMapScale(nextScale);
+    setPanOffset((current) => ({
+      x: Math.max(-1200, Math.min(1200, pointerX - (pointerX - current.x) * ratio)),
+      y: Math.max(-760, Math.min(760, pointerY - (pointerY - current.y) * ratio))
+    }));
+  }
+
+  const projectedSignals = useMemo(() => {
+    const points = nearbySignals.map((spot, index) => {
+      const distance = Number(spot.distanceKm ?? 99999);
+      const distanceRatio = Number.isFinite(distance) && distance !== 99999
+        ? Math.min(1, distance / Math.max(exploreRadius, 1))
+        : index / Math.max(nearbySignals.length - 1, 1);
+      const radius = Math.min(620, 118 + distanceRatio * 430 + (index % 4) * 18);
+      const angle = index * 2.3999632297 + (index % 2 ? 0.28 : -0.18);
+      const x = Math.cos(angle) * radius;
+      const y = Math.sin(angle) * radius * 0.62 + ((index % 3) - 1) * 18;
+      const z = 0;
+      return {
+        ...spot,
+        x,
+        y,
+        z,
+        centerPassing: Math.hypot(x * mapScale, y * mapScale) < 96,
+        visibleScale: 1,
+        visibleOpacity: 1
+      };
+    });
+    if (!points.length) return points;
+    const minX = Math.min(...points.map((spot) => spot.x));
+    const maxX = Math.max(...points.map((spot) => spot.x));
+    const minY = Math.min(...points.map((spot) => spot.y));
+    const maxY = Math.max(...points.map((spot) => spot.y));
+    const centerX = (minX + maxX) / 2;
+    const centerY = (minY + maxY) / 2;
+    return points.map((spot) => {
+      const x = spot.x - centerX;
+      const y = spot.y - centerY;
+      return {
+        ...spot,
+        x,
+        y,
+        centerPassing: Math.hypot(x * mapScale, y * mapScale) < 96
+      };
+    });
+  }, [nearbySignals, exploreRadius, mapScale]);
+
+  const centerOccluded = projectedSignals.some((spot) => spot.centerPassing);
+
   return (
     <main className="guide-landing">
-      <section className={cx('guide-intro-stage', loading && 'scanning', scanBurst && 'bursting', hasLocated && 'located')}>
+      <section
+        className={cx('guide-intro-stage', loading && 'scanning', scanBurst && 'bursting', hasLocated && 'located', centerOccluded && 'center-occluded')}
+        onPointerDown={startPanDrag}
+        onPointerMove={movePanDrag}
+        onPointerUp={endPanDrag}
+        onPointerCancel={endPanDrag}
+        onWheel={zoomStarMap}
+      >
         <div className="locate-ui-header">
           <span>星涌定位</span>
           <strong>附近景点雷达</strong>
         </div>
+        <div className="explore-range-panel">
+          <span>探索范围</span>
+          <strong>{exploreRadius} km 内</strong>
+          {location && (
+            <small className="explore-location-readout">
+              {Number(location.lat).toFixed(4)}, {Number(location.lng).toFixed(4)}
+              {location.accuracy ? ` · 精度约 ${Math.round(location.accuracy)}m` : ''}
+            </small>
+          )}
+          <input
+            type="range"
+            min="5"
+            max="3000"
+            step="25"
+            value={exploreRadius}
+            onChange={(event) => setExploreRadius(Number(event.target.value))}
+            aria-label="设置探索范围"
+          />
+        </div>
         <div className="starfield" aria-hidden="true">
-          {Array.from({ length: 190 }).map((_, index) => (
+          {starPoints.map((star, index) => (
             <span
               key={index}
-              className="star"
+              className={cx('star', star.warmth > 0.86 && 'warm', star.warmth < 0.16 && 'blue')}
               style={{
-                '--x': `${(index * 37) % 100}vw`,
-                '--y': `${(index * 61) % 100}vh`,
-                '--size': `${index % 17 === 0 ? 3 : 1 + (index % 3)}px`,
-                '--duration': `${2.4 + (index % 8) * 0.45}s`,
-                '--delay': `${(index % 18) * -0.22}s`
+                '--x': `${star.x}vw`,
+                '--y': `${star.y}vh`,
+                '--size': `${star.size}px`,
+                '--duration': `${star.duration}s`,
+                '--delay': `${star.delay}s`
               }}
             />
           ))}
         </div>
-        <div className="cosmic-grid" aria-hidden="true" />
-        <div className="warp-tunnel" aria-hidden="true" />
-        <div className="scan-core" aria-hidden="true">
-          <span className="scan-ring ring-1" />
-          <span className="scan-ring ring-2" />
-          <span className="scan-ring ring-3" />
-          <span className="scan-beam beam-a" />
-          <span className="scan-beam beam-b" />
-          <span className="scan-sweep" />
+        <div className="guide-3d-scene">
+          <div className="cosmic-grid" aria-hidden="true" />
+          <div className="warp-tunnel" aria-hidden="true" />
+          <div className="scan-core" aria-hidden="true">
+            <span className="scan-ring ring-1" />
+            <span className="scan-ring ring-2" />
+            <span className="scan-ring ring-3" />
+            <span className="scan-beam beam-a" />
+            <span className="scan-beam beam-b" />
+            <span className="scan-sweep" />
+          </div>
+          <div className="particle-stream stream-a" aria-hidden="true" />
+          <div className="particle-stream stream-b" aria-hidden="true" />
+          <div className="particle-stream stream-c" aria-hidden="true" />
+          <div
+            className="flat-star-map-plane"
+            style={{
+              '--pan-x': `${panOffset.x}px`,
+              '--pan-y': `${panOffset.y}px`,
+              '--map-scale': mapScale
+            }}
+          >
+            <div className="guide-sphere-shell" aria-hidden="true">
+              <span className="sphere-ring ring-x" />
+              <span className="sphere-ring ring-y" />
+              <span className="sphere-ring ring-z" />
+              <span className="sphere-glow" />
+            </div>
+            <div className="nearby-signal-layer">
+              {projectedSignals.map((spot, index) => {
+                const isNearest = index === 0;
+                const isFarthest = index === projectedSignals.length - 1 && index !== 0;
+                return (
+                  <div
+                    key={spot.id || index}
+                    className={cx('nearby-signal', spot.y < -70 && 'preview-below', spot.centerPassing && 'center-passing', isNearest && 'nearest', isFarthest && 'farthest')}
+                    role="link"
+                    tabIndex={0}
+                    aria-label={`查看${spot.name}详情`}
+                    onClick={(event) => {
+                      if (suppressSignalClickRef.current) {
+                        event.preventDefault();
+                        event.stopPropagation();
+                        return;
+                      }
+                      navigateTo(`/spots/${spot.id}`);
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        navigateTo(`/spots/${spot.id}`);
+                      }
+                    }}
+                    style={{
+                      '--x': `${spot.x}px`,
+                      '--y': `${spot.y}px`,
+                      '--z': `${spot.z}px`,
+                      '--depth-scale': spot.visibleScale,
+                      '--depth-opacity': spot.visibleOpacity,
+                      '--delay': `${index * 140}ms`,
+                      '--size': `${5 + (index % 3)}px`,
+                      zIndex: spot.centerPassing ? 240 : 80 + index
+                    }}
+                  >
+                    <span className="signal-billboard">
+                      <span className="signal-dot" />
+                      {(isNearest || isFarthest) && <span className="signal-extreme">{isNearest ? '最近' : '最远'}</span>}
+                      <span className="signal-name">{spot.name}</span>
+                      <span className="signal-preview">
+                        <img src={spot.coverImage} alt={spot.name} />
+                        <strong>{spot.name}</strong>
+                        <small>{spot.type} · {formatDistanceKm(spot.distanceKm)}</small>
+                      </span>
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+            <button className={cx('center-locate-button', loading && 'loading')} type="button" onClick={handleLocate}>
+              <span className="center-locate-sphere">
+                <MapPin size={18} />
+                <span>{loading ? '定位中' : '探索'}</span>
+              </span>
+            </button>
+          </div>
         </div>
-        <div className="particle-stream stream-a" aria-hidden="true" />
-        <div className="particle-stream stream-b" aria-hidden="true" />
-        <div className="particle-stream stream-c" aria-hidden="true" />
-        <div className="guide-locate-text">
-          {loading ? '星图正在折叠，锁定你的坐标' : hasLocated ? '定位完成，附近景点已点亮' : '点击定位，点亮附近景点星图'}
-        </div>
-        <div className="nearby-signal-layer" aria-hidden="true">
-          {nearbySignals.map((spot, index) => {
-            const angle = index * 2.3999632297 - Math.PI / 2;
-            const radius = 94 + index * 34;
-            return (
-              <div
-                key={spot.id || index}
-                className="nearby-signal"
-                style={{
-                  '--x': `${Math.cos(angle) * radius}px`,
-                  '--y': `${Math.sin(angle) * radius}px`,
-                  '--delay': `${index * 140}ms`,
-                  '--size': `${9 + (index % 3) * 2}px`
-                }}
-              >
-                <span className="signal-dot" />
-                <span className="signal-name">{spot.name}</span>
-              </div>
-            );
-          })}
-        </div>
-        <button className={cx('center-locate-button', loading && 'loading')} type="button" onClick={handleLocate}>
-          <MapPin size={18} />
-          {loading ? '正在定位' : hasLocated ? '已定位' : '开始定位'}
-        </button>
+        {(loading || !hasLocated) && (
+          <div className="guide-locate-text">
+            {loading ? '星图正在折叠，锁定你的坐标' : '点击定位，点亮附近景点星图'}
+          </div>
+        )}
+        {showSuccessToast && <div className="locate-success-flash">定位成功，附近景点已点亮</div>}
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
           <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
@@ -935,14 +1369,34 @@ function SpotDetail({ id, addRoute }) {
   const weather = useAsync(() => api(`/api/spots/${id}/weather`), [id]);
   const crowd = useAsync(() => api(`/api/spots/${id}/crowd-index`), [id]);
   const facilities = useAsync(() => spot ? api(`/api/facilities?lat=${spot.latitude}&lng=${spot.longitude}&radiusKm=8`) : Promise.resolve([]), [spot?.id]);
+  const [productTick, setProductTick] = useState(0);
+  const products = useAsync(() => api(`/api/spots/${id}/products`), [id, productTick]);
   const [reviewTick, setReviewTick] = useState(0);
   const reviews = useAsync(() => api(`/api/community/spots/${id}/reviews`), [id, reviewTick]);
   const [reservation, setReservation] = useState({ visitDate: new Date().toISOString().slice(0, 10), timeSlot: '09:00-12:00', people: 1 });
+  const [selectedProductId, setSelectedProductId] = useState(null);
+  const [orderForm, setOrderForm] = useState({ receiverName: '', receiverPhone: '', shippingAddress: '' });
   const [reviewForm, setReviewForm] = useState({ score: 5, content: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
+  const [assistantProducts, setAssistantProducts] = useState([]);
+  const [assistantMeta, setAssistantMeta] = useState('');
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState([
+    { role: 'assistant', content: '你好，我是星涌导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
+  ]);
+  const [assistantPosition, setAssistantPosition] = useState(null);
+  const assistantDragRef = useRef(null);
+  const assistantDraggedRef = useRef(false);
   const [message, setMessage] = useState('');
+  useEffect(() => {
+    const list = products.data || [];
+    if (list.length && !list.some((product) => product.id === selectedProductId)) {
+      setSelectedProductId(list[0].id);
+    }
+  }, [products.data, selectedProductId]);
   if (loading) return <main className="container"><Loading /></main>;
   if (error) return <main className="container"><div className="message error">{error}</div></main>;
   const spotMarker = { ...spot, lat: Number(spot.latitude), lng: Number(spot.longitude) };
@@ -966,6 +1420,95 @@ function SpotDetail({ id, addRoute }) {
   async function playTts() {
     const result = await api(`/api/spots/${id}/tts`);
     setMessage(`语音导览地址：${result.audioUrl}`);
+  }
+  async function submitCulturalOrder(event) {
+    event.preventDefault();
+    if (!selectedProductId) {
+      setMessage('请先选择一件文创商品。');
+      return;
+    }
+    const session = await api('/api/auth/status').catch(() => ({ loggedIn: false }));
+    if (!session.loggedIn) {
+      setMessage('请先登录后再购买文创商品。');
+      window.setTimeout(() => navigateTo('/login'), 650);
+      return;
+    }
+    const result = await api(`/api/cultural-orders?userId=${userId}`, {
+      method: 'POST',
+      body: JSON.stringify({
+        productId: selectedProductId,
+        quantity: 1,
+        ...orderForm
+      })
+    });
+    setMessage(`文创订单提交成功：${result.orderNo}，合计 ¥${Number(result.totalAmount || 0).toFixed(2)}。`);
+    setOrderForm({ receiverName: '', receiverPhone: '', shippingAddress: '' });
+    setProductTick((value) => value + 1);
+  }
+  async function askAssistant(nextQuestion = question) {
+    const normalized = nextQuestion.trim();
+    if (!normalized || assistantLoading) return;
+    setAssistantLoading(true);
+    setAssistantMeta('');
+    try {
+      const data = await api(`/api/spots/${id}/assistant`, {
+        method: 'POST',
+        timeoutMs: 30000,
+        body: JSON.stringify({ question: normalized })
+      });
+      const meta = data.source === 'aliyun-bailian' ? `百炼 ${data.model || ''}`.trim() : '本地知识库';
+      setAnswer(data.answer);
+      setAssistantProducts(data.productRecommendations || []);
+      setAssistantMeta(meta);
+      setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: data.answer, meta }]);
+      setQuestion('');
+    } catch (error) {
+      const fallbackAnswer = error.message || 'AI 助手暂时不可用，请稍后再试。';
+      setAnswer(fallbackAnswer);
+      setAssistantProducts([]);
+      setAssistantMeta('请求失败');
+      setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+  function startAssistantDrag(event) {
+    if (event.button !== 0) return;
+    const box = event.currentTarget.closest('.floating-ai')?.getBoundingClientRect();
+    if (!box) return;
+    assistantDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      x: box.left,
+      y: box.top,
+      moved: false
+    };
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+  function moveAssistantDrag(event) {
+    const drag = assistantDragRef.current;
+    if (!drag) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.hypot(deltaX, deltaY) > 4) {
+      drag.moved = true;
+      assistantDraggedRef.current = true;
+    }
+    const panelWidth = assistantOpen ? 420 : 88;
+    const panelHeight = assistantOpen ? 620 : 88;
+    setAssistantPosition({
+      x: Math.max(10, Math.min(window.innerWidth - panelWidth - 10, drag.x + deltaX)),
+      y: Math.max(10, Math.min(window.innerHeight - Math.min(panelHeight, window.innerHeight - 20) - 10, drag.y + deltaY))
+    });
+  }
+  function endAssistantDrag(event) {
+    if (assistantDragRef.current?.moved) {
+      window.setTimeout(() => {
+        assistantDraggedRef.current = false;
+      }, 0);
+    }
+    assistantDragRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
   async function submitReview(event) {
     event.preventDefault();
@@ -1014,8 +1557,8 @@ function SpotDetail({ id, addRoute }) {
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
             <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('星涌景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
-          <div className="gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
-          <InfoGrid items={[['开放时间', spot.openHours], ['门票', `¥${spot.price || 0}`], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
+          <div className="gallery detail-gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
+          <InfoGrid items={[['开放时间', spot.openHours], ['门票', formatTicketPrice(spot.price)], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
           <h3>导览与历史</h3>
           <p>{spot.guide}</p>
           <p>{spot.history}</p>
@@ -1037,6 +1580,35 @@ function SpotDetail({ id, addRoute }) {
               </form>
             </>
           )}
+          <section id="cultural-shop" className="cultural-shop">
+            <PanelTitle icon={ShoppingBag} title="景点文创商城" meta="纪念品与伴手礼" />
+            <p className="muted">挑选当前景点的文创商品，订单为课程演示支付流程。</p>
+            <div className="cultural-product-grid">
+              {products.loading ? <div className="empty-state compact">文创商品加载中...</div> : (products.data || []).length ? (products.data || []).map((product) => (
+                <label className={cx('cultural-product', selectedProductId === product.id && 'active')} key={product.id}>
+                  <input
+                    type="radio"
+                    name="culturalProduct"
+                    checked={selectedProductId === product.id}
+                    onChange={() => setSelectedProductId(product.id)}
+                  />
+                  <img src={product.imageUrl} alt={product.name} />
+                  <span>
+                    <strong>{product.name}</strong>
+                    <small>{product.category} · 库存 {product.stock ?? 0}</small>
+                    <em>¥{Number(product.price || 0).toFixed(2)}</em>
+                    <p>{product.description}</p>
+                  </span>
+                </label>
+              )) : <div className="empty-state compact">暂无文创商品。</div>}
+            </div>
+            <form className="shop-order-form" onSubmit={submitCulturalOrder}>
+              <input value={orderForm.receiverName} onChange={(e) => setOrderForm({ ...orderForm, receiverName: e.target.value })} placeholder="收货人姓名" required />
+              <input value={orderForm.receiverPhone} onChange={(e) => setOrderForm({ ...orderForm, receiverPhone: e.target.value })} placeholder="联系电话" required />
+              <textarea value={orderForm.shippingAddress} onChange={(e) => setOrderForm({ ...orderForm, shippingAddress: e.target.value })} placeholder="收货地址" required />
+              <button><ShoppingBag size={16} /> 提交文创订单</button>
+            </form>
+          </section>
           <section className="comment-section">
             <PanelTitle icon={MessageCircle} title="游客评论" meta={`${rootReviews.length} 条讨论`} />
             <form className="review-composer" onSubmit={submitReview}>
@@ -1103,19 +1675,83 @@ function SpotDetail({ id, addRoute }) {
               </article>
             ))}
           </div>
-          <div className="ai-box">
-            {answer && <div className="ai-answer">{answer}</div>}
-            <div className="ai-input">
-              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder="询问景点攻略" />
-              <button onClick={async () => {
-                if (!question.trim()) return;
-                const data = await api(`/api/spots/${id}/assistant`, { method: 'POST', body: JSON.stringify({ question }) });
-                setAnswer(data.answer);
-                setQuestion('');
-              }}><Send size={16} /></button>
-            </div>
-          </div>
         </aside>
+      </div>
+      <div className={cx('floating-ai', assistantOpen && 'open', assistantPosition && 'dragged')} style={assistantPosition ? { left: assistantPosition.x, top: assistantPosition.y } : undefined}>
+        {assistantOpen && (
+          <section className="floating-ai-panel" aria-label="AI 景点助手">
+            <div className="floating-ai-head" onPointerDown={startAssistantDrag} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag}>
+              <span className="ai-avatar-mini"><Sparkles size={18} /></span>
+              <div>
+                <strong>星涌 AI 导览</strong>
+                <small>{spot.name}</small>
+              </div>
+              <button className="icon-button ghost" type="button" onClick={() => setAssistantOpen(false)} aria-label="关闭 AI 助手">
+                <X size={17} />
+              </button>
+            </div>
+            <div className="floating-ai-scroll">
+              <div className="floating-ai-messages">
+                {assistantMessages.map((item, index) => (
+                  <div className={cx('floating-ai-message', item.role)} key={`${item.role}-${index}`}>
+                    {item.meta && <small>{item.meta}</small>}
+                    <p>{item.content}</p>
+                  </div>
+                ))}
+                {assistantLoading && <div className="floating-ai-message assistant"><small>思考中</small><p>正在结合当前景点资料生成回答...</p></div>}
+              </div>
+              {!!assistantProducts.length && (
+                <div className="ai-product-list compact">
+                  <strong>AI 推荐文创</strong>
+                  {assistantProducts.map((product) => (
+                    <button
+                      className="ai-product-button"
+                      type="button"
+                      key={product.id}
+                      onClick={() => {
+                        setSelectedProductId(product.id);
+                        setAssistantOpen(false);
+                        document.getElementById('cultural-shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }}
+                    >
+                      <ShoppingBag size={15} /> {product.name} · ¥{Number(product.price || 0).toFixed(2)}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+            <div className="ai-suggestion-row">
+              <button className="secondary" type="button" disabled={assistantLoading} onClick={() => askAssistant('这个景点有什么文创伴手礼可以买？')}>文创推荐</button>
+              <button className="secondary" type="button" disabled={assistantLoading} onClick={() => askAssistant('第一次来这里应该怎么玩？')}>游玩建议</button>
+            </div>
+            <div className="ai-input">
+              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={`问 ${spot.name} 的攻略`} disabled={assistantLoading} />
+              <button onClick={() => askAssistant()} disabled={assistantLoading}>
+                {assistantLoading ? <RefreshCw size={16} /> : <Send size={16} />}
+              </button>
+            </div>
+          </section>
+        )}
+        <button
+          className="floating-ai-person"
+          type="button"
+          onPointerDown={startAssistantDrag}
+          onPointerMove={moveAssistantDrag}
+          onPointerUp={endAssistantDrag}
+          onPointerCancel={endAssistantDrag}
+          onClick={() => {
+            if (assistantDraggedRef.current) return;
+            setAssistantOpen((value) => !value);
+          }}
+          aria-label="打开 AI 景点助手"
+        >
+          <span className="ai-face">
+            <span className="ai-eye left" />
+            <span className="ai-eye right" />
+            <span className="ai-mouth" />
+          </span>
+          <span className="ai-bubble-dot" />
+        </button>
       </div>
     </main>
   );
@@ -1638,26 +2274,67 @@ function WeatherSymbol({ icon }) {
 function Profile() {
   const footprints = useAsync(() => api(`/api/users/${userId}/footprints`), []);
   const reservations = useAsync(() => api(`/api/reservations/mine?userId=${userId}`), []);
+  const culturalOrders = useAsync(() => api(`/api/cultural-orders/mine?userId=${userId}`), []);
   const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${userId}`), []);
+  const checkedTotal = footprints.data?.total || 0;
   return (
     <main className="container">
       <PageHero icon={UserRound} title="个人中心" body="集中查看打卡足迹、预约记录、勋章和申报进度。" />
       <div className="dashboard">
-        <Metric value={footprints.data?.total ?? '--'} label="已打卡" />
-        <Metric value={footprints.data?.badges?.length ?? '--'} label="勋章" />
+        <Metric value={checkedTotal || '--'} label="已打卡" />
+        <Metric value={footprintBadgeCatalog.filter((badge) => checkedTotal >= badge.required).length} label="勋章" />
         <Metric value={reservations.data?.length ?? '--'} label="预约" />
-        <Metric value={submissions.data?.length ?? '--'} label="申报" />
+        <Metric value={culturalOrders.data?.length ?? '--'} label="文创订单" />
       </div>
+      <FootprintBadges total={checkedTotal} />
       <section className="panel">
         <PanelTitle icon={Map} title="旅游足迹地图" />
         <BaiduMap center={defaultLocation} markers={footprints.data?.checkedInSpots || []} polyline className="footprint-map" />
       </section>
       <div className="layout">
-        <ListPanel title="足迹勋章" icon={BadgeCheck} items={(footprints.data?.badges || []).map((badge) => ({ title: badge, body: '继续探索解锁更多勋章' }))} empty="暂无勋章" />
+        <ListPanel title="最近解锁" icon={BadgeCheck} items={(footprints.data?.badges || []).map((badge) => ({ title: badge, body: '继续探索解锁更多勋章' }))} empty="暂无勋章" />
         <ListPanel title="我的预约" icon={CalendarDays} items={(reservations.data || []).map((item) => ({ title: `景点 ID ${item.spotId}`, body: `${item.visitDate} ${item.timeSlot} · ${item.status}` }))} empty="暂无预约" />
       </div>
+      <ListPanel
+        title="我的文创订单"
+        icon={ShoppingBag}
+        items={(culturalOrders.data || []).map((item) => ({
+          title: item.productName,
+          body: `${item.orderNo} · ${item.status} · ${item.quantity} 件 · ¥${Number(item.totalAmount || 0).toFixed(2)} · ${item.shippingAddress}`
+        }))}
+        empty={culturalOrders.error || '暂无文创订单'}
+      />
       <ListPanel title="我的申报" icon={Plus} items={(submissions.data || []).map((item) => ({ title: item.name, body: `${item.status} · ${item.address}` }))} empty="暂无申报" />
     </main>
+  );
+}
+
+function FootprintBadges({ total }) {
+  return (
+    <section className="panel badge-showcase">
+      <PanelTitle icon={BadgeCheck} title="足迹勋章" meta={`${total} / 50 景`} />
+      <div className="badge-track">
+        {footprintBadgeCatalog.map((badge) => {
+          const unlocked = total >= badge.required;
+          const progress = Math.min(100, Math.round((total / badge.required) * 100));
+          return (
+            <article className={cx('footprint-badge-card', unlocked && 'unlocked')} key={badge.key}>
+              <div className="badge-medal">
+                <img src={badge.image} alt={`${badge.title}徽章`} />
+              </div>
+              <div className="badge-copy">
+                <span>{unlocked ? '已解锁' : `还差 ${badge.required - total} 景`}</span>
+                <strong>{badge.title}</strong>
+                <p>{badge.subtitle}</p>
+                <div className="badge-progress" aria-label={`${badge.title}进度 ${progress}%`}>
+                  <i style={{ width: `${progress}%` }} />
+                </div>
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -1901,7 +2578,12 @@ function ListPanel({ title, icon: Icon, items, empty }) {
 function App() {
   const path = usePath();
   const [route, setRoute] = useState(() => readStorageJson(routeKey, []));
+  const [theme, setThemeState] = useState(() => readStorageJson(themeKey, 'night'));
   const [account, setAccount] = useState({ admin: {}, user: {} });
+  function setTheme(nextTheme) {
+    setThemeState(nextTheme);
+    writeStorageJson(themeKey, nextTheme);
+  }
   function saveRoute(next) {
     setRoute(next);
     writeStorageJson(routeKey, next);
@@ -1919,7 +2601,16 @@ function App() {
     const user = admin.loggedIn ? { loggedIn: false } : await api('/api/auth/status').catch(() => ({ loggedIn: false }));
     setAccount({ admin, user });
   }
+  useEffect(() => {
+    document.querySelector('.html-theme-dock')?.remove();
+  }, []);
   useEffect(() => { refreshAccount(); }, []);
+  useEffect(() => {
+    const nextTheme = theme === 'day' ? 'day' : 'night';
+    document.documentElement.dataset.theme = nextTheme;
+    document.body.dataset.theme = nextTheme;
+    ensureDaylightContrastStyle();
+  }, [theme]);
 
   const props = { route, addRoute, removeRoute, clearRoute: () => saveRoute([]) };
   let page = <Home addRoute={addRoute} />;
@@ -1938,7 +2629,15 @@ function App() {
 
   return (
     <>
-      <Header account={account} refreshAccount={refreshAccount} path={path} />
+      <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />
+      <div className="theme-dock" role="group" aria-label="主题切换">
+        <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')}>
+          <Moon size={16} /> 星夜黑
+        </button>
+        <button className={theme === 'day' ? 'active' : ''} type="button" onClick={() => setTheme('day')}>
+          <Sun size={16} /> 日光白
+        </button>
+      </div>
       {page}
       <footer className="footer">
         <span>星涌 · 智慧文旅综合服务平台</span>

@@ -45,6 +45,9 @@ public class CheckInService {
 
     public List<String> badges(int total) {
         List<String> badges = new ArrayList<>();
+        if (total >= 1) {
+            badges.add("初遇·1景");
+        }
         if (total >= 3) {
             badges.add("初探·3景");
         }
@@ -53,6 +56,9 @@ public class CheckInService {
         }
         if (total >= 20) {
             badges.add("城市漫游家·20景");
+        }
+        if (total >= 50) {
+            badges.add("远行者·50景");
         }
         return badges;
     }

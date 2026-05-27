@@ -7,3 +7,6 @@ frontend/node_modules/
 *.log
 .DS_Store
 data/
+.env
+application-local.yml
+src/main/resources/application-local.yml

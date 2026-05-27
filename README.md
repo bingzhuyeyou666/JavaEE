@@ -19,6 +19,15 @@
 mvn spring-boot:run
 ```
 
+AI 助手已接入阿里云百炼 OpenAI 兼容接口。启动前先在本机设置环境变量，避免把密钥写进代码：
+
+```powershell
+$env:DASHSCOPE_API_KEY="你的百炼API Key"
+mvn spring-boot:run
+```
+
+默认模型是 `qwen-plus`，可通过 `travel.ai.model` 或环境配置调整。未配置密钥或百炼请求失败时，系统会自动回退到本地景点知识库回答。
+
 启动后访问：
 
 - 用户端首页：http://localhost:8080/

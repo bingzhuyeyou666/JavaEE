@@ -106,6 +106,20 @@
                     <button class="secondary" type="button" onclick="askSuggestedQuestion('这个景点的成立和发展过程是什么？')">发展过程</button>
                     <button class="secondary" type="button" onclick="askSuggestedQuestion('第一次来这里应该怎么玩？')">游玩建议</button>
                     <button class="secondary" type="button" onclick="askSuggestedQuestion('这个景点适合什么季节去？')">最佳季节</button>
+                    <button class="secondary" type="button" onclick="askSuggestedQuestion('这个景点有什么文创伴手礼可以买？')">文创推荐</button>
+                </div>
+            </div>
+
+            <div class="panel cultural-shop-panel">
+                <h2>景点文创商城</h2>
+                <p class="muted">购买当前景点的纪念品、伴手礼和亲子文创，订单为课程演示支付流程。</p>
+                <div id="culturalProducts" class="cultural-product-list"></div>
+                <div class="cultural-order-form">
+                    <input id="shopReceiverName" placeholder="收货人姓名">
+                    <input id="shopReceiverPhone" placeholder="联系电话">
+                    <textarea id="shopAddress" rows="3" placeholder="收货地址"></textarea>
+                    <button type="button" onclick="submitCulturalOrder()" style="width:100%">提交文创订单</button>
+                    <p id="shopOrderResult" class="muted"></p>
                 </div>
             </div>
 
