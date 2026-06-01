@@ -41,6 +41,10 @@ const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
+const blockedPresetLocations = [
+  { lat: 28.77, lng: 104.64, label: '宜宾' },
+  { lat: 31.2304, lng: 121.4737, label: '上海' }
+];
 const daylightContrastStyleId = 'daylight-contrast-guard';
 const daylightContrastCss = `
 html[data-theme="day"] body,
@@ -301,10 +305,23 @@ function readSessionFlag(key) {
 
 function writeSessionFlag(key, value) {
   try {
-    window.sessionStorage?.setItem(key, value ? 'true' : 'false');
+    if (value) {
+      window.sessionStorage?.setItem(key, 'true');
+    } else {
+      window.sessionStorage?.removeItem(key);
+    }
   } catch (error) {
-    // Session storage can be unavailable; the UI still works without the flag.
+    // Session storage can be unavailable; the UI still falls back to explicit location actions.
   }
+}
+
+function isBlockedPresetLocation(location) {
+  if (!location) return false;
+  const label = String(location.label || '');
+  return blockedPresetLocations.some((preset) => {
+    const samePoint = Math.abs(Number(location.lat) - preset.lat) < 0.0002 && Math.abs(Number(location.lng) - preset.lng) < 0.0002;
+    return samePoint || label.includes(preset.label);
+  });
 }
 
 function cx(...names) {
@@ -595,8 +612,10 @@ function Loading() {
 
 function useNearbyLocation() {
   return useMemo(() => {
+    if (!readSessionFlag(sessionLocatedKey)) return null;
     const saved = readStorageJson(nearbyLocationKey, null);
-    return saved ? readLocationState(nearbyLocationKey, defaultLocation) : null;
+    const location = saved ? readLocationState(nearbyLocationKey, defaultLocation) : null;
+    return isBlockedPresetLocation(location) ? null : location;
   }, []);
 }
 
@@ -728,14 +747,11 @@ function BaiduMap({ center = defaultLocation, markers = [], route = false, polyl
 }
 
 function GuideLanding() {
-  const storedLocation = useNearbyLocation();
-  const sessionLocated = readSessionFlag(sessionLocatedKey);
-  const initialLocation = sessionLocated ? storedLocation : null;
-  const [location, setLocation] = useState(initialLocation);
+  const [location, setLocation] = useState(null);
   const [allNearbySignals, setAllNearbySignals] = useState([]);
   const [exploreRadius, setExploreRadius] = useState(20);
   const [loading, setLoading] = useState(false);
-  const [readyToEnter, setReadyToEnter] = useState(Boolean(initialLocation));
+  const [readyToEnter, setReadyToEnter] = useState(false);
   const [scanBurst, setScanBurst] = useState(false);
   const [showSuccessToast, setShowSuccessToast] = useState(false);
   const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
@@ -785,6 +801,7 @@ function GuideLanding() {
         setReadyToEnter(true);
         setShowSuccessToast(true);
         window.setTimeout(() => setShowSuccessToast(false), 1800);
+        window.setTimeout(() => navigateTo('/guide/nearby'), 520);
       },
       () => {}
     );
@@ -822,6 +839,7 @@ function GuideLanding() {
 
   useEffect(() => {
     document.body.classList.add('guide-open');
+    writeSessionFlag(sessionLocatedKey, false);
     return () => document.body.classList.remove('guide-open');
   }, []);
 
@@ -1067,24 +1085,23 @@ function GuideLanding() {
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
           <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
-        {readyToEnter && (
-          <button className="next-step-fab" type="button" onClick={() => navigateTo('/guide/nearby')}>
-            下一步
-          </button>
-        )}
       </section>
     </main>
   );
 }
 
 function Guide({ route, addRoute, removeRoute, clearRoute }) {
+  const nearbyLocation = useNearbyLocation();
   const [keyword, setKeyword] = useState('');
   const [type, setType] = useState('');
   const [sort, setSort] = useState('distance');
-  const [location, setLocation] = useState(defaultLocation);
+  const [location, setLocation] = useState(nearbyLocation);
   const [locationMessage, setLocationMessage] = useState('');
-  const query = `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}&userId=${userId}`;
-  const { data, loading, error } = useAsync(() => api(`/api/spots?${query}`), [keyword, type, location.lat, location.lng]);
+  const query = location ? `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}&userId=${userId}` : '';
+  const { data, loading, error } = useAsync(
+    () => (location ? api(`/api/spots?${query}`) : Promise.resolve([])),
+    [keyword, type, location?.lat, location?.lng]
+  );
   const spots = useMemo(() => {
     const list = [...(data || [])];
     if (sort === 'rating') list.sort((a, b) => b.rating - a.rating);
@@ -1102,7 +1119,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
           <div className="guide-command-stats">
             <span><strong>{spots.length || '--'}</strong> 个信号</span>
             <span><strong>{route.length}</strong> 个已选</span>
-            <span><strong>{location.label}</strong> 当前锚点</span>
+            <span><strong>{location?.label || '待定位'}</strong> 当前锚点</span>
           </div>
         </div>
         <div className="guide-search-console">
@@ -1123,11 +1140,20 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
           </div>
           <div className="location-strip guide-location-strip">
             <MapPin size={18} />
-            <strong>{location.label}</strong>
-            <span>{Number(location.lat).toFixed(4)}, {Number(location.lng).toFixed(4)}</span>
-            <button className="secondary" onClick={() => locateByBrowser(setLocation, setLocationMessage)}>定位</button>
-            <button className="secondary" onClick={() => setLocation({ lat: 31.23, lng: 121.47, label: '上海市中心' })}>上海</button>
-            <button className="secondary" onClick={() => setLocation(defaultLocation)}>宜宾</button>
+            <div className="guide-location-copy">
+              <strong>{location?.label || '尚未定位'}</strong>
+              <span>{location ? `${Number(location.lat).toFixed(4)}, ${Number(location.lng).toFixed(4)}` : '点击定位后开始附近探索'}</span>
+            </div>
+            <button
+              className="secondary guide-locate-action"
+              onClick={() => locateByBrowser((next) => {
+                setLocation(next);
+                saveLocationState(nearbyLocationKey, next);
+                writeSessionFlag(sessionLocatedKey, true);
+              }, setLocationMessage)}
+            >
+              定位
+            </button>
           </div>
         </div>
       </section>
@@ -1139,7 +1165,12 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
           </div>
           {locationMessage && <div className="message">{locationMessage}</div>}
           {error && <div className="message error">{error}</div>}
-          {loading ? <Loading /> : spots.length ? (
+          {!location ? (
+            <div className="empty-state search-empty guide-await-explore">
+              <strong className="await-explore-word" aria-label="待探索">待探索</strong>
+              <span>尚未定位，暂时无法确定附近景点。</span>
+            </div>
+          ) : loading ? <Loading /> : spots.length ? (
             <section className="grid guide-card-cloud">{spots.map((spot) => <SpotCard key={spot.id} spot={spot} addRoute={addRoute} />)}</section>
           ) : (
             <div className="empty-state search-empty">
@@ -1150,7 +1181,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
         </section>
         <aside className="panel sticky route-capsule">
           <PanelTitle icon={Map} title="当前位置地图" />
-          <BaiduMap center={location} markers={[location]} className="side-map" />
+          {location ? <BaiduMap center={location} markers={[location]} className="side-map" /> : <div className="empty-state compact">定位后显示当前位置地图</div>}
           <PanelTitle icon={Navigation} title="已选路线" meta={`${route.length} / 5`} />
           <SelectedRoute route={route} removeRoute={removeRoute} />
           <div className="actions fill">
@@ -1215,8 +1246,6 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
             <span>{Number(origin.lat).toFixed(4)}, {Number(origin.lng).toFixed(4)}</span>
             <button className="secondary" type="button" onClick={locateOrigin}>定位</button>
             <button className="secondary" type="button" onClick={() => setOrigin({ lat: 39.9042, lng: 116.4074, label: '北京市中心' })}>北京</button>
-            <button className="secondary" type="button" onClick={() => setOrigin({ lat: 31.2304, lng: 121.4737, label: '上海市中心' })}>上海</button>
-            <button className="secondary" type="button" onClick={() => setOrigin(defaultLocation)}>宜宾</button>
           </div>
           <SelectedRoute route={route} removeRoute={removeRoute} />
           <div className="actions">

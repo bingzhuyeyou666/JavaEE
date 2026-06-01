@@ -1383,16 +1383,53 @@ body[data-theme="day"] .info-grid div {
 }
 
 .guide-location-strip {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 14px;
   margin-bottom: 0;
+  padding: 14px 16px;
   border-color: rgba(191, 219, 254, 0.18);
   color: rgba(238, 246, 255, 0.88);
-  background: rgba(15, 23, 42, 0.48);
+  background:
+    radial-gradient(circle at 8% 10%, rgba(56, 189, 248, 0.18), transparent 34%),
+    linear-gradient(135deg, rgba(15, 23, 42, 0.64), rgba(30, 41, 75, 0.42));
+}
+
+.guide-location-copy {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.guide-location-copy strong {
+  white-space: nowrap;
+  color: #f8fbff;
+  font-size: 18px;
+}
+
+.guide-location-copy span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(202, 213, 232, 0.76);
+  font-size: 13px;
 }
 
 .guide-location-strip button.secondary {
-  color: #e0f2fe;
-  border-color: rgba(125, 211, 252, 0.24);
-  background: rgba(37, 99, 235, 0.18);
+  color: #07111f;
+  border-color: rgba(165, 243, 252, 0.5);
+  background:
+    linear-gradient(135deg, #a5f3fc, #60a5fa 58%, #fbbf24);
+  box-shadow: 0 14px 34px rgba(56, 189, 248, 0.22);
+}
+
+.guide-location-strip .guide-locate-action {
+  min-width: 108px;
+  min-height: 48px;
+  border-radius: 999px;
+  justify-self: end;
 }
 
 .guide-results-title {
@@ -1572,6 +1609,37 @@ body[data-theme="day"] .info-grid div {
 
 .search-empty span {
   color: rgba(202, 213, 232, 0.72);
+}
+
+.guide-await-explore {
+  min-height: 260px;
+  gap: 12px;
+}
+
+.await-explore-word {
+  position: relative;
+  font-size: clamp(52px, 8vw, 92px) !important;
+  line-height: 1;
+  letter-spacing: 0.12em;
+  font-weight: 900;
+  background: linear-gradient(120deg, #67e8f9, #60a5fa, #f59e0b, #c084fc, #67e8f9);
+  background-size: 240% 240%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent !important;
+  filter: drop-shadow(0 0 14px rgba(96, 165, 250, 0.36));
+  animation: awaitExploreFlow 3.2s linear infinite, awaitExploreFloat 2.8s ease-in-out infinite;
+}
+
+.await-explore-word::after {
+  content: "待探索";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  color: rgba(255, 255, 255, 0.18);
+  filter: blur(11px);
+  z-index: -1;
 }
 
 .baidu-map {
@@ -4526,6 +4594,16 @@ body.guide-open { overflow: hidden; }
   48% { opacity: 0.82; transform: scale(1.35); }
 }
 
+@keyframes awaitExploreFlow {
+  0% { background-position: 0% 50%; }
+  100% { background-position: 200% 50%; }
+}
+
+@keyframes awaitExploreFloat {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+
 @keyframes mapOrbit {
   from { transform: translate(-50%, -50%) rotateX(68deg) rotateZ(0deg); }
   to { transform: translate(-50%, -50%) rotateX(68deg) rotateZ(360deg); }
@@ -4563,6 +4641,17 @@ body.guide-open { overflow: hidden; }
   .guide-command,
   .guide-card-cloud {
     grid-template-columns: 1fr;
+  }
+  .guide-location-strip {
+    grid-template-columns: auto 1fr;
+    row-gap: 8px;
+  }
+  .guide-location-copy {
+    grid-column: 2 / 3;
+  }
+  .guide-location-strip .guide-locate-action {
+    grid-column: 1 / -1;
+    width: 100%;
   }
   .guide-search-console { padding: 12px; }
   .guide-card-cloud .card { min-height: auto; }
@@ -4965,3 +5054,4 @@ body[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span {
   color: #7c2d12 !important;
   background: #fde68a !important;
 }
+
