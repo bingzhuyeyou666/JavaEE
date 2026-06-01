@@ -9,6 +9,7 @@ public class PageController {
     @GetMapping({
             "/",
             "/guide",
+            "/guide/locate",
             "/guide/nearby",
             "/route",
             "/spots/{id}",
@@ -19,6 +20,7 @@ public class PageController {
             "/app",
             "/app/",
             "/app/guide",
+            "/app/guide/locate",
             "/app/guide/nearby",
             "/app/route",
             "/app/spots/{id}",

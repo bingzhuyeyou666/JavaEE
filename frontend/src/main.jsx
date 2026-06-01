@@ -40,10 +40,10 @@ const routeKey = 'travelCloudChosenRoute';
 const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
-const defaultLocation = { lat: 28.77, lng: 104.64, label: '宜宾市中心' };
+const defaultLocation = { lat: 28.77, lng: 104.64, label: '默认中心' };
 const blockedPresetLocations = [
-  { lat: 28.77, lng: 104.64, label: '宜宾' },
-  { lat: 31.2304, lng: 121.4737, label: '上海' }
+  { lat: 28.77, lng: 104.64, label: '' },
+  { lat: 31.2304, lng: 121.4737, label: '' }
 ];
 const daylightContrastStyleId = 'daylight-contrast-guard';
 const daylightContrastCss = `
@@ -320,7 +320,7 @@ function isBlockedPresetLocation(location) {
   const label = String(location.label || '');
   return blockedPresetLocations.some((preset) => {
     const samePoint = Math.abs(Number(location.lat) - preset.lat) < 0.0002 && Math.abs(Number(location.lng) - preset.lng) < 0.0002;
-    return samePoint || label.includes(preset.label);
+    return samePoint || (preset.label && label.includes(preset.label));
   });
 }
 
@@ -614,7 +614,7 @@ function useNearbyLocation() {
   return useMemo(() => {
     if (!readSessionFlag(sessionLocatedKey)) return null;
     const saved = readStorageJson(nearbyLocationKey, null);
-    const location = saved ? readLocationState(nearbyLocationKey, defaultLocation) : null;
+    const location = saved ? readLocationState(nearbyLocationKey, { lat: 0, lng: 0, label: '当前位置' }) : null;
     return isBlockedPresetLocation(location) ? null : location;
   }, []);
 }
@@ -801,7 +801,6 @@ function GuideLanding() {
         setReadyToEnter(true);
         setShowSuccessToast(true);
         window.setTimeout(() => setShowSuccessToast(false), 1800);
-        window.setTimeout(() => navigateTo('/guide/nearby'), 520);
       },
       () => {}
     );
@@ -1081,6 +1080,11 @@ function GuideLanding() {
           </div>
         )}
         {showSuccessToast && <div className="locate-success-flash">定位成功，附近景点已点亮</div>}
+        {hasLocated && (
+          <button className="next-step-fab" type="button" onClick={() => navigateTo('/guide/nearby')}>
+            下一步
+          </button>
+        )}
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
           <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
@@ -1090,8 +1094,9 @@ function GuideLanding() {
   );
 }
 
-function Guide({ route, addRoute, removeRoute, clearRoute }) {
-  const nearbyLocation = useNearbyLocation();
+function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = false }) {
+  const savedNearbyLocation = useNearbyLocation();
+  const nearbyLocation = useSavedLocation ? savedNearbyLocation : null;
   const [keyword, setKeyword] = useState('');
   const [type, setType] = useState('');
   const [sort, setSort] = useState('distance');
@@ -1144,14 +1149,8 @@ function Guide({ route, addRoute, removeRoute, clearRoute }) {
               <strong>{location?.label || '尚未定位'}</strong>
               <span>{location ? `${Number(location.lat).toFixed(4)}, ${Number(location.lng).toFixed(4)}` : '点击定位后开始附近探索'}</span>
             </div>
-            <button
-              className="secondary guide-locate-action"
-              onClick={() => locateByBrowser((next) => {
-                setLocation(next);
-                saveLocationState(nearbyLocationKey, next);
-                writeSessionFlag(sessionLocatedKey, true);
-              }, setLocationMessage)}
-            >
+            <button className="secondary guide-locate-action" onClick={() => navigateTo('/guide/locate')}>
+              <MapPin size={16} />
               定位
             </button>
           </div>
@@ -1245,7 +1244,6 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
             <strong>出发地：{origin.label}</strong>
             <span>{Number(origin.lat).toFixed(4)}, {Number(origin.lng).toFixed(4)}</span>
             <button className="secondary" type="button" onClick={locateOrigin}>定位</button>
-            <button className="secondary" type="button" onClick={() => setOrigin({ lat: 39.9042, lng: 116.4074, label: '北京市中心' })}>北京</button>
           </div>
           <SelectedRoute route={route} removeRoute={removeRoute} />
           <div className="actions">
@@ -1860,6 +1858,13 @@ function postTypeLabel(type) {
   return squarePostTypes.find(([value]) => value === type)?.[1] || '图文笔记';
 }
 
+function normalizeDateInput(value) {
+  return value
+    .replace(/[^\d/-]/g, '')
+    .replace(/\//g, '-')
+    .slice(0, 10);
+}
+
 function Square() {
   const [category, setCategory] = useState('全部');
   const [tick, setTick] = useState(0);
@@ -2016,7 +2021,15 @@ function Square() {
               </label>
               <div className="square-meta-fields wide">
                 <label>出行日期
-                  <input type="date" value={form.tripDate} onChange={(e) => update('tripDate', e.target.value)} />
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={form.tripDate}
+                    onChange={(e) => update('tripDate', normalizeDateInput(e.target.value))}
+                    placeholder="2026-06-01"
+                    pattern="\d{4}-\d{2}-\d{2}"
+                    aria-label="输入出行日期，格式为 YYYY-MM-DD"
+                  />
                 </label>
                 <label>标签
                   <input value={form.tags} onChange={(e) => update('tags', e.target.value)} placeholder="亲子游, 避坑, 周末游" />
@@ -2423,18 +2436,53 @@ function Login({ refreshAccount }) {
     }
   }
   return (
-    <main className="container narrow">
-      <section className="panel login-card">
-        <PanelTitle icon={LogIn} title="登录星涌" meta={role === 'admin' ? '管理员' : '游客'} />
-        <div className="segmented">
+    <main className="login-stage">
+      <section className="login-showcase" aria-label="星涌登录">
+        <div className="login-orbit" aria-hidden="true">
+          <span className="login-orbit-ring ring-one" />
+          <span className="login-orbit-ring ring-two" />
+          <span className="login-orbit-dot dot-one" />
+          <span className="login-orbit-dot dot-two" />
+          <div className="login-brand-core">
+            <span className="login-brand-mark">星</span>
+            <strong>星涌</strong>
+            <small>把风景、路线和故事收进同一张旅行星图</small>
+          </div>
+        </div>
+        <div className="login-feature-strip">
+          <span><Compass size={16} /> 附近导览</span>
+          <span><Navigation size={16} /> 智能路线</span>
+          <span><Sparkles size={16} /> 足迹星图</span>
+        </div>
+      </section>
+
+      <section className="login-card">
+        <div className="login-card-head">
+          <span className="login-head-icon">{role === 'admin' ? <ShieldCheck size={24} /> : <UserRound size={24} />}</span>
+          <div>
+            <h1>欢迎回来</h1>
+            <p>{role === 'admin' ? '进入运营后台，管理景点与内容。' : '登录后同步预约、足迹与路线。'}</p>
+          </div>
+        </div>
+        <div className="segmented login-role-switch" role="group" aria-label="选择登录身份">
           <button type="button" className={role === 'user' ? 'active' : ''} onClick={() => setRole('user')}>游客</button>
           <button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}>管理员</button>
         </div>
         <form className="login-form" onSubmit={submit}>
-          <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder="账号" />
-          <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={role === 'admin' ? '默认密码 admin123' : '默认密码 demo123'} />
-          <button>登录</button>
+          <label>
+            <span>账号</span>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={role === 'admin' ? 'admin' : 'demo'} />
+          </label>
+          <label>
+            <span>密码</span>
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={role === 'admin' ? '默认密码 admin123' : '默认密码 demo123'} />
+          </label>
+          <button className="login-submit"><LogIn size={18} /> 登录</button>
         </form>
+        <div className="login-hint">
+          <span>{role === 'admin' ? '默认账号 admin' : '默认账号 demo'}</span>
+          <Link href="/" className="login-home-link">返回首页</Link>
+        </div>
         {message && <div className="message error">{message}</div>}
       </section>
     </main>
@@ -2643,8 +2691,9 @@ function App() {
 
   const props = { route, addRoute, removeRoute, clearRoute: () => saveRoute([]) };
   let page = <Home addRoute={addRoute} />;
-  if (path === '/guide') page = <GuideLanding />;
-  if (path === '/guide/nearby') page = <Guide {...props} />;
+  if (path === '/guide') page = <Guide {...props} />;
+  if (path === '/guide/locate') page = <GuideLanding />;
+  if (path === '/guide/nearby') page = <Guide {...props} useSavedLocation />;
   if (path === '/route') page = <RoutePage {...props} />;
   if (path === '/square') page = <Square />;
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);

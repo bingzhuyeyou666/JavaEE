@@ -32,7 +32,9 @@ public class HomeContentController {
     @GetMapping("/hero")
     public List<HeroSlide> heroSlides() {
         List<HeroSlide> slides = heroSlideRepository.findByEnabledTrueOrderBySortOrderAsc();
-        return slides.isEmpty() ? defaultSlides() : slides;
+        List<HeroSlide> result = slides.isEmpty() ? defaultSlides() : slides;
+        result.forEach(this::normalizeBrandName);
+        return result;
     }
 
     @GetMapping("/featured-spots")
@@ -91,5 +93,14 @@ public class HomeContentController {
         slide.setActionText(actionText);
         slide.setActionHref(actionHref);
         return slide;
+    }
+
+    private void normalizeBrandName(HeroSlide slide) {
+        if (slide.getTitle() != null) {
+            slide.setTitle(slide.getTitle().replace("旅图云", "星涌").replace("旅途云", "星涌"));
+        }
+        if (slide.getBody() != null) {
+            slide.setBody(slide.getBody().replace("旅图云", "星涌").replace("旅途云", "星涌"));
+        }
     }
 }

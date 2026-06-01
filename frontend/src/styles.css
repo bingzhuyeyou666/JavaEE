@@ -1384,16 +1384,26 @@ body[data-theme="day"] .info-grid div {
 
 .guide-location-strip {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: 42px minmax(0, 1fr) auto;
   align-items: center;
-  column-gap: 14px;
+  column-gap: 16px;
   margin-bottom: 0;
-  padding: 14px 16px;
+  padding: 14px;
   border-color: rgba(191, 219, 254, 0.18);
   color: rgba(238, 246, 255, 0.88);
   background:
     radial-gradient(circle at 8% 10%, rgba(56, 189, 248, 0.18), transparent 34%),
     linear-gradient(135deg, rgba(15, 23, 42, 0.64), rgba(30, 41, 75, 0.42));
+}
+
+.guide-location-strip > svg {
+  width: 42px;
+  height: 42px;
+  padding: 10px;
+  border: 1px solid rgba(125, 211, 252, 0.2);
+  border-radius: 50%;
+  color: #7dd3fc;
+  background: rgba(8, 14, 32, 0.58);
 }
 
 .guide-location-copy {
@@ -1426,10 +1436,11 @@ body[data-theme="day"] .info-grid div {
 }
 
 .guide-location-strip .guide-locate-action {
-  min-width: 108px;
+  min-width: 118px;
   min-height: 48px;
   border-radius: 999px;
   justify-self: end;
+  padding-inline: 18px;
 }
 
 .guide-results-title {
@@ -1614,13 +1625,19 @@ body[data-theme="day"] .info-grid div {
 .guide-await-explore {
   min-height: 260px;
   gap: 12px;
+  overflow: hidden;
+  border-style: solid;
+  background:
+    radial-gradient(circle at 50% 30%, rgba(96, 165, 250, 0.2), transparent 34%),
+    radial-gradient(circle at 26% 72%, rgba(245, 158, 11, 0.1), transparent 32%),
+    rgba(15, 23, 42, 0.58);
 }
 
 .await-explore-word {
   position: relative;
   font-size: clamp(52px, 8vw, 92px) !important;
   line-height: 1;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   font-weight: 900;
   background: linear-gradient(120deg, #67e8f9, #60a5fa, #f59e0b, #c084fc, #67e8f9);
   background-size: 240% 240%;
@@ -1637,8 +1654,8 @@ body[data-theme="day"] .info-grid div {
   left: 50%;
   top: 50%;
   transform: translate(-50%, -50%);
-  color: rgba(255, 255, 255, 0.18);
-  filter: blur(11px);
+  color: rgba(255, 255, 255, 0.2);
+  filter: blur(12px);
   z-index: -1;
 }
 
@@ -3528,6 +3545,384 @@ body[data-theme="day"] .floating-ai-message small {
 
 .login-form { grid-template-columns: 1fr; }
 
+.login-stage {
+  position: relative;
+  width: min(1180px, calc(100% - 36px));
+  min-height: calc(100vh - 250px);
+  display: grid;
+  grid-template-columns: minmax(420px, 1fr) minmax(360px, 470px);
+  align-items: center;
+  gap: clamp(34px, 7vw, 94px);
+  margin: 42px auto 76px;
+  padding: 28px 0;
+}
+
+.login-stage::before {
+  content: "";
+  position: absolute;
+  inset: -80px -12vw;
+  z-index: -1;
+  background:
+    radial-gradient(circle at 28% 44%, rgba(251, 191, 36, 0.14), transparent 22%),
+    radial-gradient(circle at 68% 34%, rgba(124, 58, 237, 0.18), transparent 26%),
+    radial-gradient(circle at 50% 72%, rgba(56, 189, 248, 0.12), transparent 28%);
+  pointer-events: none;
+}
+
+.login-showcase {
+  position: relative;
+  min-height: 520px;
+  display: grid;
+  place-items: center;
+}
+
+.login-orbit {
+  position: relative;
+  width: min(480px, 80vw);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+}
+
+.login-orbit::before {
+  content: "";
+  position: absolute;
+  inset: 18%;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 48%, rgba(255, 250, 240, 0.95), rgba(226, 238, 255, 0.9) 52%, rgba(15, 23, 42, 0.08) 54%, transparent 56%),
+    conic-gradient(from 135deg, #38bdf8, #7c3aed, #f59e0b, #38bdf8);
+  box-shadow: 0 30px 80px rgba(3, 7, 18, 0.28);
+}
+
+.login-orbit-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 1px solid rgba(147, 197, 253, 0.25);
+  transform: rotateX(66deg);
+}
+
+.login-orbit-ring.ring-one {
+  width: 86%;
+  height: 48%;
+  animation: mapOrbit 18s linear infinite;
+}
+
+.login-orbit-ring.ring-two {
+  width: 70%;
+  height: 38%;
+  border-color: rgba(251, 191, 36, 0.3);
+  animation: mapOrbit 13s linear infinite reverse;
+}
+
+.login-orbit-dot {
+  position: absolute;
+  width: 56px;
+  height: 56px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fef3c7, #bae6fd);
+  box-shadow: 0 16px 34px rgba(3, 7, 18, 0.22);
+}
+
+.login-orbit-dot::before {
+  content: "";
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.14);
+}
+
+.login-orbit-dot.dot-one { right: 54px; top: 86px; }
+.login-orbit-dot.dot-two { left: 64px; bottom: 82px; transform: scale(0.72); }
+
+.login-brand-core {
+  position: relative;
+  z-index: 2;
+  width: min(260px, 58%);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 10px;
+  padding: 28px;
+  border-radius: 50%;
+  color: #111827;
+  text-align: center;
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(15, 23, 42, 0.08);
+}
+
+.login-brand-mark {
+  width: 68px;
+  height: 68px;
+  display: grid;
+  place-items: center;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  font-size: 36px;
+  font-weight: 950;
+  box-shadow: 0 18px 32px rgba(37, 99, 235, 0.28);
+}
+
+.login-brand-core strong {
+  font-size: 30px;
+  line-height: 1;
+}
+
+.login-brand-core small {
+  max-width: 180px;
+  color: #667085;
+  line-height: 1.55;
+  font-weight: 800;
+}
+
+.login-feature-strip {
+  position: absolute;
+  left: 50%;
+  bottom: 24px;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 10px;
+  transform: translateX(-50%);
+}
+
+.login-feature-strip span {
+  min-height: 36px;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0 12px;
+  border: 1px solid rgba(147, 197, 253, 0.2);
+  border-radius: 999px;
+  color: #eaf2ff;
+  background: rgba(15, 23, 42, 0.62);
+  backdrop-filter: blur(12px);
+  font-weight: 850;
+}
+
+.login-card {
+  position: relative;
+  display: grid;
+  gap: 22px;
+  margin: 0;
+  padding: 34px;
+  border: 1px solid rgba(147, 197, 253, 0.24);
+  border-radius: 26px;
+  color: #eaf2ff;
+  background:
+    radial-gradient(circle at 14% 0%, rgba(56, 189, 248, 0.13), transparent 32%),
+    linear-gradient(145deg, rgba(15, 23, 42, 0.88), rgba(8, 14, 32, 0.96));
+  box-shadow: 0 34px 90px rgba(3, 7, 18, 0.34);
+  backdrop-filter: blur(18px);
+}
+
+.login-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: left;
+}
+
+.login-head-icon {
+  width: 54px;
+  height: 54px;
+  display: grid;
+  flex: 0 0 54px;
+  place-items: center;
+  border-radius: 18px;
+  color: #fff;
+  background: linear-gradient(135deg, #2563eb, #7c3aed);
+  box-shadow: 0 16px 32px rgba(124, 58, 237, 0.28);
+}
+
+.login-card h1 {
+  margin: 0;
+  color: #fffaf0;
+  font-size: 32px;
+  line-height: 1.1;
+}
+
+.login-card p {
+  margin: 6px 0 0;
+  color: rgba(202, 213, 232, 0.72);
+  line-height: 1.55;
+}
+
+.login-role-switch {
+  margin: 0;
+  padding: 5px;
+  gap: 5px;
+  border: 1px solid rgba(147, 197, 253, 0.16);
+  border-radius: 16px;
+  background: rgba(2, 6, 23, 0.28);
+}
+
+.login-role-switch button {
+  min-height: 48px;
+  border: 0;
+  border-radius: 12px;
+  color: rgba(226, 232, 240, 0.72);
+  background: transparent;
+  box-shadow: none;
+}
+
+.login-role-switch button.active {
+  color: #07111f;
+  background: linear-gradient(135deg, #f8fbff, #bae6fd 58%, #fde68a);
+  box-shadow: 0 12px 26px rgba(56, 189, 248, 0.16);
+}
+
+.login-form label {
+  display: grid;
+  gap: 8px;
+  color: rgba(226, 232, 240, 0.82);
+  font-weight: 850;
+}
+
+.login-form input {
+  min-height: 58px;
+  border-radius: 16px;
+  padding: 0 18px;
+  font-size: 17px;
+}
+
+.login-submit {
+  min-height: 58px;
+  margin-top: 4px;
+  border: 0;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #2563eb, #7c3aed 58%, #db2777);
+  box-shadow: 0 18px 38px rgba(124, 58, 237, 0.28);
+}
+
+.login-hint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: rgba(202, 213, 232, 0.72);
+  font-weight: 800;
+}
+
+.login-home-link {
+  color: #bae6fd;
+}
+
+body[data-theme="day"] .login-stage::before {
+  background:
+    radial-gradient(circle at 22% 42%, rgba(245, 158, 11, 0.16), transparent 24%),
+    radial-gradient(circle at 72% 32%, rgba(248, 113, 113, 0.14), transparent 26%),
+    radial-gradient(circle at 50% 78%, rgba(56, 189, 248, 0.14), transparent 30%);
+}
+
+body[data-theme="day"] .login-feature-strip span {
+  color: #17365f;
+  border-color: rgba(35, 63, 103, 0.16);
+  background: rgba(255, 255, 255, 0.76);
+}
+
+body[data-theme="day"] .login-card {
+  color: #172033;
+  border-color: rgba(35, 63, 103, 0.12);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 34px 90px rgba(42, 79, 126, 0.2);
+}
+
+body[data-theme="day"] .login-card h1 {
+  color: #ff5b2e;
+}
+
+body[data-theme="day"] .login-card p,
+body[data-theme="day"] .login-hint {
+  color: #65748a;
+}
+
+body[data-theme="day"] .login-role-switch {
+  border-color: rgba(35, 63, 103, 0.08);
+  background: #eef2f7;
+}
+
+body[data-theme="day"] .login-role-switch button {
+  color: #65748a;
+}
+
+body[data-theme="day"] .login-role-switch button.active {
+  color: #ff5b2e;
+  background: #fff;
+  box-shadow: 0 8px 18px rgba(42, 79, 126, 0.14);
+}
+
+body[data-theme="day"] .login-form label {
+  color: #263a59;
+}
+
+body[data-theme="day"] .login-home-link {
+  color: #2563eb;
+}
+
+@media (max-width: 960px) {
+  .login-stage {
+    grid-template-columns: 1fr;
+    gap: 22px;
+    margin-top: 24px;
+  }
+
+  .login-showcase {
+    min-height: 360px;
+  }
+
+  .login-orbit {
+    width: min(360px, 86vw);
+  }
+
+  .login-feature-strip {
+    position: static;
+    transform: none;
+    margin-top: -10px;
+  }
+}
+
+@media (max-width: 600px) {
+  .login-stage {
+    width: min(100% - 28px, 460px);
+    min-height: auto;
+    padding-top: 8px;
+  }
+
+  .login-showcase {
+    min-height: 280px;
+  }
+
+  .login-brand-core small,
+  .login-feature-strip {
+    display: none;
+  }
+
+  .login-card {
+    padding: 22px;
+    border-radius: 20px;
+  }
+
+  .login-card-head {
+    justify-content: flex-start;
+  }
+
+  .login-card h1 {
+    font-size: 28px;
+  }
+
+  .login-hint {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+}
+
 .footer {
   display: flex;
   align-items: center;
@@ -5053,5 +5448,108 @@ html[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span,
 body[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span {
   color: #7c2d12 !important;
   background: #fde68a !important;
+}
+
+/* Square composer and daylight polish overrides. */
+.square-post-form input[type="date"] {
+  cursor: pointer;
+  color-scheme: dark;
+}
+
+.square-post-form input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  opacity: 1;
+  filter: invert(1) brightness(1.25);
+}
+
+.media-uploader-head label {
+  color: #07111f !important;
+  border-color: rgba(125, 211, 252, 0.46) !important;
+  background: linear-gradient(135deg, #f8fbff 0%, #bae6fd 48%, #fde68a 100%) !important;
+  box-shadow: 0 10px 24px rgba(56, 189, 248, 0.18) !important;
+}
+
+.media-uploader-head label:hover {
+  transform: translateY(-1px);
+}
+
+body[data-theme="day"] .square-post-form input[type="date"] {
+  color-scheme: light;
+}
+
+body[data-theme="day"] .square-post-form input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: none;
+}
+
+body[data-theme="day"] .square-type-switch button {
+  color: #102037 !important;
+  border-color: rgba(35, 63, 103, 0.18) !important;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(237, 245, 255, 0.92)) !important;
+  box-shadow: 0 10px 24px rgba(42, 79, 126, 0.08) !important;
+}
+
+body[data-theme="day"] .square-type-switch button small {
+  color: #526579 !important;
+}
+
+body[data-theme="day"] .square-type-switch button.active {
+  color: #0f172a !important;
+  border-color: rgba(245, 158, 11, 0.58) !important;
+  background: linear-gradient(135deg, #fff7d6 0%, #dff7ff 100%) !important;
+  box-shadow: 0 14px 32px rgba(245, 158, 11, 0.14) !important;
+}
+
+body[data-theme="day"] .media-uploader-head label {
+  color: #07111f !important;
+  border-color: rgba(37, 99, 235, 0.24) !important;
+  background: linear-gradient(135deg, #eff6ff 0%, #c7f0ff 48%, #fde68a 100%) !important;
+}
+
+body[data-theme="day"] .hero {
+  background: #eef6ff !important;
+}
+
+body[data-theme="day"] .hero::after {
+  height: 110px !important;
+  background: linear-gradient(180deg, transparent, rgba(238, 246, 255, 0.62) 58%, #eef6ff 100%) !important;
+}
+
+body[data-theme="day"] .hero-slide::before {
+  background:
+    linear-gradient(90deg, rgba(4, 10, 24, 0.74), rgba(15, 23, 42, 0.42) 44%, rgba(30, 41, 59, 0.08) 76%),
+    linear-gradient(180deg, rgba(3, 7, 18, 0.08), rgba(3, 7, 18, 0.34)) !important;
+}
+
+body[data-theme="day"] .signature-stage {
+  margin: 24px 0 28px !important;
+  border-radius: 18px !important;
+  background:
+    radial-gradient(circle at 76% 20%, rgba(56, 189, 248, 0.12), transparent 30%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(239, 247, 255, 0.92)) !important;
+  box-shadow: 0 24px 58px rgba(42, 79, 126, 0.14) !important;
+}
+
+body[data-theme="day"] .guide-command {
+  border-color: rgba(35, 63, 103, 0.16) !important;
+  background:
+    radial-gradient(circle at 82% 16%, rgba(56, 189, 248, 0.18), transparent 30%),
+    radial-gradient(circle at 10% 90%, rgba(124, 58, 237, 0.08), transparent 32%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.97), rgba(235, 245, 255, 0.94)) !important;
+  box-shadow: 0 22px 52px rgba(42, 79, 126, 0.12) !important;
+}
+
+body[data-theme="day"] .guide-command-copy h1 {
+  color: #0f172a !important;
+  text-shadow: none !important;
+}
+
+body[data-theme="day"] .guide-search-console {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: rgba(35, 63, 103, 0.16) !important;
+  box-shadow: 0 18px 38px rgba(42, 79, 126, 0.1) !important;
+}
+
+body[data-theme="day"] .guide-location-strip {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.9)) !important;
 }
 
