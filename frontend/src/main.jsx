@@ -28,6 +28,7 @@ import {
   Star,
   Sun,
   Trash2,
+  UserPlus,
   UserRound,
   Users,
   Video,
@@ -35,7 +36,7 @@ import {
 } from 'lucide-react';
 import './styles.css';
 
-const userId = 1;
+const defaultUserId = 1;
 const routeKey = 'travelCloudChosenRoute';
 const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
@@ -328,6 +329,10 @@ function cx(...names) {
   return names.filter(Boolean).join(' ');
 }
 
+function currentUserId() {
+  return window.travelCloudCurrentUserId || defaultUserId;
+}
+
 function ensureDaylightContrastStyle() {
   if (document.getElementById(daylightContrastStyleId)) return;
   const style = document.createElement('style');
@@ -394,7 +399,7 @@ function useAsync(loader, deps) {
 function Header({ account, refreshAccount, path, theme, setTheme }) {
   const isAdmin = account.admin?.loggedIn;
   const isUser = account.user?.loggedIn;
-  const label = isAdmin ? `管理员 ${account.admin.username || 'admin'}` : isUser ? `游客 ${account.user.username || 'demo'}` : '游客模式';
+  const label = isAdmin ? `管理员 ${account.admin.username || 'admin'}` : isUser ? (account.user.username || 'demo') : '游客模式';
   const hint = isAdmin ? '运营后台已登录' : isUser ? '足迹与预约已同步' : '免登录浏览景点';
   const actionHref = isAdmin ? '/admin' : isUser ? '/me' : '/login';
   const isActive = (href) => href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
@@ -536,7 +541,7 @@ function SpotCard({ spot, addRoute }) {
 
 function Home({ addRoute }) {
   const { data: slides = [] } = useAsync(() => api('/api/home/hero'), []);
-  const { data: featured = [], loading } = useAsync(() => api(`/api/home/featured-spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${userId}`), []);
+  const { data: featured = [], loading } = useAsync(() => api(`/api/home/featured-spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${currentUserId()}`), []);
   const featuredSpots = Array.isArray(featured) ? featured : [];
   return (
     <>
@@ -677,7 +682,7 @@ function useBaiduMap() {
 }
 
 function fetchNearbySpots(location) {
-  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}&userId=${userId}`);
+  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}&userId=${currentUserId()}`);
 }
 
 function formatDistanceKm(distanceKm) {
@@ -1102,7 +1107,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
   const [sort, setSort] = useState('distance');
   const [location, setLocation] = useState(nearbyLocation);
   const [locationMessage, setLocationMessage] = useState('');
-  const query = location ? `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}&userId=${userId}` : '';
+  const query = location ? `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}&userId=${currentUserId()}` : '';
   const { data, loading, error } = useAsync(
     () => (location ? api(`/api/spots?${query}`) : Promise.resolve([])),
     [keyword, type, location?.lat, location?.lng]
@@ -1209,7 +1214,7 @@ function SelectedRoute({ route, removeRoute }) {
 }
 
 function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
-  const { data: spots = [] } = useAsync(() => api(`/api/spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${userId}`), []);
+  const { data: spots = [] } = useAsync(() => api(`/api/spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${currentUserId()}`), []);
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState('');
   const [origin, setOrigin] = useState(defaultLocation);
@@ -1433,12 +1438,12 @@ function SpotDetail({ id, addRoute }) {
   const weatherSummary = summarizeWeather(weatherList);
   const hasReservation = Number(spot.price) > 0;
   async function checkIn() {
-    const result = await api(`/api/spots/${id}/check-ins?userId=${userId}&lat=${spot.latitude}&lng=${spot.longitude}`, { method: 'POST' });
+    const result = await api(`/api/spots/${id}/check-ins?userId=${currentUserId()}&lat=${spot.latitude}&lng=${spot.longitude}`, { method: 'POST' });
     setMessage(`打卡成功，累计 ${result.totalCheckedIn} 个景点。`);
   }
   async function reserveSpot(event) {
     event.preventDefault();
-    const result = await api(`/api/reservations?userId=${userId}`, {
+    const result = await api(`/api/reservations?userId=${currentUserId()}`, {
       method: 'POST',
       body: JSON.stringify({ spotId: Number(id), ...reservation, people: Number(reservation.people) })
     });
@@ -1460,7 +1465,7 @@ function SpotDetail({ id, addRoute }) {
       window.setTimeout(() => navigateTo('/login'), 650);
       return;
     }
-    const result = await api(`/api/cultural-orders?userId=${userId}`, {
+    const result = await api(`/api/cultural-orders?userId=${currentUserId()}`, {
       method: 'POST',
       body: JSON.stringify({
         productId: selectedProductId,
@@ -1539,7 +1544,7 @@ function SpotDetail({ id, addRoute }) {
   }
   async function submitReview(event) {
     event.preventDefault();
-    await api(`/api/community/reviews?userId=${userId}`, {
+    await api(`/api/community/reviews?userId=${currentUserId()}`, {
       method: 'POST',
       body: JSON.stringify({
         spotId: Number(id),
@@ -1552,7 +1557,7 @@ function SpotDetail({ id, addRoute }) {
     setReviewTick((value) => value + 1);
   }
   async function likeReview(reviewId) {
-    await api(`/api/community/reviews/${reviewId}/like?userId=${userId}`, { method: 'POST' });
+    await api(`/api/community/reviews/${reviewId}/like?userId=${currentUserId()}`, { method: 'POST' });
     setReviewTick((value) => value + 1);
   }
   const allReviews = reviews.data || [];
@@ -1785,7 +1790,7 @@ function SpotDetail({ id, addRoute }) {
 }
 
 function CommentItem({ review, replies, onLike, onReply }) {
-  const liked = (review.likedUserIds || []).includes(userId);
+  const liked = (review.likedUserIds || []).includes(currentUserId());
   const displayName = review.source === 'BAIDU_MAP' ? '百度地图游客' : `游客${review.userId || ''}`;
   const time = review.createdAt ? String(review.createdAt).replace('T', ' ').slice(0, 16) : '';
   return (
@@ -1814,7 +1819,7 @@ function CommentItem({ review, replies, onLike, onReply }) {
         {replies.length > 0 && (
           <div className="reply-stack">
             {replies.map((reply) => {
-              const replyLiked = (reply.likedUserIds || []).includes(userId);
+              const replyLiked = (reply.likedUserIds || []).includes(currentUserId());
               const replyName = reply.source === 'BAIDU_MAP' ? '百度地图游客' : `游客${reply.userId || ''}`;
               return (
                 <div className="comment-item reply" key={reply.id}>
@@ -1930,7 +1935,7 @@ function Square() {
   async function submitPost(event) {
     event.preventDefault();
     try {
-      const post = await api(`/api/community/square/posts?userId=${userId}`, {
+      const post = await api(`/api/community/square/posts?userId=${currentUserId()}`, {
         method: 'POST',
         body: JSON.stringify({
           ...form,
@@ -2133,7 +2138,7 @@ function SquarePostDetail({ id }) {
 
   async function likePost() {
     try {
-      await api(`/api/community/square/posts/${id}/like?userId=${userId}`, { method: 'POST' });
+      await api(`/api/community/square/posts/${id}/like?userId=${currentUserId()}`, { method: 'POST' });
       setTick((value) => value + 1);
     } catch (error) {
       setMessage(error.message);
@@ -2143,7 +2148,7 @@ function SquarePostDetail({ id }) {
   async function submitComment(event) {
     event.preventDefault();
     try {
-      await api(`/api/community/square/posts/${id}/comments?userId=${userId}`, {
+      await api(`/api/community/square/posts/${id}/comments?userId=${currentUserId()}`, {
         method: 'POST',
         body: JSON.stringify({ content: commentText })
       });
@@ -2167,7 +2172,7 @@ function SquarePostDetail({ id }) {
     );
   }
 
-  const liked = (post.likedUserIds || []).includes(userId);
+  const liked = (post.likedUserIds || []).includes(currentUserId());
   const isQuestion = post.postType === 'QUESTION';
   const isDiscussion = post.postType === 'DISCUSSION';
   const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
@@ -2314,10 +2319,10 @@ function WeatherSymbol({ icon }) {
 }
 
 function Profile() {
-  const footprints = useAsync(() => api(`/api/users/${userId}/footprints`), []);
-  const reservations = useAsync(() => api(`/api/reservations/mine?userId=${userId}`), []);
-  const culturalOrders = useAsync(() => api(`/api/cultural-orders/mine?userId=${userId}`), []);
-  const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${userId}`), []);
+  const footprints = useAsync(() => api(`/api/users/${currentUserId()}/footprints`), []);
+  const reservations = useAsync(() => api(`/api/reservations/mine?userId=${currentUserId()}`), []);
+  const culturalOrders = useAsync(() => api(`/api/cultural-orders/mine?userId=${currentUserId()}`), []);
+  const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${currentUserId()}`), []);
   const checkedTotal = footprints.data?.total || 0;
   return (
     <main className="container">
@@ -2389,7 +2394,7 @@ function SubmitSpot() {
   async function submit(event) {
     event.preventDefault();
     try {
-      await api(`/api/community/submissions?userId=${userId}`, {
+      await api(`/api/community/submissions?userId=${currentUserId()}`, {
         method: 'POST',
         body: JSON.stringify({ ...form, photoUrls: form.photoUrls.split(/\n|,/).map((item) => item.trim()).filter(Boolean) })
       });
@@ -2418,17 +2423,30 @@ function SubmitSpot() {
 }
 
 function Login({ refreshAccount }) {
-  const [role, setRole] = useState(new URLSearchParams(window.location.search).get('role') === 'admin' ? 'admin' : 'user');
-  const [username, setUsername] = useState(role === 'admin' ? 'admin' : 'demo');
+  const [authMode, setAuthMode] = useState('login');
+  const [adminUsername, setAdminUsername] = useState('admin');
+  const [username, setUsername] = useState('demo');
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [message, setMessage] = useState('');
-  useEffect(() => setUsername(role === 'admin' ? 'admin' : 'demo'), [role]);
+  const isRegister = authMode === 'register';
+  useEffect(() => {
+    api('/api/config').then((config) => {
+      if (config.adminUsername) setAdminUsername(config.adminUsername);
+    }).catch(() => {});
+  }, []);
   async function submit(event) {
     event.preventDefault();
     try {
-      await api(role === 'admin' ? '/api/admin/auth/login' : '/api/auth/login', { method: 'POST', body: JSON.stringify({ username, password }) });
+      if (isRegister && password !== confirmPassword) {
+        throw new Error('两次输入的密码不一致');
+      }
+      const isAdminLogin = !isRegister && username.trim() === adminUsername;
+      const endpoint = isAdminLogin ? '/api/admin/auth/login' : isRegister ? '/api/auth/register' : '/api/auth/login';
+      await api(endpoint, { method: 'POST', body: JSON.stringify({ username, email, password }) });
       await refreshAccount();
-      const nextPath = role === 'admin' ? '/admin' : '/me';
+      const nextPath = isAdminLogin ? '/admin' : '/me';
       window.history.pushState(null, '', window.location.port === '5173' ? `/app${nextPath}` : nextPath);
       window.dispatchEvent(new PopStateEvent('popstate'));
     } catch (error) {
@@ -2438,49 +2456,87 @@ function Login({ refreshAccount }) {
   return (
     <main className="login-stage">
       <section className="login-showcase" aria-label="星涌登录">
-        <div className="login-orbit" aria-hidden="true">
-          <span className="login-orbit-ring ring-one" />
-          <span className="login-orbit-ring ring-two" />
-          <span className="login-orbit-dot dot-one" />
-          <span className="login-orbit-dot dot-two" />
+        <div className="login-art-copy">
+          <span>Star Surge Map</span>
+          <strong>把下一段旅程接入你的星图</strong>
+        </div>
+        <div className="login-starfield" aria-hidden="true">
+          {Array.from({ length: 76 }).map((_, index) => (
+            <i
+              key={index}
+              style={{
+                left: `${Math.abs(Math.sin(index * 12.9898 + 4.2) * 10000) % 100}%`,
+                top: `${Math.abs(Math.sin(index * 78.233 + 9.7) * 10000) % 100}%`,
+                opacity: 0.28 + ((index * 13) % 60) / 100,
+                '--s': `${1 + (index % 3) * 0.7}px`,
+                '--d': `${(index % 9) * -0.42}s`
+              }}
+            />
+          ))}
+        </div>
+        <div className="login-orbit login-solar-system" aria-hidden="true">
+          <span className="solar-path mercury-path" />
+          <span className="solar-path venus-path" />
+          <span className="solar-path earth-path" />
+          <span className="solar-path mars-path" />
+          <span className="solar-path jupiter-path" />
+          <span className="solar-path saturn-path" />
+          <span className="solar-path uranus-path" />
+          <span className="solar-path neptune-path" />
+          <span className="solar-sun" />
+          <span className="solar-planet mercury" />
+          <span className="solar-planet venus" />
+          <span className="solar-planet earth" />
+          <span className="solar-planet mars" />
+          <span className="solar-planet jupiter" />
+          <span className="solar-planet saturn" />
+          <span className="solar-planet uranus" />
+          <span className="solar-planet neptune" />
           <div className="login-brand-core">
             <span className="login-brand-mark">星</span>
             <strong>星涌</strong>
             <small>把风景、路线和故事收进同一张旅行星图</small>
           </div>
         </div>
-        <div className="login-feature-strip">
-          <span><Compass size={16} /> 附近导览</span>
-          <span><Navigation size={16} /> 智能路线</span>
-          <span><Sparkles size={16} /> 足迹星图</span>
-        </div>
       </section>
 
       <section className="login-card">
         <div className="login-card-head">
-          <span className="login-head-icon">{role === 'admin' ? <ShieldCheck size={24} /> : <UserRound size={24} />}</span>
+          <span className="login-head-icon">{isRegister ? <UserPlus size={26} /> : <UserRound size={26} />}</span>
           <div>
-            <h1>欢迎回来</h1>
-            <p>{role === 'admin' ? '进入运营后台，管理景点与内容。' : '登录后同步预约、足迹与路线。'}</p>
+            <h1>{isRegister ? '创建账户' : '欢迎回来'}</h1>
+            <p>登录后同步预约、足迹与路线。</p>
           </div>
         </div>
-        <div className="segmented login-role-switch" role="group" aria-label="选择登录身份">
-          <button type="button" className={role === 'user' ? 'active' : ''} onClick={() => setRole('user')}>游客</button>
-          <button type="button" className={role === 'admin' ? 'active' : ''} onClick={() => setRole('admin')}>管理员</button>
+        <div className="segmented login-role-switch login-mode-switch" role="group" aria-label="选择账户操作">
+          <button type="button" className={!isRegister ? 'active' : ''} onClick={() => setAuthMode('login')}>登录</button>
+          <button type="button" className={isRegister ? 'active' : ''} onClick={() => setAuthMode('register')}>注册</button>
         </div>
         <form className="login-form" onSubmit={submit}>
           <label>
-            <span>账号</span>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={role === 'admin' ? 'admin' : 'demo'} />
+            <span>{isRegister ? '用户名' : '账号'}</span>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={isRegister ? '你的名字' : 'demo'} required />
           </label>
+          {isRegister && (
+            <label>
+              <span>邮箱</span>
+              <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="your@email.com" />
+            </label>
+          )}
           <label>
             <span>密码</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={role === 'admin' ? '默认密码 admin123' : '默认密码 demo123'} />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isRegister ? '至少6位' : '默认密码 demo123'} required />
           </label>
-          <button className="login-submit"><LogIn size={18} /> 登录</button>
+          {isRegister && (
+            <label>
+              <span>确认密码</span>
+              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入密码" required />
+            </label>
+          )}
+          <button className="login-submit">{isRegister ? <UserPlus size={18} /> : <LogIn size={18} />} {isRegister ? '注册' : '登录'}</button>
         </form>
         <div className="login-hint">
-          <span>{role === 'admin' ? '默认账号 admin' : '默认账号 demo'}</span>
+          <span>默认账号 demo</span>
           <Link href="/" className="login-home-link">返回首页</Link>
         </div>
         {message && <div className="message error">{message}</div>}
@@ -2676,6 +2732,7 @@ function App() {
   async function refreshAccount() {
     const admin = await api('/api/admin/auth/status').catch(() => ({ loggedIn: false }));
     const user = admin.loggedIn ? { loggedIn: false } : await api('/api/auth/status').catch(() => ({ loggedIn: false }));
+    window.travelCloudCurrentUserId = user.loggedIn && user.userId ? user.userId : defaultUserId;
     setAccount({ admin, user });
   }
   useEffect(() => {
@@ -2707,24 +2764,26 @@ function App() {
 
   return (
     <>
-      <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />
-      <div className="theme-dock" role="group" aria-label="主题切换">
-        <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')}>
-          <Moon size={16} /> 星夜黑
-        </button>
-        <button className={theme === 'day' ? 'active' : ''} type="button" onClick={() => setTheme('day')}>
-          <Sun size={16} /> 日光白
-        </button>
-      </div>
+      {path !== '/login' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
+      {path !== '/login' && (
+        <div className="theme-dock" role="group" aria-label="主题切换">
+          <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')}>
+            <Moon size={16} /> 星夜黑
+          </button>
+          <button className={theme === 'day' ? 'active' : ''} type="button" onClick={() => setTheme('day')}>
+            <Sun size={16} /> 日光白
+          </button>
+        </div>
+      )}
       {page}
-      <footer className="footer">
+      {path !== '/login' && <footer className="footer">
         <span>星涌 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
           await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});
           refreshAccount();
         }} title="退出登录"><LogOut size={16} /></button>
-      </footer>
+      </footer>}
     </>
   );
 }

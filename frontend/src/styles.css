@@ -214,6 +214,28 @@ body[data-theme="day"] .site-header {
   gap: 24px;
 }
 
+.login-minimal-header .brand-row {
+  min-height: 76px;
+  justify-content: flex-end;
+}
+
+.login-minimal-header .header-right {
+  margin-left: auto;
+}
+
+.login-minimal-header .theme-switch {
+  box-shadow:
+    inset 0 0 0 1px rgba(147, 197, 253, 0.16),
+    0 18px 38px rgba(3, 7, 18, 0.22);
+}
+
+body[data-theme="day"] .login-minimal-header .theme-switch {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow:
+    inset 0 0 0 1px rgba(42, 79, 126, 0.12),
+    0 18px 38px rgba(42, 79, 126, 0.12);
+}
+
 .brand {
   display: inline-flex;
   align-items: center;
@@ -3572,8 +3594,40 @@ body[data-theme="day"] .floating-ai-message small {
 .login-showcase {
   position: relative;
   min-height: 520px;
-  display: grid;
-  place-items: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.login-showcase::before,
+.login-showcase::after {
+  content: "";
+  position: absolute;
+  inset: 6% 0 0;
+  pointer-events: none;
+  border-radius: 42px;
+}
+
+.login-showcase::before {
+  opacity: 0.44;
+  background-image:
+    radial-gradient(circle at 16% 24%, rgba(255, 255, 255, 0.92) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 78% 18%, rgba(125, 211, 252, 0.9) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 28% 76%, rgba(253, 230, 138, 0.9) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 86% 72%, rgba(255, 255, 255, 0.76) 0 1px, transparent 1.5px);
+  background-size: 96px 82px, 130px 104px, 150px 118px, 180px 142px;
+  animation: loginStarDrift 18s linear infinite;
+}
+
+.login-showcase::after {
+  opacity: 0.28;
+  background:
+    radial-gradient(circle at 52% 50%, rgba(56, 189, 248, 0.16), transparent 30%),
+    radial-gradient(circle at 46% 50%, transparent 0 24%, rgba(251, 191, 36, 0.1) 25%, transparent 34%);
+  filter: blur(1px);
+  animation: starLayerPulse 5s ease-in-out infinite;
 }
 
 .login-orbit {
@@ -3617,26 +3671,351 @@ body[data-theme="day"] .floating-ai-message small {
 
 .login-orbit-dot {
   position: absolute;
-  width: 56px;
-  height: 56px;
+  width: 48px;
+  height: 48px;
   display: grid;
   place-items: center;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fef3c7, #bae6fd);
-  box-shadow: 0 16px 34px rgba(3, 7, 18, 0.22);
+  border: 1px solid rgba(186, 230, 253, 0.72);
+  background:
+    radial-gradient(circle at 50% 50%, #f59e0b 0 18%, rgba(245, 158, 11, 0.24) 19% 31%, transparent 32%),
+    radial-gradient(circle at 38% 30%, rgba(255, 255, 255, 0.96), rgba(236, 253, 245, 0.78) 46%, rgba(186, 230, 253, 0.34) 68%, transparent 70%);
+  box-shadow:
+    0 16px 34px rgba(3, 7, 18, 0.2),
+    0 0 24px rgba(125, 211, 252, 0.34);
+  cursor: pointer;
+  will-change: transform;
 }
 
 .login-orbit-dot::before {
   content: "";
-  width: 18px;
-  height: 18px;
+  position: absolute;
+  inset: -7px;
   border-radius: 50%;
-  background: #f59e0b;
-  box-shadow: 0 0 0 8px rgba(245, 158, 11, 0.14);
+  border: 1px solid rgba(125, 211, 252, 0.28);
+  background: transparent;
+  box-shadow:
+    inset 0 0 18px rgba(125, 211, 252, 0.12),
+    0 0 20px rgba(251, 191, 36, 0.12);
+  animation: loginPlanetPulse 2.8s ease-in-out infinite;
 }
 
-.login-orbit-dot.dot-one { right: 54px; top: 86px; }
-.login-orbit-dot.dot-two { left: 64px; bottom: 82px; transform: scale(0.72); }
+.login-orbit-dot::after {
+  content: "";
+  position: absolute;
+  width: 82px;
+  height: 26px;
+  border: 1px solid rgba(125, 211, 252, 0.34);
+  border-radius: 50%;
+  transform: rotate(-16deg);
+  animation: controlSpin 8s linear infinite;
+}
+
+.login-orbit-dot.dot-one {
+  right: 58px;
+  top: 92px;
+  animation: loginBounceOne 7.4s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+.login-orbit-dot.dot-two {
+  left: 64px;
+  bottom: 92px;
+  animation: loginBounceTwo 8.8s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+.login-orbit-dot.dot-three {
+  left: 44%;
+  top: 58px;
+  width: 34px;
+  height: 34px;
+  opacity: 0.92;
+  animation: loginBounceThree 6.6s cubic-bezier(.45, 0, .55, 1) infinite alternate;
+}
+
+.login-orbit-dot.burst {
+  animation-duration: 900ms !important;
+  filter: brightness(1.22) saturate(1.18);
+}
+
+.login-orbit-dot.burst::before {
+  animation: planetBurst 620ms ease-out;
+}
+
+.login-sky-ripple {
+  position: absolute;
+  z-index: 4;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid rgba(125, 211, 252, 0.72);
+  background: rgba(255, 255, 255, 0.18);
+  box-shadow: 0 0 24px rgba(125, 211, 252, 0.36);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  animation: loginSkyRipple 780ms ease-out forwards;
+}
+
+.login-cosmos-title {
+  position: relative;
+  top: auto;
+  left: auto;
+  z-index: 5;
+  width: min(520px, 92%);
+  text-align: center;
+  transform: none;
+  pointer-events: none;
+}
+
+.login-cosmos-title span {
+  display: inline-flex;
+  margin-bottom: 8px;
+  padding: 6px 12px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 999px;
+  color: #7dd3fc;
+  background: rgba(15, 23, 42, 0.44);
+  font-size: 12px;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+  backdrop-filter: blur(12px);
+}
+
+.login-cosmos-title h2 {
+  margin: 0;
+  color: #f8fbff;
+  font-size: clamp(28px, 4vw, 48px);
+  line-height: 1.08;
+  text-shadow: 0 18px 48px rgba(3, 7, 18, 0.58);
+}
+
+.login-cosmos-title p {
+  max-width: 470px;
+  margin: 10px auto 0;
+  color: rgba(226, 232, 240, 0.76);
+  font-size: 15px;
+  font-weight: 780;
+  line-height: 1.6;
+}
+
+.login-solar-system {
+  position: relative;
+  z-index: 2;
+  width: min(660px, 88vw);
+  height: min(430px, 48vh);
+  min-height: 360px;
+  overflow: hidden;
+  border: 1px solid rgba(147, 197, 253, 0.14);
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 52% 46%, rgba(14, 165, 233, 0.16), transparent 28%),
+    radial-gradient(circle at 22% 78%, rgba(251, 191, 36, 0.12), transparent 24%),
+    radial-gradient(circle at 76% 24%, rgba(124, 58, 237, 0.18), transparent 26%),
+    linear-gradient(145deg, rgba(8, 14, 32, 0.18), rgba(15, 23, 42, 0.34));
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.04),
+    0 30px 80px rgba(3, 7, 18, 0.24);
+  cursor: crosshair;
+  touch-action: none;
+  backdrop-filter: blur(6px);
+}
+
+.solar-orbit {
+  position: absolute;
+  left: 50%;
+  top: 56%;
+  border: 1px solid rgba(125, 211, 252, 0.18);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-12deg);
+  pointer-events: none;
+}
+
+.solar-orbit::before {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  border-radius: inherit;
+  border: 1px solid rgba(251, 191, 36, 0.08);
+  transform: rotateX(68deg);
+}
+
+.orbit-a {
+  width: 46%;
+  height: 26%;
+}
+
+.orbit-b {
+  width: 70%;
+  height: 40%;
+  transform: translate(-50%, -50%) rotate(10deg);
+}
+
+.orbit-c {
+  width: 94%;
+  height: 54%;
+  transform: translate(-50%, -50%) rotate(-20deg);
+}
+
+.login-planet {
+  position: absolute;
+  z-index: 3;
+  display: block;
+  min-width: 0;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  color: #eaf2ff;
+  transform: translate(-50%, -50%);
+  cursor: grab;
+  touch-action: none;
+  box-shadow:
+    inset -10px -12px 22px rgba(3, 7, 18, 0.3),
+    inset 7px 7px 12px rgba(255, 255, 255, 0.2),
+    0 0 22px rgba(125, 211, 252, 0.28),
+    0 18px 36px rgba(3, 7, 18, 0.22);
+  transition: filter 180ms ease, box-shadow 180ms ease;
+}
+
+.login-planet:active {
+  cursor: grabbing;
+  filter: brightness(1.12) saturate(1.1);
+  box-shadow:
+    inset -10px -12px 22px rgba(3, 7, 18, 0.28),
+    inset 8px 8px 14px rgba(255, 255, 255, 0.24),
+    0 0 34px rgba(125, 211, 252, 0.42),
+    0 24px 44px rgba(3, 7, 18, 0.28);
+}
+
+.login-planet::after {
+  content: "";
+  position: absolute;
+  inset: -9px;
+  z-index: -1;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.2), transparent 68%);
+  opacity: 0.9;
+  pointer-events: none;
+}
+
+.login-planet:hover::after {
+  opacity: 0.9;
+  animation: none;
+}
+
+.login-planet span {
+  position: absolute;
+  left: 50%;
+  top: calc(100% + 8px);
+  padding: 3px 8px;
+  border: 1px solid rgba(147, 197, 253, 0.18);
+  border-radius: 999px;
+  color: rgba(238, 246, 255, 0.9);
+  background: rgba(8, 14, 32, 0.58);
+  font-size: 12px;
+  font-weight: 850;
+  line-height: 1.2;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+  backdrop-filter: blur(10px);
+}
+
+.login-planet.mercury {
+  width: 25px;
+  height: 25px;
+  background: radial-gradient(circle at 32% 28%, #f8fafc, #94a3b8 42%, #475569 100%);
+}
+
+.login-planet.venus {
+  width: 38px;
+  height: 38px;
+  background: radial-gradient(circle at 30% 26%, #fff7ad, #f59e0b 48%, #92400e 100%);
+}
+
+.login-planet.earth {
+  width: 44px;
+  height: 44px;
+  background:
+    radial-gradient(circle at 34% 30%, rgba(255, 255, 255, 0.8), transparent 12%),
+    radial-gradient(circle at 68% 58%, #22c55e 0 14%, transparent 15%),
+    radial-gradient(circle at 36% 62%, #16a34a 0 16%, transparent 17%),
+    radial-gradient(circle at 48% 44%, #38bdf8, #2563eb 62%, #1e3a8a);
+}
+
+.login-planet.mars {
+  width: 34px;
+  height: 34px;
+  background: radial-gradient(circle at 32% 28%, #fed7aa, #ef4444 50%, #7f1d1d 100%);
+}
+
+.login-planet.jupiter {
+  width: 74px;
+  height: 74px;
+  background:
+    linear-gradient(180deg, transparent 0 18%, rgba(255, 255, 255, 0.34) 19% 26%, transparent 27% 48%, rgba(120, 53, 15, 0.24) 49% 58%, transparent 59%),
+    radial-gradient(circle at 35% 28%, #fde68a, #d97706 45%, #78350f 100%);
+}
+
+.login-planet.saturn {
+  width: 56px;
+  height: 56px;
+  background: radial-gradient(circle at 32% 28%, #fff7ed, #fbbf24 48%, #854d0e 100%);
+}
+
+.login-planet.saturn::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 92px;
+  height: 28px;
+  border: 2px solid rgba(250, 204, 21, 0.56);
+  border-left-color: rgba(125, 211, 252, 0.28);
+  border-right-color: rgba(125, 211, 252, 0.28);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-16deg);
+  pointer-events: none;
+}
+
+.login-planet.neptune {
+  width: 48px;
+  height: 48px;
+  background: radial-gradient(circle at 32% 28%, #dbeafe, #38bdf8 42%, #3730a3 100%);
+}
+
+body[data-theme="day"] .login-cosmos-title span {
+  color: #2563eb;
+  background: rgba(255, 255, 255, 0.64);
+  border-color: rgba(42, 79, 126, 0.12);
+}
+
+body[data-theme="day"] .login-cosmos-title h2 {
+  color: #10213a;
+  text-shadow: 0 18px 44px rgba(42, 79, 126, 0.12);
+}
+
+body[data-theme="day"] .login-cosmos-title p {
+  color: #54657c;
+}
+
+body[data-theme="day"] .login-solar-system {
+  background:
+    radial-gradient(circle at 52% 46%, rgba(56, 189, 248, 0.18), transparent 28%),
+    radial-gradient(circle at 22% 78%, rgba(251, 191, 36, 0.15), transparent 24%),
+    radial-gradient(circle at 76% 24%, rgba(124, 58, 237, 0.12), transparent 26%),
+    linear-gradient(145deg, rgba(255, 255, 255, 0.2), rgba(235, 245, 255, 0.38));
+  border-color: rgba(42, 79, 126, 0.1);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 255, 255, 0.5),
+    0 30px 80px rgba(42, 79, 126, 0.13);
+}
+
+body[data-theme="day"] .login-planet span {
+  color: #10213a;
+  background: rgba(255, 255, 255, 0.7);
+  border-color: rgba(42, 79, 126, 0.12);
+}
 
 .login-brand-core {
   position: relative;
@@ -3874,11 +4253,12 @@ body[data-theme="day"] .login-home-link {
   }
 
   .login-showcase {
-    min-height: 360px;
+    min-height: 430px;
   }
 
-  .login-orbit {
-    width: min(360px, 86vw);
+  .login-solar-system {
+    width: min(620px, 92vw);
+    min-height: 380px;
   }
 
   .login-feature-strip {
@@ -3896,12 +4276,35 @@ body[data-theme="day"] .login-home-link {
   }
 
   .login-showcase {
-    min-height: 280px;
+    min-height: 420px;
   }
 
-  .login-brand-core small,
-  .login-feature-strip {
-    display: none;
+  .login-cosmos-title {
+    top: auto;
+  }
+
+  .login-cosmos-title h2 {
+    font-size: 26px;
+  }
+
+  .login-cosmos-title p {
+    font-size: 13px;
+  }
+
+  .login-solar-system {
+    height: 370px;
+    min-height: 370px;
+    border-radius: 24px;
+  }
+
+  .login-planet.jupiter {
+    width: 60px;
+    height: 60px;
+  }
+
+  .login-planet.saturn {
+    width: 48px;
+    height: 48px;
   }
 
   .login-card {
@@ -5551,5 +5954,921 @@ body[data-theme="day"] .guide-search-console {
 
 body[data-theme="day"] .guide-location-strip {
   background: linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(235, 245, 255, 0.9)) !important;
+}
+
+/* Motion and premium surface pass. */
+body {
+  background-attachment: fixed;
+}
+
+.container > :where(section, div, article, form, aside, main),
+.login-stage,
+.hero-caption,
+.hero-quick-panel {
+  animation: pageElementRise 620ms cubic-bezier(.2, .82, .24, 1) both;
+}
+
+.container > :where(section, div, article, form, aside):nth-child(2) { animation-delay: 70ms; }
+.container > :where(section, div, article, form, aside):nth-child(3) { animation-delay: 120ms; }
+.container > :where(section, div, article, form, aside):nth-child(4) { animation-delay: 170ms; }
+.container > :where(section, div, article, form, aside):nth-child(5) { animation-delay: 220ms; }
+
+.site-header {
+  animation: headerDrop 520ms cubic-bezier(.2, .82, .24, 1) both;
+}
+
+.brand-mark,
+.avatar,
+.login-head-icon,
+.login-brand-mark {
+  animation: softBeacon 3.8s ease-in-out infinite;
+}
+
+.panel,
+.card,
+.feature-entry,
+.square-post,
+.metric,
+.list-item,
+.trip-card,
+.product-story,
+.story-grid article,
+.choice,
+.selected-item,
+.media-uploader,
+.square-command-bar,
+.guide-command,
+.page-hero,
+.route-capsule,
+.login-card {
+  position: relative;
+  isolation: isolate;
+  transform-style: preserve-3d;
+  transition:
+    transform 260ms cubic-bezier(.2, .82, .24, 1),
+    box-shadow 260ms ease,
+    border-color 260ms ease,
+    background-color 260ms ease,
+    filter 260ms ease;
+}
+
+.panel::after,
+.feature-entry::after,
+.square-post::after,
+.metric::after,
+.list-item::after,
+.trip-card::after,
+.product-story::after,
+.story-grid article::after,
+.choice::after,
+.selected-item::after,
+.media-uploader::after,
+.square-command-bar::after,
+.guide-command::after,
+.page-hero::after,
+.route-capsule::after,
+.login-card::after {
+  content: "";
+  position: absolute;
+  inset: -1px;
+  z-index: -1;
+  border-radius: inherit;
+  opacity: 0;
+  background:
+    linear-gradient(120deg, rgba(125, 211, 252, 0), rgba(125, 211, 252, 0.5), rgba(251, 191, 36, 0.34), rgba(124, 58, 237, 0)),
+    radial-gradient(circle at var(--glow-x, 20%) 0%, rgba(56, 189, 248, 0.18), transparent 32%);
+  filter: blur(0.2px);
+  transition: opacity 260ms ease;
+  pointer-events: none;
+}
+
+.panel:hover,
+.card:hover,
+.feature-entry:hover,
+.square-post:hover,
+.metric:hover,
+.list-item:hover,
+.trip-card:hover,
+.choice:hover,
+.selected-item:hover,
+.media-uploader:hover,
+.square-command-bar:hover,
+.route-capsule:hover {
+  transform: translateY(-5px);
+  border-color: rgba(125, 211, 252, 0.38);
+  box-shadow:
+    0 22px 56px rgba(3, 7, 18, 0.28),
+    0 0 0 1px rgba(125, 211, 252, 0.08);
+}
+
+.panel:hover::after,
+.feature-entry:hover::after,
+.square-post:hover::after,
+.metric:hover::after,
+.list-item:hover::after,
+.trip-card:hover::after,
+.product-story:hover::after,
+.story-grid article:hover::after,
+.choice:hover::after,
+.selected-item:hover::after,
+.media-uploader:hover::after,
+.square-command-bar:hover::after,
+.guide-command:hover::after,
+.page-hero:hover::after,
+.route-capsule:hover::after,
+.login-card:hover::after {
+  opacity: 1;
+  animation: borderAurora 2.8s linear infinite;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  opacity: 0;
+  background: linear-gradient(115deg, transparent 0 36%, rgba(255, 255, 255, 0.16) 45%, transparent 56% 100%);
+  transform: translateX(-120%);
+  transition: opacity 220ms ease;
+  pointer-events: none;
+}
+
+.card:hover::after {
+  opacity: 1;
+  animation: glassSweep 1200ms ease;
+}
+
+.card:hover img,
+.square-post:hover .square-cover img,
+.choice:hover img {
+  transform: scale(1.06);
+  filter: saturate(1.08) contrast(1.04);
+}
+
+.square-cover img,
+.choice img {
+  transition: transform 520ms cubic-bezier(.2, .82, .24, 1), filter 520ms ease;
+}
+
+button,
+.button-like,
+.primary-link,
+.reply-button,
+.media-uploader-head label {
+  position: relative;
+  overflow: hidden;
+}
+
+button::after,
+.button-like::after,
+.primary-link::after,
+.media-uploader-head label::after {
+  content: "";
+  position: absolute;
+  inset: -140% auto -140% -70%;
+  width: 58%;
+  opacity: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.5), transparent);
+  transform: rotate(18deg);
+  transition: opacity 180ms ease;
+  pointer-events: none;
+}
+
+button:hover::after,
+.button-like:hover::after,
+.primary-link:hover::after,
+.media-uploader-head label:hover::after {
+  opacity: 1;
+  animation: buttonGlint 900ms ease;
+}
+
+input,
+select,
+textarea {
+  transition:
+    border-color 200ms ease,
+    box-shadow 200ms ease,
+    background-color 200ms ease,
+    transform 200ms ease;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  transform: translateY(-1px);
+}
+
+.hero-slide.active {
+  animation: heroReveal 900ms ease both;
+}
+
+.hero-caption h1,
+.page-hero h1,
+.guide-command-copy h1,
+.login-card h1 {
+  text-wrap: balance;
+}
+
+.hero-caption h1 {
+  animation: titleGlow 5.6s ease-in-out infinite;
+}
+
+.hero-orbit-map {
+  animation: floatDrift 6.4s ease-in-out infinite;
+}
+
+.guide-command::before,
+.signature-stage::before,
+.page-hero::before {
+  animation-duration: 6.8s;
+}
+
+body[data-theme="day"] .panel:hover,
+body[data-theme="day"] .card:hover,
+body[data-theme="day"] .feature-entry:hover,
+body[data-theme="day"] .square-post:hover,
+body[data-theme="day"] .metric:hover,
+body[data-theme="day"] .list-item:hover,
+body[data-theme="day"] .trip-card:hover,
+body[data-theme="day"] .choice:hover,
+body[data-theme="day"] .selected-item:hover,
+body[data-theme="day"] .media-uploader:hover,
+body[data-theme="day"] .square-command-bar:hover,
+body[data-theme="day"] .route-capsule:hover {
+  border-color: rgba(37, 99, 235, 0.22) !important;
+  box-shadow:
+    0 22px 54px rgba(42, 79, 126, 0.16),
+    0 0 0 1px rgba(255, 255, 255, 0.82) !important;
+}
+
+body[data-theme="day"] .panel::after,
+body[data-theme="day"] .feature-entry::after,
+body[data-theme="day"] .square-post::after,
+body[data-theme="day"] .metric::after,
+body[data-theme="day"] .list-item::after,
+body[data-theme="day"] .trip-card::after,
+body[data-theme="day"] .product-story::after,
+body[data-theme="day"] .story-grid article::after,
+body[data-theme="day"] .choice::after,
+body[data-theme="day"] .selected-item::after,
+body[data-theme="day"] .media-uploader::after,
+body[data-theme="day"] .square-command-bar::after,
+body[data-theme="day"] .guide-command::after,
+body[data-theme="day"] .page-hero::after,
+body[data-theme="day"] .route-capsule::after,
+body[data-theme="day"] .login-card::after {
+  background:
+    linear-gradient(120deg, rgba(37, 99, 235, 0), rgba(37, 99, 235, 0.22), rgba(245, 158, 11, 0.2), rgba(56, 189, 248, 0)),
+    radial-gradient(circle at var(--glow-x, 20%) 0%, rgba(56, 189, 248, 0.14), transparent 34%);
+}
+
+@keyframes pageElementRise {
+  from {
+    opacity: 0;
+    transform: translateY(22px) scale(0.985);
+    filter: blur(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes headerDrop {
+  from {
+    opacity: 0;
+    transform: translateY(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes borderAurora {
+  0% { --glow-x: 0%; filter: hue-rotate(0deg); }
+  50% { --glow-x: 100%; filter: hue-rotate(24deg); }
+  100% { --glow-x: 0%; filter: hue-rotate(0deg); }
+}
+
+@keyframes glassSweep {
+  from { transform: translateX(-120%) skewX(-10deg); }
+  to { transform: translateX(160%) skewX(-10deg); }
+}
+
+@keyframes buttonGlint {
+  from { transform: translateX(0) rotate(18deg); }
+  to { transform: translateX(340%) rotate(18deg); }
+}
+
+@keyframes softBeacon {
+  0%, 100% { filter: brightness(1); box-shadow: inherit; }
+  50% { filter: brightness(1.12); }
+}
+
+@keyframes heroReveal {
+  from { filter: saturate(0.82) brightness(0.86); }
+  to { filter: saturate(1) brightness(1); }
+}
+
+@keyframes titleGlow {
+  0%, 100% { text-shadow: 0 0 0 rgba(125, 211, 252, 0); }
+  50% { text-shadow: 0 0 28px rgba(125, 211, 252, 0.26); }
+}
+
+@keyframes floatDrift {
+  0%, 100% { transform: translateY(-50%) translateX(0); }
+  50% { transform: translateY(calc(-50% - 10px)) translateX(-8px); }
+}
+
+@keyframes loginStarDrift {
+  from { background-position: 0 0, 0 0, 0 0, 0 0; }
+  to { background-position: 96px 82px, -130px 104px, 150px -118px, -180px -142px; }
+}
+
+@keyframes loginPlanetFloat {
+  0%, 100% { translate: 0 0; filter: brightness(1); }
+  50% { translate: 0 -10px; filter: brightness(1.12); }
+}
+
+@keyframes loginPlanetPulse {
+  0%, 100% { transform: scale(0.92); opacity: 0.72; }
+  50% { transform: scale(1.08); opacity: 1; }
+}
+
+@keyframes loginBounceOne {
+  0% { transform: translate3d(0, 0, 0) scale(1); }
+  24% { transform: translate3d(-82px, 52px, 0) scale(0.96); }
+  48% { transform: translate3d(-168px, -12px, 0) scale(1.04); }
+  72% { transform: translate3d(-54px, -88px, 0) scale(0.98); }
+  100% { transform: translate3d(22px, 28px, 0) scale(1.02); }
+}
+
+@keyframes loginBounceTwo {
+  0% { transform: translate3d(0, 0, 0) scale(0.86); }
+  22% { transform: translate3d(118px, -48px, 0) scale(0.9); }
+  46% { transform: translate3d(206px, 22px, 0) scale(0.84); }
+  74% { transform: translate3d(78px, 86px, 0) scale(0.9); }
+  100% { transform: translate3d(-12px, 26px, 0) scale(0.86); }
+}
+
+@keyframes loginBounceThree {
+  0% { transform: translate3d(0, 0, 0) scale(0.78); }
+  30% { transform: translate3d(116px, 44px, 0) scale(0.84); }
+  58% { transform: translate3d(-86px, 82px, 0) scale(0.76); }
+  82% { transform: translate3d(-148px, 8px, 0) scale(0.82); }
+  100% { transform: translate3d(24px, -18px, 0) scale(0.78); }
+}
+
+@keyframes planetBurst {
+  0% { opacity: 0.9; transform: scale(0.9); }
+  100% { opacity: 0; transform: scale(1.75); }
+}
+
+@keyframes loginSkyRipple {
+  0% {
+    opacity: 0.9;
+    transform: translate(-50%, -50%) scale(0.24);
+    filter: blur(0);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(20);
+    filter: blur(2px);
+  }
+}
+
+@keyframes loginStarTwinkle {
+  0%, 100% {
+    transform: scale(0.72);
+    filter: brightness(0.8);
+  }
+  50% {
+    transform: scale(1.18);
+    filter: brightness(1.35);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .container > :where(section, div, article, form, aside, main),
+  .login-stage,
+  .hero-caption,
+  .hero-quick-panel,
+  .site-header,
+  .brand-mark,
+  .avatar,
+  .login-head-icon,
+  .login-brand-mark,
+  .hero-slide.active,
+  .hero-caption h1,
+  .hero-orbit-map,
+  .login-showcase::before,
+  .login-showcase::after,
+  .login-orbit-dot,
+  .login-orbit-dot::before,
+  .login-orbit-dot::after,
+  .login-sky-ripple {
+    animation: none !important;
+    filter: none !important;
+    transform: none !important;
+  }
+
+  .panel,
+  .card,
+  .feature-entry,
+  .square-post,
+  .metric,
+  .list-item,
+  .trip-card,
+  .choice,
+  .selected-item,
+  .media-uploader,
+  .square-command-bar,
+  .route-capsule {
+    transition: none !important;
+  }
+}
+
+/* Login refresh: standalone starfield with art copy left and auth card right. */
+.login-stage {
+  width: 100%;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(420px, 560px);
+  align-items: center;
+  gap: clamp(36px, 5vw, 88px);
+  margin: 0;
+  padding: clamp(28px, 5vw, 72px) clamp(28px, 7vw, 112px);
+  overflow: hidden;
+  color: #eaf2ff;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(37, 99, 235, 0.28), transparent 28%),
+    radial-gradient(circle at 78% 18%, rgba(14, 165, 233, 0.18), transparent 24%),
+    radial-gradient(circle at 46% 82%, rgba(245, 158, 11, 0.16), transparent 26%),
+    linear-gradient(180deg, #030712 0%, #071329 52%, #08101f 100%);
+}
+
+.login-stage::before {
+  display: none;
+}
+
+.login-showcase {
+  position: relative;
+  z-index: 1;
+  min-height: 680px;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  gap: 18px;
+}
+
+.login-art-copy {
+  position: relative;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: max-content;
+  min-height: 42px;
+  padding: 0 16px;
+  border: 1px solid rgba(125, 211, 252, 0.24);
+  border-radius: 999px;
+  color: #dbeafe;
+  background: rgba(15, 23, 42, 0.34);
+  box-shadow: 0 14px 34px rgba(2, 6, 23, 0.2);
+  backdrop-filter: blur(12px);
+}
+
+.login-art-copy span {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  color: #bae6fd;
+  background: transparent;
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.login-art-copy strong {
+  color: #ffffff;
+  font-size: 17px;
+  line-height: 1;
+  letter-spacing: 0;
+}
+
+.login-starfield {
+  position: absolute;
+  inset: 8% -4% 0 -8%;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.login-starfield i {
+  position: absolute;
+  width: var(--s);
+  height: var(--s);
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 12px rgba(125, 211, 252, 0.7);
+  animation: loginStarTwinkle 3.6s ease-in-out infinite;
+  animation-delay: var(--d);
+}
+
+.login-solar-system {
+  position: relative;
+  z-index: 1;
+  width: min(560px, 88%);
+  aspect-ratio: 1.35;
+  align-self: center;
+  justify-self: center;
+  margin: 0;
+  filter: drop-shadow(0 32px 70px rgba(37, 99, 235, 0.22));
+}
+
+.login-solar-system::before,
+.login-solar-system::after {
+  display: none;
+}
+
+.solar-path {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border: 1px solid rgba(148, 163, 184, 0.22);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-9deg);
+}
+
+.mercury-path { width: 18%; height: 12%; }
+.venus-path { width: 28%; height: 18%; }
+.earth-path { width: 39%; height: 25%; }
+.mars-path { width: 51%; height: 32%; }
+.jupiter-path { width: 66%; height: 42%; }
+.saturn-path { width: 80%; height: 50%; }
+.uranus-path { width: 92%; height: 58%; }
+.neptune-path { width: 105%; height: 66%; }
+
+.solar-sun {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 66px;
+  height: 66px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 34% 30%, #fff7cc, #fbbf24 42%, #f97316 74%);
+  box-shadow:
+    0 0 26px rgba(251, 191, 36, 0.75),
+    0 0 74px rgba(245, 158, 11, 0.36);
+  transform: translate(-50%, -50%);
+}
+
+.solar-planet {
+  position: absolute;
+  border-radius: 50%;
+  box-shadow: inset -8px -7px 14px rgba(2, 6, 23, 0.34), 0 0 18px rgba(125, 211, 252, 0.22);
+}
+
+.mercury { left: 56%; top: 46%; width: 9px; height: 9px; background: #b7aa9a; }
+.venus { left: 40%; top: 43%; width: 16px; height: 16px; background: radial-gradient(circle at 30% 28%, #fff1a8, #d8a746 70%); }
+.earth { left: 60%; top: 58%; width: 18px; height: 18px; background: radial-gradient(circle at 32% 28%, #a7f3d0, #2563eb 54%, #0f766e); }
+.mars { left: 35%; top: 58%; width: 13px; height: 13px; background: radial-gradient(circle at 32% 28%, #fed7aa, #c2410c 70%); }
+.jupiter { left: 67%; top: 35%; width: 42px; height: 42px; background: linear-gradient(160deg, #f8d9a3, #b7793d 32%, #f5c27a 45%, #8b5e34 70%); }
+.saturn { left: 25%; top: 34%; width: 34px; height: 34px; background: linear-gradient(160deg, #fde68a, #b08d57); }
+.saturn::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 58px;
+  height: 16px;
+  border: 3px solid rgba(253, 230, 138, 0.58);
+  border-radius: 50%;
+  transform: translate(-50%, -50%) rotate(-18deg);
+}
+.uranus { left: 74%; top: 68%; width: 23px; height: 23px; background: radial-gradient(circle at 32% 28%, #cffafe, #22d3ee 64%, #0e7490); }
+.neptune { left: 16%; top: 70%; width: 22px; height: 22px; background: radial-gradient(circle at 32% 28%, #bfdbfe, #2563eb 70%); }
+
+.login-brand-core {
+  display: none;
+}
+
+.login-card {
+  width: min(630px, 100%);
+  z-index: 1;
+  justify-self: end;
+  gap: 22px;
+  margin: 0;
+  padding: clamp(28px, 4vw, 42px);
+  border: 1px solid rgba(35, 63, 103, 0.14);
+  border-radius: 28px;
+  color: #172033;
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 34px 90px rgba(2, 6, 23, 0.36);
+  backdrop-filter: blur(22px);
+}
+
+.login-card:hover {
+  transform: none;
+}
+
+.login-card::after,
+.login-card:hover::after {
+  display: none;
+}
+
+.login-card-head {
+  justify-content: center;
+  gap: 16px;
+}
+
+.login-head-icon {
+  width: 64px;
+  height: 64px;
+  flex-basis: 64px;
+  border-radius: 22px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb 0%, #38bdf8 100%);
+  box-shadow: 0 16px 34px rgba(37, 99, 235, 0.22);
+  animation: none;
+}
+
+.login-card h1 {
+  color: #ff6b2c;
+  font-size: clamp(32px, 4vw, 42px);
+  letter-spacing: 0;
+}
+
+.login-card p {
+  color: #5f6f86;
+  font-size: 17px;
+}
+
+.login-role-switch {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  min-height: 68px;
+  padding: 7px;
+  border: 0;
+  border-radius: 22px;
+  background: #eef2f7;
+  box-shadow: inset 0 0 0 1px rgba(35, 63, 103, 0.06);
+}
+
+.login-identity-switch {
+  min-height: 58px;
+  margin-top: -10px;
+  border-radius: 18px;
+  background: rgba(238, 246, 255, 0.82);
+}
+
+.login-role-switch button {
+  min-height: 54px;
+  border: 0;
+  border-radius: 17px;
+  color: #667085;
+  background: transparent;
+  box-shadow: none;
+  font-size: 20px;
+  font-weight: 850;
+}
+
+.login-identity-switch button {
+  min-height: 44px;
+  font-size: 17px;
+}
+
+.login-role-switch button.active {
+  color: #ff6b2c;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(42, 79, 126, 0.13);
+}
+
+.login-form {
+  display: grid;
+  gap: 18px;
+}
+
+.login-form label {
+  display: grid;
+  gap: 9px;
+  color: #263a59;
+  font-size: 18px;
+  font-weight: 850;
+}
+
+.login-form input {
+  min-height: 62px;
+  border: 1px solid rgba(35, 63, 103, 0.14);
+  border-radius: 22px;
+  padding: 0 24px;
+  color: #172033;
+  background: #f8fafc;
+  font-size: 20px;
+  font-weight: 750;
+  box-shadow: none;
+}
+
+.login-form input::placeholder {
+  color: #9aa3b2;
+  font-weight: 650;
+}
+
+.login-submit {
+  min-height: 64px;
+  margin-top: 6px;
+  border: 0;
+  border-radius: 22px;
+  color: #ffffff;
+  background: linear-gradient(135deg, #2563eb 0%, #0ea5e9 58%, #f59e0b 100%);
+  box-shadow: 0 18px 34px rgba(37, 99, 235, 0.22);
+  font-size: 20px;
+}
+
+.login-hint {
+  color: #667085;
+  font-size: 18px;
+}
+
+.login-home-link {
+  color: #2563eb;
+}
+
+body[data-theme="day"] .login-card,
+body[data-theme="day"] .login-role-switch,
+body[data-theme="day"] .login-form input {
+  color: inherit;
+}
+
+body[data-theme="day"] .login-stage {
+  color: #eaf2ff;
+  background:
+    radial-gradient(circle at 18% 24%, rgba(37, 99, 235, 0.32), transparent 28%),
+    radial-gradient(circle at 78% 18%, rgba(14, 165, 233, 0.22), transparent 24%),
+    radial-gradient(circle at 46% 82%, rgba(245, 158, 11, 0.18), transparent 26%),
+    linear-gradient(180deg, #031027 0%, #081a34 52%, #08101f 100%);
+}
+
+body[data-theme="day"] .login-stage::before {
+  background-image:
+    radial-gradient(circle at 12% 20%, rgba(255, 255, 255, 0.94) 0 1px, transparent 1.8px),
+    radial-gradient(circle at 38% 64%, rgba(186, 230, 253, 0.88) 0 1px, transparent 1.7px),
+    radial-gradient(circle at 72% 32%, rgba(253, 230, 138, 0.78) 0 1px, transparent 1.6px),
+    radial-gradient(circle at 88% 78%, rgba(255, 255, 255, 0.8) 0 1px, transparent 1.7px);
+}
+
+.login-stage {
+  min-height: 100svh;
+  grid-template-columns: minmax(0, 1fr) minmax(360px, 460px);
+  gap: clamp(24px, 4vw, 64px);
+  padding: clamp(16px, 2.6vw, 34px) clamp(22px, 5.5vw, 76px);
+}
+
+.login-showcase {
+  min-height: 500px;
+  gap: 18px;
+}
+
+.login-solar-system {
+  width: min(520px, 82%);
+  aspect-ratio: 1.35;
+}
+
+.login-card {
+  width: min(460px, 100%);
+  gap: 12px;
+  padding: clamp(18px, 2.6vw, 26px);
+  border-radius: 24px;
+}
+
+.login-card-head {
+  gap: 11px;
+}
+
+.login-head-icon {
+  width: 48px;
+  height: 48px;
+  flex-basis: 48px;
+  border-radius: 15px;
+}
+
+.login-card h1 {
+  font-size: clamp(26px, 2.7vw, 32px);
+}
+
+.login-card p {
+  margin-top: 3px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.login-role-switch {
+  min-height: 48px;
+  padding: 4px;
+  border-radius: 15px;
+}
+
+.login-role-switch button {
+  min-height: 38px;
+  border-radius: 11px;
+  font-size: 16px;
+}
+
+.login-identity-switch {
+  min-height: 46px;
+  margin-top: -6px;
+}
+
+.login-identity-switch button {
+  min-height: 36px;
+  font-size: 15px;
+}
+
+.login-form {
+  gap: 9px;
+}
+
+.login-form label {
+  gap: 5px;
+  font-size: 14px;
+}
+
+.login-form input {
+  min-height: 44px;
+  border-radius: 14px;
+  padding: 0 14px;
+  font-size: 15px;
+}
+
+.login-submit {
+  min-height: 46px;
+  margin-top: 2px;
+  border-radius: 15px;
+  font-size: 16px;
+}
+
+.login-hint {
+  font-size: 14px;
+}
+
+.login-card .message {
+  margin: 0;
+  padding: 10px 12px;
+}
+
+@media (max-width: 640px) {
+  .login-stage {
+    grid-template-columns: 1fr;
+    width: 100%;
+    padding: 22px 14px 34px;
+    margin: 0;
+    overflow: visible;
+  }
+
+  .login-showcase {
+    min-height: auto;
+    gap: 18px;
+  }
+
+  .login-art-copy {
+    max-width: 100%;
+    min-height: 38px;
+    justify-self: center;
+  }
+
+  .login-art-copy strong {
+    font-size: 14px;
+  }
+
+  .login-solar-system {
+    display: none;
+  }
+
+  .login-card {
+    justify-self: stretch;
+    padding: 26px 20px;
+    border-radius: 26px;
+  }
+
+  .login-card-head {
+    align-items: center;
+  }
+
+  .login-head-icon {
+    width: 58px;
+    height: 58px;
+    flex-basis: 58px;
+  }
+
+  .login-role-switch button,
+  .login-submit {
+    font-size: 18px;
+  }
+
+  .login-form input {
+    min-height: 62px;
+    font-size: 19px;
+  }
 }
 

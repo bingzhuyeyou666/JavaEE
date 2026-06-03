@@ -54,11 +54,15 @@ public class TravelFeatureController {
     @Value("${travel.map.enabled:false}")
     private boolean baiduMapEnabled;
 
+    @Value("${travel.admin.username:admin}")
+    private String adminUsername;
+
     @GetMapping("/config")
     public Map<String, Object> config() {
         Map<String, Object> body = new HashMap<>();
         body.put("baiduMapAk", baiduMapAk);
         body.put("baiduMapEnabled", baiduMapEnabled);
+        body.put("adminUsername", adminUsername);
         return body;
     }
 

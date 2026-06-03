@@ -28,6 +28,7 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        ensureDemoUser();
         if (spotRepository.count() > 0) {
             return;
         }
@@ -88,9 +89,18 @@ public class DataInitializer implements CommandLineRunner {
                 facility(FacilityType.RESTAURANT, "李庄白肉老店", "28.8070", "104.6630", null, null, null, "川南小吃", "52", 4.5)
         ));
 
-        UserProfile demo = new UserProfile();
+    }
+
+    private void ensureDemoUser() {
+        UserProfile demo = userRepository.findByUsername("demo").orElseGet(UserProfile::new);
         demo.setUsername("demo");
-        demo.setPoints(120);
+        if (demo.getEmail() == null || demo.getEmail().trim().isEmpty()) {
+            demo.setEmail("demo@example.com");
+        }
+        demo.setPassword("demo123");
+        if (demo.getPoints() == 0) {
+            demo.setPoints(120);
+        }
         userRepository.save(demo);
     }
 

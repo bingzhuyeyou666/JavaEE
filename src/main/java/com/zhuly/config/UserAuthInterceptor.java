@@ -11,6 +11,7 @@ public class UserAuthInterceptor implements HandlerInterceptor {
 
     public static final String USER_SESSION_KEY = "USER_AUTHENTICATED";
     public static final String USER_NAME_KEY = "USER_NAME";
+    public static final String USER_ID_KEY = "USER_ID";
 
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
