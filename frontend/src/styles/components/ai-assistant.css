@@ -1,0 +1,108 @@
+/* ========================================
+   星涌 AI Assistant — 智能问答浮窗
+   移除: 拟人化脸部/眼睛/嘴巴动画
+   ======================================== */
+
+/* 浮窗按钮 */
+.floating-ai {
+  position: fixed;
+  right: 24px;
+  bottom: 80px;
+  z-index: 60;
+}
+
+.floating-ai-button {
+  width: 52px;
+  height: 52px;
+  border: var(--border-subtle);
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  background: var(--color-accent);
+  box-shadow: var(--shadow-lg);
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.floating-ai-button:hover {
+  transform: scale(1.08);
+  box-shadow: var(--shadow-xl);
+}
+
+/* 对话面板 */
+.floating-ai-panel {
+  position: fixed;
+  right: 24px;
+  bottom: 144px;
+  z-index: 60;
+  width: 380px;
+  max-height: 520px;
+  display: flex;
+  flex-direction: column;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-xl);
+  overflow: hidden;
+}
+
+.floating-ai-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4) var(--space-5);
+  border-bottom: var(--border-subtle);
+  font-weight: var(--font-bold);
+}
+
+.floating-ai-panel-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--space-4) var(--space-5);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.floating-ai-panel-body .message {
+  max-width: 85%;
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  line-height: var(--leading-relaxed);
+}
+
+.floating-ai-panel-body .message.user {
+  align-self: flex-end;
+  background: var(--color-accent);
+  color: #fff;
+}
+
+.floating-ai-panel-body .message.assistant {
+  align-self: flex-start;
+  background: var(--color-bg-card);
+  border: var(--border-subtle);
+}
+
+.floating-ai-panel-input {
+  display: flex;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-subtle);
+}
+
+.floating-ai-panel-input input {
+  flex: 1;
+  min-height: 40px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-input);
+}
+
+.floating-ai-panel-input button {
+  min-height: 40px;
+  min-width: 40px;
+  padding: 0;
+  border-radius: 50%;
+}

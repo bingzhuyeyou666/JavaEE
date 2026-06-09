@@ -1198,7 +1198,7 @@ function locateByBrowserFallback() {
             lat: position.coords.latitude,
             lng: position.coords.longitude,
             label: '浏览器定位'
-        }, '浏览器定位成功（Baidu 失败后兜底）');
+        }, '浏览器定位成功');
     });
 }
 

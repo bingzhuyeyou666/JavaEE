@@ -1,0 +1,108 @@
+/* ========================================
+   星涌 Login — 登录/注册页
+   移除: 太阳系轨道、行星动画、星空背景
+   ======================================== */
+
+.login-stage {
+  display: grid;
+  grid-template-columns: 1fr 440px;
+  min-height: 100vh;
+}
+
+/* 左侧展示区 */
+.login-showcase {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-16);
+}
+
+.login-showcase-content {
+  max-width: 480px;
+  text-align: center;
+}
+
+.login-showcase-content h1 {
+  font-size: var(--text-6xl);
+  margin-bottom: var(--space-6);
+}
+
+.login-showcase-content p {
+  font-size: var(--text-xl);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* 右侧表单区 */
+.login-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: var(--space-16) var(--space-12);
+  border-left: var(--border-subtle);
+  background: var(--color-bg-elevated);
+}
+
+.login-card h2 {
+  margin-bottom: var(--space-2);
+}
+
+.login-card .muted {
+  margin-bottom: var(--space-8);
+}
+
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-5);
+}
+
+.login-form label {
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+}
+
+.login-form input {
+  width: 100%;
+  margin-top: var(--space-1);
+}
+
+.login-form .form-actions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: var(--space-4);
+}
+
+.login-form .form-actions button {
+  min-width: 140px;
+}
+
+.login-toggle {
+  font-size: var(--text-sm);
+  color: var(--color-accent);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 0;
+  min-height: auto;
+  font-weight: var(--font-normal);
+}
+
+.login-toggle:hover {
+  text-decoration: underline;
+  box-shadow: none;
+}
+
+/* 最小化 Header */
+.login-minimal-header .brand-row {
+  min-height: 64px;
+  justify-content: flex-end;
+}
+
+.login-minimal-header .header-right {
+  margin-left: auto;
+}

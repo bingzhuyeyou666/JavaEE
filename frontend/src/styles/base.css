@@ -1,0 +1,207 @@
+/* ========================================
+   星涌 Base — 排版、表单、按钮基础
+   ======================================== */
+
+/* === 排版 === */
+
+h1 {
+  font-family: var(--font-serif);
+  font-size: var(--text-6xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+  letter-spacing: 0.02em;
+}
+
+h2 {
+  font-family: var(--font-serif);
+  font-size: var(--text-3xl);
+  font-weight: var(--font-bold);
+  line-height: var(--leading-tight);
+}
+
+h3 {
+  font-family: var(--font-serif);
+  font-size: var(--text-xl);
+  font-weight: var(--font-semibold);
+  line-height: var(--leading-tight);
+}
+
+.section-kicker {
+  display: inline-block;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--color-accent);
+  margin-bottom: var(--space-2);
+}
+
+.muted {
+  color: var(--color-text-secondary);
+}
+
+/* === 表单 === */
+
+input,
+select,
+textarea {
+  min-height: 44px;
+  padding: 0 14px;
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-base);
+  color: var(--color-text-primary);
+  background: var(--color-bg-input);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  border-color: var(--color-accent);
+  box-shadow: 0 0 0 3px rgba(139, 157, 195, 0.15);
+  outline: none;
+}
+
+[data-theme="day"] input:focus,
+[data-theme="day"] select:focus,
+[data-theme="day"] textarea:focus {
+  box-shadow: 0 0 0 3px rgba(196, 85, 77, 0.12);
+}
+
+textarea {
+  min-height: 118px;
+  padding: 12px 14px;
+  resize: vertical;
+  line-height: var(--leading-relaxed);
+}
+
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%238b8378' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 36px;
+}
+
+/* === 按钮 === */
+
+button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--color-text-primary);
+  background: var(--color-bg-elevated);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+button:hover {
+  color: var(--color-text-primary);
+  box-shadow: var(--shadow-sm);
+}
+
+button:active {
+  transform: scale(0.98);
+}
+
+/* 主要按钮 */
+button.primary,
+.button-like,
+.primary-link {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  font: inherit;
+  font-weight: var(--font-semibold);
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  border-color: var(--color-accent);
+  color: #fff;
+  background: var(--color-accent);
+}
+
+button.primary:hover,
+.button-like:hover,
+.primary-link:hover {
+  background: var(--color-accent-hover);
+  border-color: var(--color-accent-hover);
+  box-shadow: var(--shadow-md);
+}
+
+[data-theme="day"] button.primary,
+[data-theme="day"] .button-like,
+[data-theme="day"] .primary-link {
+  color: #fff;
+}
+
+/* 次级按钮 */
+button.secondary,
+.secondary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 18px;
+  border: var(--border-thin);
+  border-radius: var(--radius-md);
+  font: inherit;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  color: var(--color-text-primary);
+  border-color: var(--color-border);
+  background: var(--color-bg-elevated);
+}
+
+button.secondary:hover,
+.secondary:hover {
+  border-color: var(--color-border-accent);
+  background: var(--color-bg-card);
+}
+
+/* 幽灵按钮 */
+button.ghost,
+.icon-button.ghost {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-color: transparent;
+  border-radius: var(--radius-md);
+  background: transparent;
+  padding: 0 10px;
+  min-width: 40px;
+}
+
+button.ghost:hover,
+.icon-button.ghost:hover {
+  background: var(--color-surface-hover);
+}
+
+/* 危险按钮 */
+button.danger {
+  border-color: var(--color-danger);
+  color: #fff;
+  background: var(--color-danger);
+}
+
+button.danger:hover {
+  opacity: 0.9;
+}

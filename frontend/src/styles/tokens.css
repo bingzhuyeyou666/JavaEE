@@ -1,0 +1,143 @@
+/* ========================================
+   星涌 Design Tokens — 国风东方美学
+   黑夜(墨色) + 白天(宣纸) 双主题
+   ======================================== */
+
+/* === 排版 === */
+:root {
+  --font-serif: "Noto Serif SC", "Source Han Serif SC", "STSong", "SimSun", "Microsoft YaHei", serif;
+  --font-sans: "Microsoft YaHei", "PingFang SC", "Inter", Arial, sans-serif;
+
+  --text-xs: 0.75rem;
+  --text-sm: 0.8125rem;
+  --text-base: 0.9375rem;
+  --text-lg: 1.0625rem;
+  --text-xl: 1.25rem;
+  --text-2xl: 1.5rem;
+  --text-3xl: 1.875rem;
+  --text-4xl: 2.25rem;
+  --text-5xl: 3rem;
+  --text-6xl: 3.75rem;
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+  --font-extrabold: 800;
+
+  --leading-tight: 1.2;
+  --leading-normal: 1.6;
+  --leading-relaxed: 1.8;
+
+  --tracking-wide: 0.04em;
+
+  /* === 间距 (8px base) === */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* === 圆角 === */
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --radius-lg: 14px;
+  --radius-full: 9999px;
+
+  /* === 阴影 (克制) === */
+  --shadow-none: none;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.06);
+  --shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.08);
+  --shadow-xl: 0 16px 40px rgba(0, 0, 0, 0.1);
+
+  /* === 边框 === */
+  --border-thin: 1px solid var(--color-border);
+  --border-subtle: 1px solid var(--color-border-subtle);
+
+  /* === 过渡 === */
+  --transition-fast: 150ms ease;
+  --transition-base: 220ms ease;
+  --transition-slow: 350ms ease;
+}
+
+/* ========================================
+   黑夜主题 — 墨色 Ink
+   ======================================== */
+:root {
+  --color-bg: #0f1419;
+  --color-bg-elevated: #1a1f26;
+  --color-bg-card: #181d24;
+  --color-bg-input: #151a21;
+  --color-bg-overlay: rgba(10, 14, 18, 0.92);
+
+  --color-text-primary: #e8e0d4;
+  --color-text-secondary: #8b8378;
+  --color-text-tertiary: #5a5550;
+
+  --color-border: rgba(140, 130, 120, 0.2);
+  --color-border-subtle: rgba(140, 130, 120, 0.12);
+  --color-border-accent: rgba(160, 140, 100, 0.3);
+
+  --color-accent: #8b9dc3;
+  --color-accent-hover: #9eb0d6;
+  --color-accent-warm: #baa06b;
+  --color-accent-warm-hover: #d4b87a;
+  --color-accent-green: #7a9e8e;
+  --color-accent-green-hover: #8db5a3;
+
+  --color-danger: #c87a7a;
+  --color-danger-bg: rgba(200, 122, 122, 0.1);
+
+  --color-surface-header: rgba(15, 20, 25, 0.94);
+  --color-surface-panel: rgba(24, 29, 36, 0.7);
+  --color-surface-card: rgba(24, 29, 36, 0.8);
+  --color-surface-hover: rgba(140, 130, 120, 0.06);
+
+  --hero-overlay: linear-gradient(90deg, rgba(10, 14, 18, 0.88), rgba(15, 20, 28, 0.4) 55%, rgba(24, 36, 44, 0.12));
+  --hero-overlay-bottom: linear-gradient(0deg, rgba(10, 14, 18, 0.95) 0%, rgba(10, 14, 18, 0.4) 40%, transparent 100%);
+}
+
+/* ========================================
+   白天主题 — 宣纸 Rice Paper
+   ======================================== */
+[data-theme="day"] {
+  --color-bg: #f7f3ec;
+  --color-bg-elevated: #ffffff;
+  --color-bg-card: #fdfaf6;
+  --color-bg-input: #fffdf9;
+  --color-bg-overlay: rgba(247, 243, 236, 0.95);
+
+  --color-text-primary: #2c2416;
+  --color-text-secondary: #6b5e4a;
+  --color-text-tertiary: #9a8c78;
+
+  --color-border: rgba(80, 65, 40, 0.16);
+  --color-border-subtle: rgba(80, 65, 40, 0.1);
+  --color-border-accent: rgba(160, 100, 60, 0.25);
+
+  --color-accent: #c4554d;
+  --color-accent-hover: #d4645c;
+  --color-accent-warm: #b08a40;
+  --color-accent-warm-hover: #c49a50;
+  --color-accent-green: #6a8a7a;
+  --color-accent-green-hover: #7da090;
+
+  --color-danger: #cc6b6b;
+  --color-danger-bg: rgba(200, 107, 100, 0.08);
+
+  --color-surface-header: rgba(247, 243, 236, 0.95);
+  --color-surface-panel: rgba(253, 250, 246, 0.85);
+  --color-surface-card: rgba(253, 250, 246, 0.9);
+  --color-surface-hover: rgba(80, 65, 40, 0.04);
+
+  --hero-overlay: linear-gradient(90deg, rgba(247, 243, 236, 0.9), rgba(247, 243, 236, 0.5) 55%, rgba(247, 243, 236, 0.08));
+  --hero-overlay-bottom: linear-gradient(0deg, rgba(247, 243, 236, 0.95) 0%, rgba(247, 243, 236, 0.4) 40%, transparent 100%);
+}

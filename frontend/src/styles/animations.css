@@ -1,0 +1,54 @@
+/* ========================================
+   星涌 Animations — 精简动画集
+   仅保留功能性动画，删除所有装饰性动画
+   ======================================== */
+
+/* 骨架屏扫描 */
+@keyframes skeletonSweep {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 0.8; }
+}
+
+/* 模态框入场 */
+@keyframes modalLift {
+  from {
+    opacity: 0;
+    transform: translateY(16px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 信号点显现 */
+@keyframes signalReveal {
+  from {
+    opacity: 0;
+    transform: translate3d(var(--x, 0), var(--y, 0), 0) scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(var(--x, 0), var(--y, 0), 0) scale(1);
+  }
+}
+
+/* 成功闪烁 */
+@keyframes successFlash {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* 定位脉冲 */
+@keyframes locatePulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(139, 157, 195, 0.4); }
+  50% { box-shadow: 0 0 0 16px rgba(139, 157, 195, 0); }
+}
+
+/* Hero 轮播淡入 */
+@keyframes heroCrossfade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}

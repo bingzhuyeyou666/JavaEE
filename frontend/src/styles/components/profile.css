@@ -1,0 +1,137 @@
+/* ========================================
+   星涌 Profile — 个人中心
+   ======================================== */
+
+/* 徽章展示 */
+.badge-showcase {
+  padding: var(--space-8);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+}
+
+.badge-showcase h3 {
+  margin-bottom: var(--space-6);
+}
+
+.badge-track {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+/* 徽章网格 */
+.footprint-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: var(--space-4);
+}
+
+.footprint-badge-card {
+  padding: var(--space-6);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+  text-align: center;
+  transition: border-color var(--transition-fast);
+}
+
+.footprint-badge-card.unlocked {
+  border-color: var(--color-accent-warm);
+}
+
+.footprint-badge-card img {
+  width: 72px;
+  height: 72px;
+  margin: 0 auto var(--space-4);
+  border-radius: 50%;
+}
+
+.footprint-badge-card:not(.unlocked) img {
+  opacity: 0.3;
+  filter: grayscale(1);
+}
+
+.badge-medal {
+  width: 76px;
+  height: 76px;
+  margin: 0 auto var(--space-4);
+  display: grid;
+  place-items: center;
+}
+
+.badge-medal img {
+  margin: 0;
+}
+
+.badge-copy strong {
+  display: block;
+  font-size: var(--text-base);
+  margin-bottom: var(--space-1);
+}
+
+.badge-copy p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}
+
+.badge-copy span {
+  display: inline-block;
+  margin-top: var(--space-2);
+  padding: 2px 10px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+}
+
+.footprint-badge-card.unlocked .badge-copy span {
+  color: var(--color-accent-warm);
+  border-color: var(--color-accent-warm);
+  background: rgba(186, 160, 107, 0.08);
+}
+
+.badge-progress {
+  height: 6px;
+  margin-top: var(--space-4);
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--color-bg-elevated);
+}
+
+.badge-progress i {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--color-accent-warm);
+}
+
+/* 仪表盘 */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-6);
+  margin-bottom: var(--space-10);
+}
+
+.dashboard-card {
+  padding: var(--space-8);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+}
+
+.dashboard-card strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: var(--text-4xl);
+  color: var(--color-accent);
+  line-height: 1.1;
+  margin-bottom: var(--space-1);
+}
+
+.dashboard-card span {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}

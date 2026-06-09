@@ -34,7 +34,7 @@ import {
   Video,
   X
 } from 'lucide-react';
-import './styles.css';
+import './styles/index.css';
 
 const defaultUserId = 1;
 const routeKey = 'travelCloudChosenRoute';
@@ -490,21 +490,6 @@ function Hero({ spots, slides = defaultHeroSlides }) {
           </div>
         </div>
       ))}
-      <div className="hero-orbit-map" aria-hidden="true">
-        <span className="orbit-ring ring-a" />
-        <span className="orbit-ring ring-b" />
-        <span className="orbit-node node-a" />
-        <span className="orbit-node node-b" />
-        <span className="orbit-node node-c" />
-        <span className="orbit-line line-a" />
-        <span className="orbit-line line-b" />
-        <strong>星图导航</strong>
-      </div>
-      <div className="hero-quick-panel" aria-label="星涌能力概览">
-        <div><strong>AI</strong><span>把灵感变成路线</span></div>
-        <div><strong>实时</strong><span>天气、拥挤、设施同屏判断</span></div>
-        <div><strong>星图</strong><span>发现、收藏、打卡形成旅行宇宙</span></div>
-      </div>
       <div className="hero-dots">
         {heroSlides.map((slide, index) => (
           <button key={`${slide.title}-dot-${index}`} className={active === index ? 'active' : ''} onClick={() => setActive(index)} aria-label={`切换到第 ${index + 1} 张`} />
@@ -620,7 +605,7 @@ function useNearbyLocation() {
     if (!readSessionFlag(sessionLocatedKey)) return null;
     const saved = readStorageJson(nearbyLocationKey, null);
     const location = saved ? readLocationState(nearbyLocationKey, { lat: 0, lng: 0, label: '当前位置' }) : null;
-    return isBlockedPresetLocation(location) ? null : location;
+    return isBlockedPresetLocation(location) && location?.source !== 'explore-fallback' ? null : location;
   }, []);
 }
 
@@ -643,6 +628,15 @@ function locateByBrowser(onSuccess, onStatus) {
     () => onStatus?.('定位失败，请检查浏览器定位权限，或手动选择城市。'),
     { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 }
   );
+}
+
+function nearestVisibleRadius(spots, currentRadius) {
+  const distances = (Array.isArray(spots) ? spots : [])
+    .map((spot) => Number(spot.distanceKm))
+    .filter((distance) => Number.isFinite(distance) && distance > 0 && distance < 99999)
+    .sort((a, b) => a - b);
+  if (!distances.length || distances[0] <= currentRadius) return currentRadius;
+  return Math.min(3000, Math.max(currentRadius, Math.ceil(distances[0] / 25) * 25));
 }
 
 let baiduMapLoader;
@@ -777,6 +771,7 @@ function GuideLanding() {
               .sort((a, b) => Number(a.distanceKm ?? 99999) - Number(b.distanceKm ?? 99999))
           : [];
         setAllNearbySignals(list);
+        setExploreRadius((current) => nearestVisibleRadius(list, current));
       })
       .catch(() => {
         if (alive) setAllNearbySignals([]);
@@ -807,7 +802,16 @@ function GuideLanding() {
         setShowSuccessToast(true);
         window.setTimeout(() => setShowSuccessToast(false), 1800);
       },
-      () => {}
+      (status) => {
+        if (!status || (!status.includes('定位失败') && !status.includes('不支持定位'))) return;
+        const fallbackLocation = { ...defaultLocation, label: '宜宾市中心', source: 'explore-fallback' };
+        setLocation(fallbackLocation);
+        saveLocationState(nearbyLocationKey, fallbackLocation);
+        writeSessionFlag(sessionLocatedKey, true);
+        setReadyToEnter(true);
+        setShowSuccessToast(true);
+        window.setTimeout(() => setShowSuccessToast(false), 1800);
+      }
     );
     window.setTimeout(() => setLoading(false), 1200);
     window.setTimeout(() => setScanBurst(false), 1800);
@@ -820,6 +824,7 @@ function GuideLanding() {
       seed = (seed * 1664525 + 1013904223) % 4294967296;
       return seed / 4294967296;
     };
+    const twinkleTypes = ['star', 'star twinkle-b', 'star twinkle-c', 'star twinkle-d'];
     return Array.from({ length: 560 }, (_, index) => {
       const cluster = index % 19 === 0;
       const anchorX = random() * 100;
@@ -828,13 +833,33 @@ function GuideLanding() {
         x: cluster ? anchorX + (random() - 0.5) * 1.8 : random() * 100,
         y: cluster ? anchorY + (random() - 0.5) * 1.8 : random() * 100,
         size: index % 53 === 0 ? 2.7 : index % 17 === 0 ? 1.8 : 0.7 + random() * 0.9,
-        duration: 3 + random() * 4.8,
-        delay: -random() * 5,
-        warmth: random()
+        duration: 2 + random() * 7,
+        delay: -random() * 8,
+        warmth: random(),
+        twinkleClass: twinkleTypes[Math.floor(random() * twinkleTypes.length)]
       };
     });
   }, []);
 
+  const shootingStars = useMemo(() => {
+    let seed = 462819;
+    const random = () => {
+      seed = (seed * 1103515245 + 12345) % 2147483648;
+      return seed / 2147483648;
+    };
+    return Array.from({ length: 6 }, () => {
+      // 流星起始位置：左上区域
+      const x = random() * 65;
+      const y = random() * 30;
+      // 角度：左上到右下，20° 到 55°
+      const angle = 20 + random() * 35;
+      // 长度、速度、间隔随机化
+      const length = 90 + random() * 150;
+      const duration = 0.5 + random() * 1.5;
+      const delay = random() * 10;
+      return { x, y, length, angle, duration, delay };
+    });
+  }, []);
   const nearbySignals = useMemo(() => {
     return allNearbySignals
       .filter((spot) => Number(spot.distanceKm ?? 99999) <= exploreRadius)
@@ -848,8 +873,8 @@ function GuideLanding() {
   }, []);
 
   function startPanDrag(event) {
-    const fromCenterControl = event.target.closest('.center-locate-button');
-    if (!hasLocated || (!fromCenterControl && event.target.closest('button, a, input, textarea, select, .signal-preview'))) return;
+    if (event.target.closest('.center-locate-button')) return;
+    if (!hasLocated || event.target.closest('button, a, input, textarea, select, .signal-preview')) return;
     panDragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -904,12 +929,31 @@ function GuideLanding() {
   }
 
   const projectedSignals = useMemo(() => {
+    if (nearbySignals.length <= 3) {
+      const anchors = [
+        { x: -260, y: -92 },
+        { x: 260, y: -92 },
+        { x: 0, y: 190 }
+      ];
+      return nearbySignals.map((spot, index) => {
+        const anchor = anchors[index] || { x: (index - 1) * 220, y: 160 };
+        return {
+          ...spot,
+          x: anchor.x,
+          y: anchor.y,
+          z: 0,
+          centerPassing: Math.hypot(anchor.x * mapScale, anchor.y * mapScale) < 96,
+          visibleScale: 1,
+          visibleOpacity: 1
+        };
+      });
+    }
     const points = nearbySignals.map((spot, index) => {
       const distance = Number(spot.distanceKm ?? 99999);
       const distanceRatio = Number.isFinite(distance) && distance !== 99999
         ? Math.min(1, distance / Math.max(exploreRadius, 1))
         : index / Math.max(nearbySignals.length - 1, 1);
-      const radius = Math.min(620, 118 + distanceRatio * 430 + (index % 4) * 18);
+      const radius = Math.min(620, 190 + distanceRatio * 430 + (index % 4) * 24);
       const angle = index * 2.3999632297 + (index % 2 ? 0.28 : -0.18);
       const x = Math.cos(angle) * radius;
       const y = Math.sin(angle) * radius * 0.62 + ((index % 3) - 1) * 18;
@@ -982,7 +1026,7 @@ function GuideLanding() {
           {starPoints.map((star, index) => (
             <span
               key={index}
-              className={cx('star', star.warmth > 0.86 && 'warm', star.warmth < 0.16 && 'blue')}
+              className={cx(star.twinkleClass, star.warmth > 0.86 && 'warm', star.warmth < 0.16 && 'blue')}
               style={{
                 '--x': `${star.x}vw`,
                 '--y': `${star.y}vh`,
@@ -993,20 +1037,24 @@ function GuideLanding() {
             />
           ))}
         </div>
+        <div className="shooting-stars-layer" aria-hidden="true">
+          {shootingStars.map((s, i) => (
+            <span
+              key={`meteor-${i}`}
+              className="shooting-star"
+              style={{
+                '--s-x': `${s.x}%`,
+                '--s-y': `${s.y}%`,
+                '--s-length': `${s.length}px`,
+                '--s-angle': `${s.angle}deg`,
+                '--s-duration': `${s.duration}s`,
+                '--s-delay': `${s.delay}s`
+              }}
+            />
+          ))}
+        </div>
         <div className="guide-3d-scene">
           <div className="cosmic-grid" aria-hidden="true" />
-          <div className="warp-tunnel" aria-hidden="true" />
-          <div className="scan-core" aria-hidden="true">
-            <span className="scan-ring ring-1" />
-            <span className="scan-ring ring-2" />
-            <span className="scan-ring ring-3" />
-            <span className="scan-beam beam-a" />
-            <span className="scan-beam beam-b" />
-            <span className="scan-sweep" />
-          </div>
-          <div className="particle-stream stream-a" aria-hidden="true" />
-          <div className="particle-stream stream-b" aria-hidden="true" />
-          <div className="particle-stream stream-c" aria-hidden="true" />
           <div
             className="flat-star-map-plane"
             style={{
@@ -1071,12 +1119,6 @@ function GuideLanding() {
                 );
               })}
             </div>
-            <button className={cx('center-locate-button', loading && 'loading')} type="button" onClick={handleLocate}>
-              <span className="center-locate-sphere">
-                <MapPin size={18} />
-                <span>{loading ? '定位中' : '探索'}</span>
-              </span>
-            </button>
           </div>
         </div>
         {(loading || !hasLocated) && (
@@ -1095,6 +1137,26 @@ function GuideLanding() {
           <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
       </section>
+      <button
+        className={cx('center-locate-button', loading && 'loading')}
+        type="button"
+        onPointerDown={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+        }}
+        onPointerMove={(event) => event.stopPropagation()}
+        onPointerUp={(event) => event.stopPropagation()}
+        onClick={(event) => {
+          event.preventDefault();
+          event.stopPropagation();
+          handleLocate();
+        }}
+      >
+        <span className="center-locate-sphere">
+          <MapPin size={18} />
+          <span>{loading ? '定位中' : '探索'}</span>
+        </span>
+      </button>
     </main>
   );
 }
@@ -2080,7 +2142,7 @@ function SquarePostCard({ post, onSelect }) {
   const isQuestion = post.postType === 'QUESTION';
   const isDiscussion = post.postType === 'DISCUSSION';
   return (
-    <article className={cx('square-post', post.postType?.toLowerCase())} onClick={onSelect}>
+    <article className={cx('square-post', post.postType?.toLowerCase())} data-type={post.postType} onClick={onSelect}>
       {cover && (
         <div className="square-cover">
           <img src={cover} alt={post.title} />
@@ -2743,7 +2805,6 @@ function App() {
     const nextTheme = theme === 'day' ? 'day' : 'night';
     document.documentElement.dataset.theme = nextTheme;
     document.body.dataset.theme = nextTheme;
-    ensureDaylightContrastStyle();
   }, [theme]);
 
   const props = { route, addRoute, removeRoute, clearRoute: () => saveRoute([]) };
@@ -2764,19 +2825,9 @@ function App() {
 
   return (
     <>
-      {path !== '/login' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
-      {path !== '/login' && (
-        <div className="theme-dock" role="group" aria-label="主题切换">
-          <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')}>
-            <Moon size={16} /> 星夜黑
-          </button>
-          <button className={theme === 'day' ? 'active' : ''} type="button" onClick={() => setTheme('day')}>
-            <Sun size={16} /> 日光白
-          </button>
-        </div>
-      )}
+      {path !== '/login' && path !== '/guide/locate' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
       {page}
-      {path !== '/login' && <footer className="footer">
+      {path !== '/login' && path !== '/guide/locate' && <footer className="footer">
         <span>星涌 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});

@@ -1,0 +1,119 @@
+/* ========================================
+   星涌 Cards — 景点卡片
+   ======================================== */
+
+.card {
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+  overflow: hidden;
+  transition: transform var(--transition-base), box-shadow var(--transition-base), border-color var(--transition-base);
+}
+
+.card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-lg);
+  border-color: var(--color-border-accent);
+}
+
+.card-media {
+  position: relative;
+  overflow: hidden;
+  aspect-ratio: 16 / 10;
+}
+
+.card-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-media .rating-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+}
+
+.card-body {
+  padding: var(--space-5);
+}
+
+.card-body h2 {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-1);
+}
+
+.card-body .muted {
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.card-body .actions {
+  display: flex;
+  gap: var(--space-2);
+}
+
+/* === 特色区域 === */
+
+.signature-stage {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 1.1fr);
+  gap: var(--space-12);
+  align-items: center;
+  padding: var(--space-16) 0;
+  border-bottom: var(--border-subtle);
+}
+
+.signature-copy h2 {
+  margin: var(--space-2) 0 var(--space-4);
+}
+
+.signature-copy p {
+  font-size: var(--text-lg);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}
+
+/* 工作流程 */
+.product-story {
+  padding: var(--space-16) 0;
+}
+
+.product-story h2 {
+  margin: var(--space-2) 0 var(--space-8);
+}
+
+.story-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-6);
+}
+
+.story-grid article {
+  padding: var(--space-8);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-card);
+}
+
+.story-grid article strong {
+  display: block;
+  font-family: var(--font-serif);
+  font-size: var(--text-5xl);
+  color: var(--color-border);
+  line-height: 1;
+  margin-bottom: var(--space-3);
+}
+
+.story-grid article span {
+  display: block;
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  margin-bottom: var(--space-2);
+}
+
+.story-grid article p {
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  line-height: var(--leading-relaxed);
+}

@@ -1,0 +1,119 @@
+/* ========================================
+   星涌 Guide — 景点导览页
+   ======================================== */
+
+/* 导览命令栏 */
+.guide-command {
+  padding: var(--space-6);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+  margin-bottom: var(--space-8);
+}
+
+.guide-command-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+}
+
+.guide-command-stats span {
+  padding: 4px 12px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-full);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+  background: var(--color-bg-card);
+}
+
+.guide-command-stats strong {
+  font-weight: var(--font-bold);
+  color: var(--color-text-primary);
+}
+
+/* 搜索区 */
+.guide-search-console {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-3);
+  margin-top: var(--space-5);
+}
+
+.guide-search-console input {
+  width: 100%;
+}
+
+/* 位置条 */
+.location-strip {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-3) var(--space-5);
+  border: var(--border-subtle);
+  border-radius: var(--radius-full);
+  background: var(--color-bg-card);
+  font-size: var(--text-sm);
+  margin-bottom: var(--space-4);
+}
+
+.location-strip strong {
+  color: var(--color-accent);
+  font-weight: var(--font-bold);
+}
+
+/* 导览布局 */
+.guide-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 340px;
+  gap: var(--space-8);
+}
+
+.guide-results {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-6);
+  min-width: 0;
+}
+
+.guide-results-title {
+  font-size: var(--text-xl);
+  margin-bottom: var(--space-2);
+}
+
+/* 地图面板 */
+.map-container {
+  position: sticky;
+  top: 160px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+  aspect-ratio: 3 / 4;
+  min-height: 500px;
+}
+
+.map-box {
+  width: 100%;
+  height: 100%;
+  min-height: 360px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.map-box.baidu-map {
+  background: #e8e0d4;
+}
+
+.guide-card-cloud {
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+}
+
+.guide-card-cloud .card-body {
+  min-height: 190px;
+  display: flex;
+  flex-direction: column;
+}
+
+.guide-card-cloud .actions {
+  margin-top: auto;
+}

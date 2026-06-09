@@ -1,0 +1,16 @@
+/* ========================================
+   白天主题微调 — 宣纸
+   大部分工作由 tokens.css [data-theme="day"] 完成
+   ======================================== */
+
+[data-theme="day"] .hero-slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(247, 243, 236, 0.25));
+  pointer-events: none;
+}
+
+[data-theme="day"] .hero-caption h1 {
+  text-shadow: 0 2px 12px rgba(247, 243, 236, 0.6);
+}

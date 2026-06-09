@@ -1,0 +1,217 @@
+/* ========================================
+   星涌 Responsive — 响应式布局
+   ======================================== */
+
+/* 平板 (≤960px) */
+@media (max-width: 960px) {
+  .brand-row {
+    min-height: 68px;
+    flex-wrap: wrap;
+    gap: var(--space-3);
+  }
+
+  .brand strong {
+    font-size: var(--text-2xl);
+  }
+
+  .header-right p {
+    display: none;
+  }
+
+  .portal-nav {
+    gap: var(--space-3);
+    overflow-x: auto;
+    justify-content: flex-start;
+    padding: 0 var(--space-4);
+  }
+
+  .portal-nav a {
+    min-height: 44px;
+    font-size: var(--text-xs);
+  }
+
+  .hero {
+    min-height: 420px;
+  }
+
+  .hero-caption h1 {
+    font-size: clamp(28px, 5vw, 44px);
+  }
+
+  .guide-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sticky {
+    position: static;
+  }
+
+  .map-container {
+    position: static;
+    aspect-ratio: 16 / 9;
+    min-height: 300px;
+  }
+
+  .signature-stage {
+    grid-template-columns: 1fr;
+    gap: var(--space-6);
+    padding: var(--space-8) 0;
+  }
+
+  .story-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid {
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  }
+
+  .login-stage {
+    grid-template-columns: 1fr;
+  }
+
+  .login-showcase {
+    display: none;
+  }
+
+  .login-card {
+    padding: var(--space-8) var(--space-6);
+    border-left: none;
+  }
+
+  .guide-search-console {
+    grid-template-columns: 1fr;
+  }
+
+  .dashboard {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .floating-ai-panel {
+    width: calc(100vw - 48px);
+    right: 24px;
+  }
+}
+
+/* 手机 (≤600px) */
+@media (max-width: 600px) {
+  .container {
+    margin-top: var(--space-6);
+    margin-bottom: var(--space-10);
+  }
+
+  .brand-row {
+    min-height: 60px;
+  }
+
+  .brand strong {
+    font-size: var(--text-xl);
+  }
+
+  .brand small {
+    display: none;
+  }
+
+  .account-entry {
+    grid-template-columns: 36px;
+    padding: 6px;
+    min-width: auto;
+  }
+
+  .account-entry strong,
+  .account-entry small {
+    display: none;
+  }
+
+  .theme-switch {
+    display: none;
+  }
+
+  /* theme-dock has its own display logic, keep it */
+
+  .panel {
+    padding: var(--space-5);
+  }
+
+  .grid {
+    grid-template-columns: 1fr;
+  }
+
+  .grid-2,
+  .grid-3,
+  .grid-4 {
+    grid-template-columns: 1fr;
+  }
+
+  .feature-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .metrics {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .info-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .hero {
+    min-height: 340px;
+  }
+
+  .hero-caption h1 {
+    font-size: 28px;
+  }
+
+  .hero-caption p {
+    font-size: var(--text-base);
+  }
+
+  .footprint-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .badge-track {
+    grid-template-columns: 1fr;
+  }
+
+  .square-post-form,
+  .square-type-switch,
+  .square-meta-fields,
+  .square-upload-row {
+    grid-template-columns: 1fr;
+  }
+
+  .review-composer {
+    align-items: flex-start;
+  }
+
+  .cultural-product {
+    grid-template-columns: 22px minmax(0, 1fr);
+  }
+
+  .cultural-product img {
+    grid-column: 2;
+    width: 100%;
+    height: auto;
+    aspect-ratio: 16 / 10;
+  }
+
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .floating-ai-panel {
+    width: calc(100vw - 32px);
+    right: 16px;
+  }
+
+  .modal-content {
+    width: calc(100% - 24px);
+    padding: var(--space-6);
+  }
+}

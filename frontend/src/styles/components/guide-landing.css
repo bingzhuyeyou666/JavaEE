@@ -1,0 +1,1004 @@
+/* ========================================
+   星涌 Guide Landing — 星空探索页
+   国风重制：保留星图探索交互，简化视觉
+   ======================================== */
+
+/* === 全屏容器 === */
+
+.guide-landing {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: #080c14;
+  overflow: hidden;
+}
+
+body.guide-open {
+  overflow: hidden;
+}
+
+/* === 主舞台 === */
+
+.guide-intro-stage {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  display: grid;
+  place-items: center;
+  perspective: 1100px;
+  cursor: default;
+  touch-action: auto;
+  user-select: none;
+  background:
+    radial-gradient(ellipse at 60% 35%, rgba(186, 160, 107, 0.06), transparent 55%),
+    radial-gradient(ellipse at 35% 65%, rgba(138, 157, 195, 0.05), transparent 50%),
+    linear-gradient(180deg, #060910 0%, #080c14 50%, #0a0f1a 100%);
+}
+
+/* 扫描态 */
+.guide-intro-stage.scanning {
+  background:
+    radial-gradient(ellipse at 60% 35%, rgba(186, 160, 107, 0.1), transparent 55%),
+    radial-gradient(ellipse at 35% 65%, rgba(122, 158, 142, 0.06), transparent 50%),
+    linear-gradient(180deg, #060910 0%, #080c14 50%, #0a0f1a 100%);
+}
+
+.guide-intro-stage:active { cursor: default; }
+
+/* 移除旧版伪元素装饰 */
+.guide-intro-stage::before,
+.guide-intro-stage::after {
+  display: none !important;
+}
+
+/* === 左上角定位面板 === */
+
+.locate-ui-header {
+  position: absolute;
+  left: 28px;
+  top: 24px;
+  z-index: 40;
+  min-width: 170px;
+  padding: 14px 16px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  background: var(--color-surface-header);
+  backdrop-filter: blur(12px);
+}
+
+.guide-landing .locate-ui-header,
+.guide-landing .explore-range-panel,
+.guide-landing .guide-locate-text,
+.guide-landing .locate-status-bar {
+  border-color: rgba(186, 160, 107, 0.16);
+  color: rgba(238, 232, 220, 0.9);
+  background: rgba(8, 12, 20, 0.42);
+  box-shadow: none;
+}
+
+.locate-ui-header span,
+.locate-status-bar span {
+  display: block;
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+}
+
+.locate-ui-header strong,
+.locate-status-bar strong {
+  display: block;
+  margin-top: 4px;
+  font-size: 18px;
+  color: var(--color-text-primary);
+}
+
+.guide-landing .locate-ui-header strong,
+.guide-landing .explore-range-panel strong,
+.guide-landing .locate-status-bar strong,
+.guide-landing .guide-locate-text {
+  color: rgba(245, 238, 224, 0.92);
+}
+
+.locate-ui-header::after {
+  display: none;
+}
+
+/* === 右上角探索范围面板 === */
+
+.explore-range-panel {
+  position: absolute;
+  right: 28px;
+  top: 24px;
+  z-index: 40;
+  width: min(280px, calc(100% - 56px));
+  padding: 14px 16px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  background: var(--color-surface-header);
+  backdrop-filter: blur(12px);
+}
+
+.explore-range-panel span,
+.explore-range-panel strong {
+  display: block;
+}
+
+.explore-range-panel span {
+  color: var(--color-accent);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+}
+
+.explore-range-panel strong {
+  margin-top: 4px;
+  font-size: 18px;
+}
+
+.explore-range-panel .explore-location-readout {
+  display: block;
+  margin-top: 8px;
+  font-size: var(--text-xs);
+  color: var(--color-text-tertiary);
+  font-weight: var(--font-normal);
+}
+
+.guide-landing .explore-range-panel .explore-location-readout {
+  color: rgba(220, 210, 190, 0.62);
+}
+
+.explore-range-panel input {
+  width: 100%;
+  margin-top: 12px;
+  accent-color: var(--color-accent);
+}
+
+/* === 流星 === */
+
+.shooting-stars-layer {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.shooting-star {
+  position: absolute;
+  left: var(--s-x);
+  top: var(--s-y);
+  width: var(--s-length);
+  height: 1px;
+  opacity: 0;
+  animation: meteor var(--s-duration) var(--s-delay) ease-out infinite;
+  pointer-events: none;
+  border-radius: 1px;
+}
+
+/* 流星主体：渐细的光带 */
+.shooting-star::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(255, 255, 255, 0.02) 30%,
+    rgba(210, 220, 245, 0.15) 55%,
+    rgba(255, 250, 235, 0.6) 78%,
+    rgba(255, 255, 250, 0.95) 93%,
+    #fff 100%
+  );
+  border-radius: 1px;
+}
+
+/* 流星头部光晕 */
+.shooting-star::after {
+  content: "";
+  position: absolute;
+  right: -2px;
+  top: 50%;
+  width: 5px;
+  height: 5px;
+  translate: 0 -50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.95) 0%,
+    rgba(210, 225, 255, 0.4) 40%,
+    transparent 70%
+  );
+  border-radius: 50%;
+  box-shadow:
+    0 0 4px 2px rgba(255, 250, 240, 0.5),
+    0 0 12px 5px rgba(190, 210, 245, 0.15);
+}
+
+@keyframes meteor {
+  0% {
+    opacity: 0;
+    transform: rotate(var(--s-angle)) translateX(-60px);
+  }
+  1.5% { opacity: 0; }
+  5% { opacity: 1; }
+  12% { opacity: 1; }
+  45% {
+    opacity: 0.4;
+    transform: rotate(var(--s-angle)) translateX(calc(var(--s-length) * 0.6));
+  }
+  80% { opacity: 0.04; }
+  100% {
+    opacity: 0;
+    transform: rotate(var(--s-angle)) translateX(calc(var(--s-length) * 1.35));
+  }
+}
+
+/* === 星空背景 === */
+
+.starfield {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  overflow: hidden;
+}
+
+.starfield::before,
+.starfield::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+
+.starfield::before {
+  opacity: 0.22;
+  background:
+    radial-gradient(ellipse at 58% 42%, rgba(200, 190, 160, 0.1), transparent 50%),
+    radial-gradient(ellipse at 30% 60%, rgba(180, 175, 160, 0.08), transparent 55%);
+}
+
+.starfield::after {
+  opacity: 0.35;
+  background:
+    radial-gradient(ellipse at 52% 38%, rgba(210, 200, 170, 0.12), transparent 45%),
+    radial-gradient(ellipse at 38% 55%, rgba(170, 160, 140, 0.1), transparent 50%);
+  filter: blur(0.5px);
+}
+
+.guide-intro-stage.scanning .starfield::before {
+  opacity: 0.62;
+}
+
+/* 星星 */
+.star {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--size);
+  height: var(--size);
+  border-radius: 50%;
+  background: rgba(225, 220, 210, 0.65);
+  animation-name: guideStarTwinkleA;
+  animation-timing-function: ease-in-out;
+  animation-duration: var(--duration);
+  animation-delay: var(--delay);
+  animation-iteration-count: infinite;
+}
+
+.star.twinkle-b {
+  animation-name: guideStarTwinkleB;
+}
+
+.star.twinkle-c {
+  animation-name: guideStarTwinkleC;
+}
+
+.star.twinkle-d {
+  animation-name: guideStarTwinkleD;
+}
+
+.star.warm {
+  background: rgba(235, 210, 170, 0.6);
+}
+
+.star.blue {
+  background: rgba(185, 200, 225, 0.5);
+}
+
+.guide-intro-stage.scanning .star {
+  animation-duration: 900ms;
+}
+
+@keyframes guideStarTwinkleA {
+  0%, 100% { opacity: 0.32; transform: scale(0.72); }
+  34% { opacity: 0.88; transform: scale(1.15); }
+  50% { opacity: 0.45; transform: scale(0.85); }
+  72% { opacity: 0.92; transform: scale(1.22); }
+  88% { opacity: 0.28; transform: scale(0.65); }
+}
+
+@keyframes guideStarTwinkleB {
+  0%, 100% { opacity: 0.25; transform: scale(0.68); }
+  18% { opacity: 0.95; transform: scale(1.25); }
+  38% { opacity: 0.15; transform: scale(0.55); }
+  62% { opacity: 0.78; transform: scale(1.08); }
+  80% { opacity: 0.35; transform: scale(0.75); }
+}
+
+@keyframes guideStarTwinkleC {
+  0%, 100% { opacity: 0.4; transform: scale(0.8); }
+  22% { opacity: 0.6; transform: scale(0.95); }
+  40% { opacity: 0.9; transform: scale(1.3); }
+  55% { opacity: 0.25; transform: scale(0.6); }
+  78% { opacity: 0.75; transform: scale(1.05); }
+  90% { opacity: 0.35; transform: scale(0.72); }
+}
+
+@keyframes guideStarTwinkleD {
+  0% { opacity: 0.2; transform: scale(0.6); }
+  15% { opacity: 1; transform: scale(1.35); }
+  28% { opacity: 0.1; transform: scale(0.45); }
+  42% { opacity: 0.55; transform: scale(0.85); }
+  58% { opacity: 0.15; transform: scale(0.5); }
+  76% { opacity: 0.95; transform: scale(1.28); }
+  88% { opacity: 0.3; transform: scale(0.7); }
+  100% { opacity: 0.18; transform: scale(0.55); }
+}
+
+/* === 3D 场景容器 === */
+
+.guide-3d-scene {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  pointer-events: none;
+}
+
+/* === 网格地面 === */
+
+.cosmic-grid {
+  position: absolute;
+  left: 50%;
+  bottom: -18%;
+  z-index: 1;
+  width: 130vw;
+  height: 62vh;
+  border-radius: 50% 50% 0 0;
+  background:
+    linear-gradient(rgba(200, 190, 170, 0.05) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 190, 170, 0.05) 1px, transparent 1px);
+  background-size: 56px 34px;
+  mask-image: radial-gradient(ellipse at 50% 20%, black 0 42%, transparent 74%);
+  transform: translateX(-50%) perspective(560px) rotateX(62deg);
+}
+
+/* 探索态高亮 */
+.guide-intro-stage.scanning .cosmic-grid {
+  background:
+    linear-gradient(rgba(200, 190, 170, 0.12) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 190, 170, 0.12) 1px, transparent 1px);
+  background-size: 56px 34px;
+}
+
+/* === 扫描波纹 === */
+
+.warp-tunnel,
+.scan-core {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  pointer-events: none;
+}
+
+.warp-tunnel,
+.scan-core,
+.particle-stream {
+  display: none !important;
+}
+
+.warp-tunnel {
+  z-index: 2;
+  width: 132vmin;
+  height: 132vmin;
+  opacity: 0;
+  border-radius: 50%;
+  background:
+    repeating-conic-gradient(from 0deg, transparent 0 8deg, rgba(186, 160, 107, 0.12) 9deg 10deg, transparent 12deg 22deg),
+    radial-gradient(circle, transparent 24%, rgba(186, 160, 107, 0.04) 25%, transparent 55%);
+  filter: blur(0.5px);
+  transform: translate3d(-50%, -50%, -90px) scale(0.35) rotateX(72deg);
+}
+
+.guide-intro-stage.scanning .warp-tunnel {
+  opacity: 0;
+}
+
+.scan-core {
+  z-index: 3;
+  width: 1px;
+  height: 1px;
+  transform: translate3d(-50%, -50%, 132px);
+  display: none;
+}
+
+.scan-ring,
+.scan-beam,
+.scan-sweep {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+}
+
+.scan-ring {
+  width: var(--ring-size);
+  height: var(--ring-size);
+  opacity: 0;
+  border: 1px solid rgba(186, 160, 107, 0.35);
+}
+
+.ring-1 { --ring-size: 260px; }
+.ring-2 { --ring-size: 430px; }
+.ring-3 { --ring-size: 660px; }
+
+.guide-intro-stage.scanning .scan-ring {
+  opacity: 0;
+  animation: none;
+}
+
+@keyframes scanRingExpand {
+  from { opacity: 0.8; transform: translate(-50%, -50%) scale(0.6); }
+  to { opacity: 0; transform: translate(-50%, -50%) scale(1.1); }
+}
+
+.scan-beam {
+  width: 520px;
+  height: 1px;
+  opacity: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, transparent, rgba(210, 195, 160, 0.3), transparent);
+  transform-origin: left center;
+}
+
+.beam-a { transform: rotate(18deg) translateX(-50%); }
+.beam-b { transform: rotate(-32deg) translateX(-50%); }
+
+.guide-intro-stage.scanning .scan-beam {
+  opacity: 0;
+}
+
+.scan-sweep {
+  width: 520px;
+  height: 520px;
+  opacity: 0;
+  background: conic-gradient(from -12deg, transparent 66%, rgba(186, 160, 107, 0.2) 72%, rgba(186, 160, 107, 0.06) 78%, transparent 86%);
+  mask-image: radial-gradient(circle, transparent 28%, black 29% 54%, transparent 56%);
+}
+
+.guide-intro-stage.scanning .scan-sweep {
+  opacity: 0;
+}
+
+/* === 粒子轨道 === */
+
+.particle-stream {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 34vmin;
+  height: 34vmin;
+  border-radius: 50%;
+  border: 1px dotted rgba(200, 190, 170, 0.12);
+  transform: translate3d(-50%, -50%, 20px) rotateX(68deg);
+  display: none !important;
+}
+
+.stream-a { opacity: 0.06; }
+.stream-b { width: 54vmin; height: 54vmin; opacity: 0.04; }
+.stream-c {
+  width: 76vmin;
+  height: 28vmin;
+  opacity: 0.035;
+  border-color: rgba(200, 190, 170, 0.08);
+}
+
+/* === 星图平面（可拖动/缩放） === */
+
+.flat-star-map-plane {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  z-index: 8;
+  width: 1px;
+  height: 1px;
+  transform: translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--map-scale, 1));
+  transform-origin: 0 0;
+  pointer-events: none;
+}
+
+/* === 中心球体 === */
+
+.guide-sphere-shell {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 4;
+  width: min(20vmin, 120px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  opacity: 0.35;
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+}
+
+.sphere-ring,
+.sphere-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+}
+
+.sphere-glow {
+  background:
+    radial-gradient(circle at 50% 50%, rgba(186, 160, 107, 0.7) 0 4%, rgba(186, 160, 107, 0.25) 5% 8%, transparent 9%);
+}
+
+.sphere-ring {
+  border: 1px dotted rgba(200, 190, 170, 0.2);
+}
+
+.ring-x { transform: rotateX(66deg); }
+.ring-y { transform: rotateY(62deg); }
+.ring-z { transform: rotateZ(-16deg) rotateX(72deg); }
+
+/* === 景点信号层 === */
+
+.nearby-signal-layer {
+  position: absolute;
+  left: 0;
+  top: 0;
+  z-index: 6;
+  width: 1px;
+  height: 1px;
+  pointer-events: none;
+}
+
+.nearby-signal {
+  position: absolute;
+  left: 0;
+  top: 0;
+  display: block;
+  min-width: 100px;
+  max-width: 180px;
+  color: var(--color-text-primary);
+  opacity: 0;
+  transform: translate3d(var(--x, 0), var(--y, 0), 0) scale(0.3);
+  animation: signalReveal 1800ms ease forwards;
+  animation-delay: calc(var(--delay) + 420ms);
+  pointer-events: auto;
+  cursor: pointer;
+}
+
+.nearby-signal:hover {
+  z-index: 30;
+}
+
+.nearby-signal.center-passing {
+  z-index: 240;
+}
+
+.nearby-signal.center-passing .signal-name {
+  color: var(--color-accent-warm);
+}
+
+.signal-billboard {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* 信号点 */
+.signal-dot {
+  position: relative;
+  z-index: 1;
+  width: calc(var(--size) + 3px);
+  height: calc(var(--size) + 3px);
+  flex: 0 0 auto;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 35% 30%, rgba(255, 250, 240, 0.9) 0 12%, transparent 14%),
+    radial-gradient(circle at 46% 48%, #d4c8a0 0 14%, var(--color-accent-warm) 42%, rgba(80, 50, 20, 0.6) 100%);
+}
+
+.signal-dot::after {
+  content: "";
+  position: absolute;
+  inset: 14%;
+  border-radius: inherit;
+  background: radial-gradient(circle at 32% 24%, rgba(255, 255, 250, 0.35), transparent 24%, rgba(255, 255, 250, 0.06) 42%, transparent 70%);
+  pointer-events: none;
+}
+
+/* 最近/最远标记 */
+.nearby-signal.nearest .signal-dot {
+  box-shadow:
+    0 0 0 4px rgba(122, 158, 142, 0.08),
+    0 0 10px rgba(122, 158, 142, 0.4);
+}
+
+.nearby-signal.farthest .signal-dot {
+  box-shadow:
+    0 0 0 4px rgba(186, 160, 107, 0.08),
+    0 0 10px rgba(186, 160, 107, 0.4);
+}
+
+.signal-extreme {
+  position: absolute;
+  left: calc(var(--size) + 22px);
+  top: -16px;
+  z-index: 3;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  font-size: 11px;
+  font-weight: var(--font-bold);
+  white-space: nowrap;
+  background: var(--color-bg-overlay);
+}
+
+.nearby-signal.nearest .signal-extreme {
+  color: var(--color-accent-green);
+  border: 1px solid rgba(122, 158, 142, 0.3);
+}
+
+.nearby-signal.farthest .signal-extreme {
+  color: var(--color-accent-warm);
+  border: 1px solid rgba(186, 160, 107, 0.3);
+}
+
+/* 景点名称 */
+.signal-name {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  padding: 0;
+  overflow: hidden;
+  border: 0;
+  background: transparent;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: rgba(230, 225, 215, 0.88);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-weight: var(--font-bold);
+  text-shadow: 0 0 8px rgba(8, 12, 20, 0.8);
+}
+
+/* === 悬停预览浮窗 === */
+
+.signal-preview {
+  position: absolute;
+  left: 50%;
+  bottom: calc(100% + 12px);
+  z-index: 40;
+  display: grid;
+  width: 170px;
+  padding: 8px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-overlay);
+  color: var(--color-text-primary);
+  opacity: 0;
+  visibility: hidden;
+  transform: translate3d(-50%, 8px, 0) scale(0.96);
+  transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
+  backdrop-filter: blur(14px);
+}
+
+.signal-preview::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -6px;
+  width: 10px;
+  height: 10px;
+  background: var(--color-bg-overlay);
+  border-right: var(--border-subtle);
+  border-bottom: var(--border-subtle);
+  transform: translateX(-50%) rotate(45deg);
+}
+
+.signal-preview img {
+  width: 100%;
+  aspect-ratio: 16 / 10;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.signal-preview strong {
+  margin-top: 8px;
+  font-size: 13px;
+  font-weight: var(--font-bold);
+}
+
+.signal-preview small {
+  margin-top: 3px;
+  color: var(--color-text-secondary);
+  font-size: 11px;
+}
+
+.nearby-signal.preview-below .signal-preview {
+  top: calc(100% + 12px);
+  bottom: auto;
+  transform: translate3d(-50%, -8px, 0) scale(0.96);
+}
+
+.nearby-signal.preview-below .signal-preview::after {
+  top: -6px;
+  bottom: auto;
+  border-right: 0;
+  border-bottom: 0;
+  border-left: var(--border-subtle);
+  border-top: var(--border-subtle);
+}
+
+.nearby-signal:hover .signal-preview,
+.nearby-signal:focus-visible .signal-preview {
+  opacity: 1;
+  visibility: visible;
+  transform: translate3d(-50%, 0, 0) scale(1);
+}
+
+/* === 中心探索按钮 === */
+
+.center-locate-button {
+  position: fixed;
+  left: 50%;
+  top: 50%;
+  z-index: 260;
+  display: grid;
+  place-items: center;
+  width: 120px;
+  height: 120px;
+  min-width: 120px;
+  min-height: 120px;
+  border-radius: 50%;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  box-shadow: none;
+  color: var(--color-accent-warm);
+  font-size: 12px;
+  font-weight: var(--font-bold);
+  transform: translate(-50%, -50%);
+  transform-origin: center;
+  pointer-events: auto;
+  transition: opacity 220ms ease, filter 220ms ease;
+}
+
+.center-locate-button:hover,
+.center-locate-button:active,
+.center-locate-button:focus,
+.center-locate-button:focus-visible,
+.center-locate-button.loading,
+.guide-intro-stage.center-occluded .center-locate-button {
+  transform: translate(-50%, -50%) !important;
+}
+
+.center-locate-sphere {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 76px;
+  height: 76px;
+  flex-direction: column;
+  border: 1px solid rgba(186, 160, 107, 0.3);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 40% 32%, rgba(255, 250, 240, 0.8) 0 10%, transparent 12%),
+    radial-gradient(circle at 50% 50%, #f5e6c8 0 10%, #c4a35a 24%, rgba(80, 45, 15, 0.6) 50%, rgba(8, 12, 20, 0.9) 100%);
+  box-shadow:
+    0 0 0 8px rgba(186, 160, 107, 0.04),
+    0 0 22px rgba(186, 160, 107, 0.2);
+}
+
+.center-locate-button:hover .center-locate-sphere {
+  box-shadow:
+    0 0 0 12px rgba(186, 160, 107, 0.06),
+    0 0 32px rgba(186, 160, 107, 0.28);
+}
+
+.center-locate-button::before,
+.center-locate-button::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.center-locate-button::before {
+  inset: 8px;
+  border: 1px dotted rgba(186, 160, 107, 0.25);
+  animation: guideControlSpin 6000ms linear infinite;
+}
+
+.center-locate-button::after {
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(186, 160, 107, 0.05), transparent 54%);
+}
+
+@keyframes guideControlSpin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* 加载态 */
+.center-locate-button.loading {
+  animation: none;
+}
+
+.center-locate-button.loading .center-locate-sphere {
+  animation: guidePulseSphere 900ms ease-in-out infinite;
+  box-shadow:
+    0 0 0 16px rgba(186, 160, 107, 0.06),
+    0 0 48px rgba(186, 160, 107, 0.3);
+}
+
+@keyframes guidePulseSphere {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+
+/* 爆发态 */
+.guide-intro-stage.bursting .center-locate-button::before {
+  animation: guideControlSpin 1200ms linear infinite;
+}
+
+/* 被信号遮住 */
+.guide-intro-stage.center-occluded .center-locate-button {
+  z-index: 260;
+  opacity: 1;
+  filter: none;
+  pointer-events: auto;
+}
+
+.guide-intro-stage.center-occluded .nearby-signal-layer {
+  z-index: 12;
+}
+
+/* === 提示文字 === */
+
+.guide-locate-text {
+  position: absolute;
+  left: 50%;
+  top: calc(50% - 106px);
+  z-index: 30;
+  width: min(340px, calc(100% - 44px));
+  padding: 12px 18px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-full);
+  color: var(--color-text-primary);
+  background: var(--color-surface-header);
+  text-align: center;
+  font-size: 16px;
+  font-weight: var(--font-semibold);
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px);
+}
+
+.guide-intro-stage.scanning .guide-locate-text {
+  border-color: var(--color-accent-warm);
+}
+
+/* === 成功提示 === */
+
+.locate-success-flash {
+  position: absolute;
+  left: 50%;
+  top: 118px;
+  z-index: 40;
+  width: min(460px, calc(100% - 40px));
+  min-height: 54px;
+  padding: 12px 22px;
+  border: 1px solid var(--color-accent-green);
+  border-radius: var(--radius-full);
+  color: var(--color-accent-green);
+  background: var(--color-surface-header);
+  text-align: center;
+  font-size: clamp(16px, 2vw, 22px);
+  font-weight: var(--font-bold);
+  pointer-events: none;
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px);
+  animation: successFlash 1800ms ease forwards;
+}
+
+.guide-landing .locate-success-flash {
+  border-color: rgba(122, 158, 142, 0.34);
+  color: rgba(188, 220, 203, 0.95);
+  background: rgba(8, 12, 20, 0.46);
+}
+
+/* === 下一步按钮 === */
+
+.next-step-fab {
+  position: absolute;
+  right: 28px;
+  bottom: 98px;
+  z-index: 30;
+  min-width: 120px;
+  min-height: 46px;
+  border-radius: var(--radius-full);
+  border: none;
+  background: var(--color-accent);
+  color: #fff;
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.next-step-fab:hover {
+  background: var(--color-accent-hover);
+}
+
+/* === 底部状态栏 === */
+
+.locate-status-bar {
+  position: absolute;
+  left: 50%;
+  bottom: 32px;
+  z-index: 30;
+  min-width: min(340px, calc(100% - 48px));
+  padding: 12px 16px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  color: var(--color-text-primary);
+  background: var(--color-surface-header);
+  text-align: center;
+  transform: translateX(-50%);
+  backdrop-filter: blur(12px);
+}
+
+.locate-status-bar.ready {
+  border-color: var(--color-accent-green);
+}
+
+.locate-status-bar span {
+  color: var(--color-text-secondary);
+}
+
+.locate-status-bar.ready span {
+  color: var(--color-accent-green);
+}
+
+.guide-landing .locate-ui-header,
+.guide-landing .explore-range-panel,
+.guide-landing .guide-locate-text,
+.guide-landing .locate-status-bar,
+.guide-landing .locate-success-flash {
+  border-color: rgba(186, 160, 107, 0.16);
+  color: rgba(238, 232, 220, 0.9);
+  background: rgba(8, 12, 20, 0.42);
+  box-shadow: none;
+}
+
+.guide-landing .locate-ui-header strong,
+.guide-landing .explore-range-panel strong,
+.guide-landing .locate-status-bar strong,
+.guide-landing .guide-locate-text {
+  color: rgba(245, 238, 224, 0.92);
+}
+
+.guide-landing .locate-ui-header span,
+.guide-landing .explore-range-panel span {
+  color: rgba(210, 92, 84, 0.92);
+}
+
+.guide-landing .locate-status-bar.ready span {
+  color: rgba(152, 190, 170, 0.96);
+}

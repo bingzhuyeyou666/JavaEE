@@ -1,0 +1,17 @@
+/* ========================================
+   黑夜主题微调 — 墨色
+   大部分工作由 tokens.css :root 完成
+   ======================================== */
+
+/* 夜晚特有的细微氛围感 */
+[data-theme="night"] .hero-slide::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, transparent 60%, rgba(15, 20, 25, 0.3));
+  pointer-events: none;
+}
+
+[data-theme="night"] .hero-caption h1 {
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}

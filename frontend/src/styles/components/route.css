@@ -1,0 +1,159 @@
+/* ========================================
+   星涌 Route — 路线规划页
+   ======================================== */
+
+/* 选择列表 */
+.selected-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--space-4);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.selected-item > span {
+  width: 32px;
+  height: 32px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+.selected-item strong {
+  flex: 1;
+  margin-left: var(--space-3);
+  font-size: var(--text-sm);
+}
+
+/* 路段 */
+.segment {
+  padding: var(--space-5);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.segment > span {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--color-accent);
+  color: #fff;
+  font-size: var(--text-xs);
+  font-weight: var(--font-bold);
+  flex-shrink: 0;
+}
+
+/* 路线结果 */
+.route-result {
+  padding: var(--space-8);
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-surface-card);
+}
+
+.route-result h3 {
+  margin-bottom: var(--space-4);
+}
+
+.steps {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  margin-left: var(--space-4);
+  border-left: 2px solid var(--color-border);
+  padding-left: var(--space-6);
+}
+
+/* 行程选项 */
+.trip-panel {
+  padding: var(--space-6);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  margin-top: var(--space-4);
+}
+
+.trip-panel a {
+  display: block;
+  margin-top: var(--space-2);
+  color: var(--color-accent);
+  font-weight: var(--font-medium);
+}
+
+/* 选项列表 */
+.choice {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  text-align: left;
+  padding: var(--space-4);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.choice img {
+  width: 58px;
+  height: 58px;
+  flex: 0 0 58px;
+  object-fit: cover;
+  border-radius: var(--radius-md);
+}
+
+.choice span {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.choice strong {
+  font-size: var(--text-lg);
+  color: var(--color-accent);
+}
+
+.choice small {
+  font-size: var(--text-xs);
+  color: var(--color-text-secondary);
+}
+
+.route-origin {
+  align-items: center;
+}
+
+.route-live-map,
+.route-map {
+  min-height: 360px;
+  margin-bottom: var(--space-5);
+}
+
+.trip-options {
+  margin-top: var(--space-8);
+}
+
+.trip-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.trip-card {
+  padding: var(--space-5);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.trip-hidden-map {
+  display: none;
+}

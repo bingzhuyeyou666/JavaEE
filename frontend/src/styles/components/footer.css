@@ -1,0 +1,15 @@
+/* ========================================
+   星涌 Footer
+   ======================================== */
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--space-4);
+  min-height: 64px;
+  padding: var(--space-4) 0;
+  border-top: var(--border-subtle);
+  font-size: var(--text-sm);
+  color: var(--color-text-secondary);
+}

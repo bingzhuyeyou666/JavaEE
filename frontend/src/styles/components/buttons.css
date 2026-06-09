@@ -1,0 +1,85 @@
+/* ========================================
+   星涌 Buttons — 按钮增强
+   基础按钮样式见 base.css
+   ======================================== */
+
+/* Hero 专用次要按钮 */
+.hero-secondary {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: var(--radius-md);
+  color: #fff;
+  background: rgba(255, 255, 255, 0.12);
+  font-weight: var(--font-medium);
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.hero-secondary:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+[data-theme="day"] .hero-secondary {
+  border: 1px solid rgba(44, 36, 22, 0.2);
+  color: var(--color-text-primary);
+  background: rgba(44, 36, 22, 0.05);
+}
+
+[data-theme="day"] .hero-secondary:hover {
+  background: rgba(44, 36, 22, 0.1);
+}
+
+/* 图标按钮 */
+.icon-button {
+  min-width: 40px;
+  min-height: 40px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  border: none;
+  border-radius: var(--radius-md);
+  background: transparent;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.icon-button:hover {
+  background: var(--color-surface-hover);
+}
+
+/* 主题浮动面板 */
+.theme-dock {
+  position: fixed;
+  top: 148px;
+  right: 18px;
+  z-index: 70;
+  display: grid;
+  gap: 6px;
+  padding: 6px;
+  border: var(--border-subtle);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-overlay);
+  backdrop-filter: blur(12px);
+}
+
+.theme-dock button {
+  min-width: 88px;
+  min-height: 36px;
+  padding: 0 12px;
+  border: none;
+  border-radius: var(--radius-md);
+  color: var(--color-text-secondary);
+  background: transparent;
+  font-size: var(--text-sm);
+  box-shadow: none;
+  justify-content: flex-start;
+}
+
+.theme-dock button.active {
+  color: #fff;
+  background: var(--color-accent);
+}
