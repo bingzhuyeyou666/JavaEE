@@ -1,102 +1,207 @@
-# 旅图云
+# 陌路寻景
 
-智慧文旅综合服务平台，基于 Spring Boot 全栈实现。当前版本适合课程设计/毕业设计演示：使用 H2 内存数据库、Thymeleaf 页面、REST API 和内存缓存模拟 Redis。
+陌路寻景是一个智慧文旅综合服务平台，面向游客、内容贡献者和平台运营者，提供景点发现、智能导览、附近推荐、路线规划、预约票务、足迹打卡、旅行广场和后台管理等功能。
+
+项目采用前后端一体部署：后端为 Spring Boot，前端为 React + Vite，生产构建后会同步到 Spring Boot 的静态资源目录。
 
 ## 技术栈
 
-- Spring Boot 2.7.x
 - Java 8
+- Spring Boot 2.7.x
 - Spring MVC / Spring Data JPA / Bean Validation
-- H2 数据库
-- Thymeleaf + 原生 JavaScript
-- 百度地图 JS API：定位、导航、路线绘制
+- H2 文件数据库
+- React 19 / Vite 7
+- GSAP / lucide-react
+- 百度地图与天气接口
+- 阿里云百炼 OpenAI 兼容接口，可选
 
-## 运行方式
-
-本机需要安装 Maven 和 JDK 8 或更高版本。你也可以直接双击 `run.bat`，脚本会使用 `D:\JDK18` 作为 JDK。
-
-```bash
-mvn spring-boot:run
-```
-
-AI 助手已接入阿里云百炼 OpenAI 兼容接口。启动前先在本机设置环境变量，避免把密钥写进代码：
-
-```powershell
-$env:DASHSCOPE_API_KEY="你的百炼API Key"
-mvn spring-boot:run
-```
-
-默认模型是 `qwen-plus`，可通过 `travel.ai.model` 或环境配置调整。未配置密钥或百炼请求失败时，系统会自动回退到本地景点知识库回答。
-
-启动后访问：
-
-- 用户端首页：http://localhost:8080/
-- 个人中心：http://localhost:8080/me
-- 管理后台：http://localhost:8080/admin
-- H2 控制台：http://localhost:8080/h2-console
-
-H2 JDBC URL：
+## 项目结构
 
 ```text
-jdbc:h2:mem:zhuly
+.
+├── frontend/                         React + Vite 前端
+├── src/main/java/com/zhuly/           Spring Boot 后端
+├── src/main/resources/static/app/     前端生产构建产物
+├── src/main/resources/application.yml 应用配置
+├── data/                              H2 文件数据库目录
+├── run.bat                            一键构建并启动
+└── 启动陌路寻景.bat                   启动脚本
 ```
 
-## 已实现功能
+## 快速启动
 
-- 首页导览：景点列表、搜索、类型筛选、距离/评分/价格排序、公告展示
-- 景点详情：基本信息、图文介绍、旅游攻略、天气趋势、百度地图一键导航
-- 周边设施：停车场、厕所、饭店数据模型和后台 API
-- 预约票务：创建预约、我的预约、取消预约、核销码
-- 社区交互：评论评分、点赞、景点上报、我的申请
-- 个人中心：足迹、勋章、预约、上报记录
-- 管理后台：景点 CRUD、设施列表、评论隐藏、申请审核 API
+确保本机已安装：
 
-## 四个创意功能
+- JDK 8 或更高版本
+- Maven
+- Node.js / npm
 
-1. 旅游足迹地图
-   - `POST /api/spots/{spotId}/check-ins`
-   - 500 米内允许打卡，内存集合模拟 Redis Set。
-   - 按 3/10/20 个景点解锁勋章。
+最简单的方式是双击：
 
-2. 语音导览
-   - `GET /api/spots/{spotId}/tts`
-   - 当前返回模拟音频缓存 URL。
-   - 后续可在 `TtsService` 中替换为阿里云/腾讯云 TTS 调用，并把 MP3 上传 OSS。
+```text
+启动陌路寻景.bat
+```
 
-3. 拥堵指数
-   - `GET /api/spots/{spotId}/crowd-index`
-   - 基于当天预约人数/最大承载量计算舒适、一般、拥挤。
-   - 每天凌晨通过定时任务清空计数。
+或在命令行运行：
 
-4. 线路规划
-   - `POST /api/routes/plan`
-   - 支持 2-5 个景点，使用最近邻算法给出合理顺序。
-   - 前端接入百度地图驾车路线绘制，后端保留最近邻排序和兜底距离估算。
+```powershell
+.\run.bat
+```
 
-## 默认演示账号
+脚本会自动完成这些步骤：
 
-当前前端固定使用 `userId=1` 的 demo 用户，便于快速演示。接入登录后，把前端 `currentUserId` 替换为登录用户 ID 即可。
-## React + Vite frontend
+1. 检查 Java、Maven、npm 环境
+2. 停止当前项目里旧的 Spring Boot 进程
+3. 安装前端依赖，如果 `node_modules` 不存在
+4. 执行 `npm run build`
+5. 执行 `mvn -q -DskipTests clean package`
+6. 启动应用并打开浏览器
 
-The React frontend is in `frontend/`.
+默认访问地址：
 
-```bash
+```text
+http://localhost:8080/app/
+```
+
+## 开发模式
+
+先启动后端：
+
+```powershell
+mvn spring-boot:run
+```
+
+再启动前端开发服务器：
+
+```powershell
 cd frontend
 npm install
 npm run dev
 ```
 
-Dev URL: `http://localhost:8080/app/`
+Vite 会把 `/api` 请求代理到 `http://localhost:8080`。开发时可以使用 Vite 输出的本地地址访问前端。
 
-The Vite dev server proxies `/api` to `http://localhost:8080`, so keep Spring Boot running with:
+## 生产构建
 
-```bash
-mvn spring-boot:run
-```
+前端构建：
 
-Production build output is written to `src/main/resources/static/app/`:
-
-```bash
+```powershell
 cd frontend
 npm run build
 ```
+
+构建产物会写入：
+
+```text
+src/main/resources/static/app/
+```
+
+后端打包：
+
+```powershell
+mvn -q -DskipTests package
+```
+
+打包后的 JAR：
+
+```text
+target/travel-cloud-map-0.0.1-SNAPSHOT.jar
+```
+
+## 默认账号
+
+用户端：
+
+```text
+用户名：demo
+密码：demo123
+```
+
+管理后台：
+
+```text
+用户名：admin
+密码：admin123
+```
+
+管理后台地址：
+
+```text
+http://localhost:8080/app/admin
+```
+
+## 数据库
+
+项目使用 H2 文件数据库，默认数据文件位于：
+
+```text
+data/zhuly
+```
+
+H2 控制台：
+
+```text
+http://localhost:8080/h2-console
+```
+
+连接信息：
+
+```text
+JDBC URL: jdbc:h2:file:./data/zhuly
+User Name: sa
+Password: 留空
+```
+
+## AI 助手配置
+
+景点 AI 导览助手支持阿里云百炼 OpenAI 兼容接口。启动前可设置环境变量：
+
+```powershell
+$env:DASHSCOPE_API_KEY="你的百炼 API Key"
+mvn spring-boot:run
+```
+
+也可以使用：
+
+```powershell
+$env:BAILIAN_API_KEY="你的百炼 API Key"
+```
+
+默认模型为 `qwen-plus`。未配置密钥或远程请求失败时，系统会回退到本地景点知识库回答。
+
+## 主要功能
+
+- 首页：Hero 轮播、精选景点、平台能力展示
+- 景点发现：景点列表、搜索筛选、评分和距离信息
+- 景点详情：图文介绍、开放时间、票价、天气、路线入口、AI 导览
+- 附近推荐：定位后扫描周边景点信号
+- 路线规划：支持选择 2-5 个景点生成游览顺序
+- 预约票务：创建预约、查看预约、取消预约、核销码展示
+- 足迹打卡：基于距离的景点打卡与徽章解锁
+- 旅行广场：发布内容、评论互动、查看动态详情
+- 景点申报：用户提交新景点，后台审核入库
+- 个人中心：资料、足迹、徽章、预约、申报记录
+- 管理后台：景点管理、首页内容管理、申报审核
+
+## 常用接口入口
+
+```text
+GET  /api/home/hero
+GET  /api/home/featured-spots
+GET  /api/spots
+GET  /api/spots/{id}
+POST /api/routes/plan
+POST /api/spots/{spotId}/check-ins
+GET  /api/spots/{spotId}/crowd-index
+GET  /api/spots/{spotId}/assistant
+POST /api/reservations
+GET  /api/community/posts
+POST /api/submissions
+```
+
+## 注意事项
+
+- `application.yml` 中已有百度地图和天气配置，可按需替换为自己的 Key。
+- 前端代码修改后，如果要让 Spring Boot 直接提供最新页面，需要重新执行 `cd frontend && npm run build`。
+- 项目根目录的 `data/` 是本地运行数据，删除后会重新初始化数据库。
+- 英文工程标识仍保留为 `travel-cloud-map`，用于 Maven 构建、JAR 文件名和部分本地存储键名。

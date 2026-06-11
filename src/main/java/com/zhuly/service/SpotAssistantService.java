@@ -80,7 +80,7 @@ public class SpotAssistantService {
         body.put("temperature", 0.4);
         body.put("max_tokens", 900);
         body.put("messages", Arrays.asList(
-                message("system", "你是旅图云的景点 AI 助手。请用中文回答，语气自然、实用、简洁。必须优先依据给定景点资料和知识库片段，不确定的信息要说明。涉及游玩、季节、门票、注意事项时给出可执行建议。"),
+                message("system", "你是陌路寻景的景点 AI 助手。请用中文回答，语气自然、实用、简洁。必须优先依据给定景点资料和知识库片段，不确定的信息要说明。涉及游玩、季节、门票、注意事项时给出可执行建议。"),
                 message("user", buildPrompt(spot, question, hits))
         ));
 

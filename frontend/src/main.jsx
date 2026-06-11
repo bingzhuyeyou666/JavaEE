@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { gsap } from 'gsap';
 import {
@@ -425,7 +425,7 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
         <Link href="/" className="brand">
           <span className="brand-mark">星</span>
           <span>
-            <strong>星躔</strong>
+            <strong>陌路寻景</strong>
             <small>Xingchan Map</small>
           </span>
         </Link>
@@ -466,7 +466,7 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '星躔', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '陌路寻景', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
@@ -547,7 +547,7 @@ function Home({ addRoute }) {
     <>
       <Hero spots={featuredSpots} slides={slides} />
       <main className="container">
-        <section className="signature-stage" aria-label="星躔核心亮点">
+        <section className="signature-stage" aria-label="陌路寻景核心亮点">
           <div className="signature-copy">
             <span className="section-kicker">核心竞争力</span>
             <h2>不是景点列表，而是一张会行动的旅行星图</h2>
@@ -580,7 +580,7 @@ function Home({ addRoute }) {
             </Link>
           ))}
         </section>
-        <section className="product-story" aria-label="星躔产品能力">
+        <section className="product-story" aria-label="陌路寻景产品能力">
           <div>
             <span className="section-kicker">从灵感到抵达</span>
             <h2>一个面向真实出行的文旅工作台</h2>
@@ -1015,7 +1015,7 @@ function GuideLanding() {
         onWheel={zoomStarMap}
       >
         <div className="locate-ui-header">
-          <span>星躔定位</span>
+          <span>陌路寻景定位</span>
           <strong>附近景点雷达</strong>
         </div>
         <div className="explore-range-panel">
@@ -1149,7 +1149,7 @@ function GuideLanding() {
         )}
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
-          <strong>{loading ? '星躔雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
+          <strong>{loading ? '陌路寻景雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
       </section>
       <button
@@ -1494,7 +1494,7 @@ function SpotDetail({ id, addRoute }) {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
-    { role: 'assistant', content: '你好，我是星躔导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
+    { role: 'assistant', content: '你好，我是陌路寻景导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
   ]);
   const [assistantPosition, setAssistantPosition] = useState(null);
   const assistantDragRef = useRef(null);
@@ -1664,7 +1664,7 @@ function SpotDetail({ id, addRoute }) {
           <div className="actions">
             <button onClick={checkIn}><BadgeCheck size={16} /> 到达打卡</button>
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
-            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('星躔景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
+            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('陌路寻景景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
           <div className="gallery detail-gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
           <InfoGrid items={[['开放时间', spot.openHours], ['门票', formatTicketPrice(spot.price)], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
@@ -1792,7 +1792,7 @@ function SpotDetail({ id, addRoute }) {
             <div className="floating-ai-head" onPointerDown={startAssistantDrag} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag}>
               <span className="ai-avatar-mini"><Sparkles size={18} /></span>
               <div>
-                <strong>星躔 AI 导览</strong>
+                <strong>陌路寻景 AI 导览</strong>
                 <small>{spot.name}</small>
               </div>
               <button className="icon-button ghost" type="button" onClick={() => setAssistantOpen(false)} aria-label="关闭 AI 助手">
@@ -3163,48 +3163,48 @@ function Login({ refreshAccount }) {
   }
   return (
     <main className="login-stage">
-      <section className="login-showcase" aria-label="星躔登录">
-        <div className="login-art-copy">
-          <span>Xingchan Map</span>
-          <strong>把下一段旅程接入你的星图</strong>
-        </div>
-        <div className="login-starfield" aria-hidden="true">
-          {Array.from({ length: 76 }).map((_, index) => (
-            <i
-              key={index}
+      <section className="login-showcase" aria-label="陌路寻景登录">
+        <div className="login-ink-wash" aria-hidden="true">
+          <span className="wash-sun" />
+          <span className="mountain ridge-back" />
+          <span className="mountain ridge-mid" />
+          <span className="mountain ridge-front" />
+          <span className="ink-mist mist-one" />
+          <span className="ink-mist mist-two" />
+          <span className="ink-mist mist-three" />
+          <span className="river-glow" />
+          <span className="islet" />
+          <span className="pavilion" />
+          <span className="pine pine-left" />
+          <span className="boat" />
+          <span className="bird bird-one" />
+          <span className="bird bird-two" />
+          <svg className="journey-route" viewBox="0 0 1000 560" preserveAspectRatio="none" focusable="false">
+            <path d="M94 395 C210 305 246 470 362 357 C465 255 565 410 686 300 C785 210 837 304 930 196" />
+          </svg>
+          {[14, 37, 58, 77, 91].map((left, index) => (
+            <span
+              className="route-pin"
+              key={left}
               style={{
-                left: `${Math.abs(Math.sin(index * 12.9898 + 4.2) * 10000) % 100}%`,
-                top: `${Math.abs(Math.sin(index * 78.233 + 9.7) * 10000) % 100}%`,
-                opacity: 0.28 + ((index * 13) % 60) / 100,
-                '--s': `${1 + (index % 3) * 0.7}px`,
-                '--d': `${(index % 9) * -0.42}s`
+                left: `${left}%`,
+                top: `${[68, 58, 70, 52, 38][index]}%`,
+                '--pin-delay': `${index * 0.35}s`
               }}
             />
           ))}
+          <span className="contour-lines contour-left" />
+          <span className="contour-lines contour-right" />
         </div>
-        <div className="login-orbit login-solar-system" aria-hidden="true">
-          <span className="solar-path mercury-path" />
-          <span className="solar-path venus-path" />
-          <span className="solar-path earth-path" />
-          <span className="solar-path mars-path" />
-          <span className="solar-path jupiter-path" />
-          <span className="solar-path saturn-path" />
-          <span className="solar-path uranus-path" />
-          <span className="solar-path neptune-path" />
-          <span className="solar-sun" />
-          <span className="solar-planet mercury" />
-          <span className="solar-planet venus" />
-          <span className="solar-planet earth" />
-          <span className="solar-planet mars" />
-          <span className="solar-planet jupiter" />
-          <span className="solar-planet saturn" />
-          <span className="solar-planet uranus" />
-          <span className="solar-planet neptune" />
-          <div className="login-brand-core">
-            <span className="login-brand-mark">星</span>
-            <strong>星躔</strong>
-            <small>把风景、路线和故事收进同一张旅行星图</small>
-          </div>
+        <div className="login-art-copy">
+          <span>陌路寻景</span>
+          <strong>循山入画，沿路寻景</strong>
+          <p>把景点、预约、足迹与路线收进一张安静的旅行画卷。</p>
+        </div>
+        <div className="login-art-notes" aria-hidden="true">
+          <span>路线规划</span>
+          <span>足迹打卡</span>
+          <span>智能导览</span>
         </div>
       </section>
 
@@ -3739,7 +3739,7 @@ function App() {
       {path !== '/login' && path !== '/guide/locate' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
       {page}
       {path !== '/login' && path !== '/guide/locate' && <footer className="footer">
-        <span>星躔 · 智慧文旅综合服务平台</span>
+        <span>陌路寻景 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
           await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});

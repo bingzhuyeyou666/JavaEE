@@ -1,12 +1,12 @@
 /* ========================================
-   星涌 Hero 轮播常量
+   陌路寻景 Hero 轮播常量
    ======================================== */
 
 export const defaultHeroSlides = [
   {
     imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95',
     eyebrow: '山水漫游',
-    title: '星躔',
+    title: '陌路寻景',
     body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。',
     actionText: '进入导览',
     actionHref: '/guide'

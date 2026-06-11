@@ -156,7 +156,7 @@ public class SpotImageController {
                 + "<text x=\"72\" y=\"284\" font-family=\"Microsoft YaHei, Arial\" font-size=\"" + titleSize + "\" font-weight=\"900\" fill=\"" + color + "\">" + safeName + "</text>"
                 + "<text x=\"76\" y=\"356\" font-family=\"Microsoft YaHei, Arial\" font-size=\"30\" fill=\"#18364f\">" + safeAddress + "</text>"
                 + "<text x=\"76\" y=\"412\" font-family=\"Microsoft YaHei, Arial\" font-size=\"28\" fill=\"#34516a\">" + safeHighlight + "</text>"
-                + "<text x=\"76\" y=\"588\" font-family=\"Microsoft YaHei, Arial\" font-size=\"24\" fill=\"#526b81\">旅图云景点图库 · 与当前景点绑定</text>"
+                + "<text x=\"76\" y=\"588\" font-family=\"Microsoft YaHei, Arial\" font-size=\"24\" fill=\"#526b81\">陌路寻景景点图库 · 与当前景点绑定</text>"
                 + "</svg>";
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("image/svg+xml;charset=UTF-8"))
