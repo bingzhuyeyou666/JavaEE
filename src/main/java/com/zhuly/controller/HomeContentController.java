@@ -97,10 +97,10 @@ public class HomeContentController {
 
     private void normalizeBrandName(HeroSlide slide) {
         if (slide.getTitle() != null) {
-            slide.setTitle(slide.getTitle().replace("旅图云", "星涌").replace("旅途云", "星涌"));
+            slide.setTitle(slide.getTitle().replace("旅图云", "星躔").replace("旅途云", "星躔").replace("星涌", "星躔"));
         }
         if (slide.getBody() != null) {
-            slide.setBody(slide.getBody().replace("旅图云", "星涌").replace("旅途云", "星涌"));
+            slide.setBody(slide.getBody().replace("旅图云", "星躔").replace("旅途云", "星躔").replace("星涌", "星躔"));
         }
     }
 }

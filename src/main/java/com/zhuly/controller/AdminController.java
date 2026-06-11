@@ -1,5 +1,8 @@
 package com.zhuly.controller;
 
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zhuly.domain.CulturalProduct;
 import com.zhuly.domain.Facility;
 import com.zhuly.domain.HeroSlide;
 import com.zhuly.domain.ScenicSpot;
@@ -7,6 +10,7 @@ import com.zhuly.domain.SpotSubmission;
 import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.HeroSlideRepository;
 import com.zhuly.repository.ReviewRepository;
+import com.zhuly.repository.CulturalProductRepository;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +23,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -33,6 +39,8 @@ public class AdminController {
     private final ReviewRepository reviewRepository;
     private final SpotSubmissionRepository submissionRepository;
     private final HeroSlideRepository heroSlideRepository;
+    private final CulturalProductRepository culturalProductRepository;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/spots")
     public List<ScenicSpot> spots() {
@@ -106,9 +114,49 @@ public class AdminController {
     }
 
     @PostMapping("/submissions/{id}/approve")
-    public SpotSubmission approve(@PathVariable Long id) {
+    public SpotSubmission approve(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
         SpotSubmission submission = submissionRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("申请不存在"));
+        if (!"APPROVED".equals(submission.getStatus())) {
+            ScenicSpot spot = new ScenicSpot();
+            spot.setName(submission.getName());
+            spot.setType(submission.getType() == null || submission.getType().trim().isEmpty() ? "User submitted" : submission.getType());
+            spot.setAddress(submission.getAddress());
+            spot.setLatitude(submission.getLatitude());
+            spot.setLongitude(submission.getLongitude());
+            spot.setDescription(submission.getDescription());
+            spot.setGuide(submission.getReason());
+            spot.setHighlights(submission.getReason());
+            spot.setGallery(submission.getPhotoUrls());
+            if (submission.getPhotoUrls() != null && !submission.getPhotoUrls().isEmpty()) {
+                spot.setCoverImage(submission.getPhotoUrls().get(0));
+            }
+            if (submission.getVideoUrls() != null && !submission.getVideoUrls().isEmpty()) {
+                spot.setVideoUrl(submission.getVideoUrls().get(0));
+            }
+            spot.setOpenHours(hasText(submission.getOpenHours()) ? submission.getOpenHours().trim() : "TBD");
+            spot.setPrice(submission.getPrice() == null ? BigDecimal.ZERO : submission.getPrice());
+            spot.setBestSeason(submission.getBestSeason());
+            spot.setPhone(submission.getPhone());
+            spot.setRating(4.5);
+            spot.setMaxCapacity(1000);
+            spot.setApproved(true);
+            ScenicSpot savedSpot = spotRepository.save(spot);
+            saveSubmittedProducts(savedSpot.getId(), submission.getCulturalProductsJson());
+        }
         submission.setStatus("APPROVED");
+        if (body != null) {
+            submission.setAuditRemark(body.get("auditRemark"));
+        }
+        return submissionRepository.save(submission);
+    }
+
+    @PostMapping("/submissions/{id}/reject")
+    public SpotSubmission reject(@PathVariable Long id, @RequestBody(required = false) Map<String, String> body) {
+        SpotSubmission submission = submissionRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("申报不存在"));
+        submission.setStatus("REJECTED");
+        if (body != null) {
+            submission.setAuditRemark(body.get("auditRemark"));
+        }
         return submissionRepository.save(submission);
     }
 
@@ -118,5 +166,69 @@ public class AdminController {
             review.setHidden(true);
             reviewRepository.save(review);
         });
+    }
+
+    private void saveSubmittedProducts(Long spotId, String productsJson) {
+        if (!hasText(productsJson)) {
+            return;
+        }
+        try {
+            List<Map<String, Object>> products = objectMapper.readValue(productsJson, new TypeReference<List<Map<String, Object>>>() {});
+            for (Map<String, Object> item : products) {
+                String name = stringValue(item.get("name"));
+                if (!hasText(name)) {
+                    continue;
+                }
+                CulturalProduct product = new CulturalProduct();
+                product.setSpotId(spotId);
+                product.setName(name.trim());
+                product.setCategory(defaultText(stringValue(item.get("category")), "文创"));
+                product.setDescription(stringValue(item.get("description")));
+                product.setTags(stringValue(item.get("tags")));
+                product.setImageUrl(stringValue(item.get("imageUrl")));
+                product.setPrice(decimalValue(item.get("price")));
+                product.setStock(intValue(item.get("stock")));
+                product.setCreatedAt(LocalDateTime.now());
+                culturalProductRepository.save(product);
+            }
+        } catch (Exception ignored) {
+            // Invalid optional product data should not block approval of the spot itself.
+        }
+    }
+
+    private boolean hasText(String value) {
+        return value != null && !value.trim().isEmpty();
+    }
+
+    private String stringValue(Object value) {
+        return value == null ? null : String.valueOf(value).trim();
+    }
+
+    private String defaultText(String value, String fallback) {
+        return hasText(value) ? value.trim() : fallback;
+    }
+
+    private BigDecimal decimalValue(Object value) {
+        String text = stringValue(value);
+        if (!hasText(text)) {
+            return BigDecimal.ZERO;
+        }
+        try {
+            return new BigDecimal(text);
+        } catch (NumberFormatException ignored) {
+            return BigDecimal.ZERO;
+        }
+    }
+
+    private Integer intValue(Object value) {
+        String text = stringValue(value);
+        if (!hasText(text)) {
+            return 0;
+        }
+        try {
+            return Integer.valueOf(text);
+        } catch (NumberFormatException ignored) {
+            return 0;
+        }
     }
 }

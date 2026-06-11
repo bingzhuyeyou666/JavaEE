@@ -1,5 +1,8 @@
 package com.zhuly.controller;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.zhuly.config.UserAuthInterceptor;
 import com.zhuly.domain.Review;
 import com.zhuly.domain.SquareComment;
 import com.zhuly.domain.SquarePost;
@@ -14,6 +17,7 @@ import com.zhuly.repository.SquareCommentRepository;
 import com.zhuly.repository.SquarePostRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -24,7 +28,9 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
+import javax.servlet.http.HttpSession;
 import javax.validation.Valid;
 import java.io.IOException;
 import java.nio.file.Files;
@@ -53,6 +59,7 @@ public class CommunityController {
     private final SpotSubmissionRepository submissionRepository;
     private final SquarePostRepository squarePostRepository;
     private final SquareCommentRepository squareCommentRepository;
+    private final ObjectMapper objectMapper;
 
     @GetMapping("/spots/{spotId}/reviews")
     public List<Review> reviews(@PathVariable Long spotId) {
@@ -136,10 +143,12 @@ public class CommunityController {
     @PostMapping("/square/posts")
     @Transactional
     public Map<String, Object> squarePost(@RequestParam(defaultValue = "1") Long userId,
+                                          HttpSession session,
                                           @Valid @RequestBody SquarePostRequest request) {
+        Long currentUserId = requireUserId(session);
         SquarePost post = new SquarePost();
-        post.setUserId(userId);
-        post.setAuthorName("游客" + userId);
+        post.setUserId(currentUserId);
+        post.setAuthorName(currentUserName(session, currentUserId));
         post.setPostType(trimToDefault(request.getPostType(), "NOTE"));
         post.setCategory(request.getCategory().trim());
         post.setTitle(request.getTitle().trim());
@@ -155,7 +164,9 @@ public class CommunityController {
 
     @PostMapping("/square/uploads")
     public Map<String, Object> uploadSquareMedia(@RequestParam(defaultValue = "image") String type,
+                                                 HttpSession session,
                                                  @RequestParam("files") MultipartFile[] files) throws IOException {
+        requireUserId(session);
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("请选择要上传的文件");
         }
@@ -176,6 +187,33 @@ public class CommunityController {
             }
             file.transferTo(target.toFile());
             urls.add("/uploads/square/" + mediaType + "/" + filename);
+        }
+        return Collections.singletonMap("urls", urls);
+    }
+
+    @PostMapping("/submissions/uploads")
+    public Map<String, Object> uploadSubmissionMedia(@RequestParam(defaultValue = "image") String type,
+                                                     @RequestParam("files") MultipartFile[] files) throws IOException {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("No files selected");
+        }
+        String mediaType = "video".equalsIgnoreCase(type) ? "video" : "image";
+        Path uploadRoot = Paths.get("data", "uploads", "submissions", mediaType).toAbsolutePath().normalize();
+        Files.createDirectories(uploadRoot);
+        List<String> urls = new ArrayList<String>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            validateMediaFile(mediaType, file);
+            String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+            String filename = UUID.randomUUID().toString().replace("-", "") + (extension == null ? "" : "." + extension.toLowerCase());
+            Path target = uploadRoot.resolve(filename).normalize();
+            if (!target.startsWith(uploadRoot)) {
+                throw new IllegalArgumentException("Invalid filename");
+            }
+            file.transferTo(target.toFile());
+            urls.add("/uploads/submissions/" + mediaType + "/" + filename);
         }
         return Collections.singletonMap("urls", urls);
     }
@@ -201,6 +239,7 @@ public class CommunityController {
     }
 
     @PostMapping("/square/posts/{id}/comments")
+    @Transactional
     public SquareComment squareComment(@PathVariable Long id,
                                        @RequestParam(defaultValue = "1") Long userId,
                                        @Valid @RequestBody SquareCommentRequest request) {
@@ -208,14 +247,39 @@ public class CommunityController {
                 .orElseThrow(() -> new IllegalArgumentException("帖子不存在"));
         SquareComment comment = new SquareComment();
         comment.setPostId(id);
+        comment.setParentId(request.getParentId());
         comment.setUserId(userId);
         comment.setAuthorName("游客" + userId);
         comment.setContent(request.getContent().trim());
         comment.setCreatedAt(LocalDateTime.now());
+        if (request.getParentId() != null) {
+            SquareComment parent = squareCommentRepository.findById(request.getParentId())
+                    .orElseThrow(() -> new IllegalArgumentException("评论不存在"));
+            if (!id.equals(parent.getPostId())) {
+                throw new IllegalArgumentException("追评不属于当前帖子");
+            }
+            parent.setReplyCount(safeInt(parent.getReplyCount()) + 1);
+            squareCommentRepository.save(parent);
+        }
         SquareComment saved = squareCommentRepository.save(comment);
         post.setCommentCount(post.getCommentCount() + 1);
         squarePostRepository.save(post);
         return saved;
+    }
+
+    @PostMapping("/square/comments/{id}/like")
+    @Transactional
+    public SquareComment likeSquareComment(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId) {
+        SquareComment comment = squareCommentRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("评论不存在"));
+        if (comment.getLikedUserIds().contains(userId)) {
+            comment.getLikedUserIds().remove(userId);
+            comment.setLikes(Math.max(0, safeInt(comment.getLikes()) - 1));
+        } else {
+            comment.getLikedUserIds().add(userId);
+            comment.setLikes(safeInt(comment.getLikes()) + 1);
+        }
+        return squareCommentRepository.save(comment);
     }
 
     @PostMapping("/submissions")
@@ -228,10 +292,24 @@ public class CommunityController {
         submission.setAddress(request.getAddress());
         submission.setLatitude(request.getLatitude());
         submission.setLongitude(request.getLongitude());
+        submission.setOpenHours(trimToNull(request.getOpenHours()));
+        submission.setPrice(request.getPrice());
+        submission.setBestSeason(trimToNull(request.getBestSeason()));
+        submission.setPhone(trimToNull(request.getPhone()));
         submission.setDescription(request.getDescription());
         submission.setReason(request.getReason());
         if (request.getPhotoUrls() != null) {
             submission.setPhotoUrls(request.getPhotoUrls());
+        }
+        if (request.getVideoUrls() != null) {
+            submission.setVideoUrls(request.getVideoUrls());
+        }
+        if (request.getCulturalProducts() != null && !request.getCulturalProducts().isEmpty()) {
+            try {
+                submission.setCulturalProductsJson(objectMapper.writeValueAsString(request.getCulturalProducts()));
+            } catch (JsonProcessingException e) {
+                throw new IllegalArgumentException("Invalid cultural product data");
+            }
         }
         submission.setStatus("PENDING");
         submission.setCreatedAt(LocalDateTime.now());
@@ -284,6 +362,27 @@ public class CommunityController {
     private String trimToDefault(String value, String defaultValue) {
         String trimmed = trimToNull(value);
         return trimmed == null ? defaultValue : trimmed;
+    }
+
+    private Long requireUserId(HttpSession session) {
+        if (session == null || !Boolean.TRUE.equals(session.getAttribute(UserAuthInterceptor.USER_SESSION_KEY))) {
+            throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
+        }
+        Object userId = session.getAttribute(UserAuthInterceptor.USER_ID_KEY);
+        if (userId instanceof Long) {
+            return (Long) userId;
+        }
+        throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "请先登录");
+    }
+
+    private String currentUserName(HttpSession session, Long userId) {
+        Object username = session.getAttribute(UserAuthInterceptor.USER_NAME_KEY);
+        String name = username == null ? "" : username.toString().trim();
+        return name.length() > 0 ? name : "游客" + userId;
+    }
+
+    private int safeInt(Integer value) {
+        return value == null ? 0 : value;
     }
 
     private boolean isAllCategory(String category) {

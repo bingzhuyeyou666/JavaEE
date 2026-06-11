@@ -1,16 +1,22 @@
 ﻿import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
+import { gsap } from 'gsap';
 import {
   ArrowLeft,
   BadgeCheck,
   CalendarDays,
   Car,
+  CheckCircle2,
   Compass,
+  Edit3,
   Headphones,
   Heart,
   House,
   Image,
+  ImagePlus,
   Lightbulb,
+  LocateFixed,
+  ListFilter,
   LogIn,
   LogOut,
   Map,
@@ -24,10 +30,12 @@ import {
   Send,
   ShieldCheck,
   ShoppingBag,
+  SlidersHorizontal,
   Sparkles,
   Star,
   Sun,
   Trash2,
+  UploadCloud,
   UserPlus,
   UserRound,
   Users,
@@ -248,8 +256,12 @@ async function api(url, options = {}) {
   const timer = window.setTimeout(() => controller.abort(), options.timeoutMs || 12000);
   try {
     const { timeoutMs, ...fetchOptions } = options;
+    const isFormData = typeof FormData !== 'undefined' && fetchOptions.body instanceof FormData;
+    const headers = isFormData
+      ? { ...(options.headers || {}) }
+      : { 'Content-Type': 'application/json', ...(options.headers || {}) };
     const response = await fetch(url, {
-      headers: { 'Content-Type': 'application/json', ...(options.headers || {}) },
+      headers,
       signal: options.signal || controller.signal,
       ...fetchOptions
     });
@@ -257,7 +269,10 @@ async function api(url, options = {}) {
       const error = await response.json().catch(() => ({ message: '请求失败' }));
       throw new Error(error.message || '请求失败');
     }
-    return response.json();
+    if (response.status === 204) return null;
+    const text = await response.text();
+    if (!text) return null;
+    return JSON.parse(text);
   } catch (error) {
     if (error.name === 'AbortError') throw new Error('请求超时，请稍后重试。');
     throw error;
@@ -342,7 +357,7 @@ function ensureDaylightContrastStyle() {
 }
 
 function normalizeAppHref(href) {
-  return window.location.port === '5173' && href.startsWith('/') ? `/app${href === '/' ? '/' : href}` : href;
+  return window.location.port === '8080' && href.startsWith('/') ? `/app${href === '/' ? '/' : href}` : href;
 }
 
 function navigateTo(href) {
@@ -410,8 +425,8 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
         <Link href="/" className="brand">
           <span className="brand-mark">星</span>
           <span>
-            <strong>星涌</strong>
-            <small>Star Surge Map</small>
+            <strong>星躔</strong>
+            <small>Xingchan Map</small>
           </span>
         </Link>
         <div className="header-right">
@@ -451,7 +466,7 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '星涌', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '星躔', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
@@ -532,7 +547,7 @@ function Home({ addRoute }) {
     <>
       <Hero spots={featuredSpots} slides={slides} />
       <main className="container">
-        <section className="signature-stage" aria-label="星涌核心亮点">
+        <section className="signature-stage" aria-label="星躔核心亮点">
           <div className="signature-copy">
             <span className="section-kicker">核心竞争力</span>
             <h2>不是景点列表，而是一张会行动的旅行星图</h2>
@@ -565,7 +580,7 @@ function Home({ addRoute }) {
             </Link>
           ))}
         </section>
-        <section className="product-story" aria-label="星涌产品能力">
+        <section className="product-story" aria-label="星躔产品能力">
           <div>
             <span className="section-kicker">从灵感到抵达</span>
             <h2>一个面向真实出行的文旅工作台</h2>
@@ -1000,7 +1015,7 @@ function GuideLanding() {
         onWheel={zoomStarMap}
       >
         <div className="locate-ui-header">
-          <span>星涌定位</span>
+          <span>星躔定位</span>
           <strong>附近景点雷达</strong>
         </div>
         <div className="explore-range-panel">
@@ -1134,7 +1149,7 @@ function GuideLanding() {
         )}
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
-          <strong>{loading ? '星涌雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
+          <strong>{loading ? '星躔雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
       </section>
       <button
@@ -1479,7 +1494,7 @@ function SpotDetail({ id, addRoute }) {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
-    { role: 'assistant', content: '你好，我是星涌导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
+    { role: 'assistant', content: '你好，我是星躔导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
   ]);
   const [assistantPosition, setAssistantPosition] = useState(null);
   const assistantDragRef = useRef(null);
@@ -1649,7 +1664,7 @@ function SpotDetail({ id, addRoute }) {
           <div className="actions">
             <button onClick={checkIn}><BadgeCheck size={16} /> 到达打卡</button>
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
-            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('星涌景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
+            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('星躔景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
           <div className="gallery detail-gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
           <InfoGrid items={[['开放时间', spot.openHours], ['门票', formatTicketPrice(spot.price)], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
@@ -1777,7 +1792,7 @@ function SpotDetail({ id, addRoute }) {
             <div className="floating-ai-head" onPointerDown={startAssistantDrag} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag}>
               <span className="ai-avatar-mini"><Sparkles size={18} /></span>
               <div>
-                <strong>星涌 AI 导览</strong>
+                <strong>星躔 AI 导览</strong>
                 <small>{spot.name}</small>
               </div>
               <button className="icon-button ghost" type="button" onClick={() => setAssistantOpen(false)} aria-label="关闭 AI 助手">
@@ -1932,7 +1947,10 @@ function normalizeDateInput(value) {
     .slice(0, 10);
 }
 
-function Square() {
+function Square({ account }) {
+  const squareRootRef = useRef(null);
+  const feedRef = useRef(null);
+  const composerRef = useRef(null);
   const [category, setCategory] = useState('全部');
   const [tick, setTick] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
@@ -1951,6 +1969,46 @@ function Square() {
   });
   const postsState = useAsync(() => api(category === '全部' ? '/api/community/square/posts' : `/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
   const posts = postsState.data || [];
+  const postsWithMedia = posts.filter((post) => post.imageUrls?.length || post.videoUrls?.length).length;
+  const discussionCount = posts.filter((post) => post.postType === 'DISCUSSION' || post.postType === 'QUESTION').length;
+
+  useEffect(() => {
+    if (!squareRootRef.current) return undefined;
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        ['.square-hero', '.square-command-bar', '.square-tabs'],
+        { autoAlpha: 0, y: 14 },
+        { autoAlpha: 1, y: 0, duration: 0.42, ease: 'power2.out', stagger: 0.06, clearProps: 'transform,opacity,visibility' }
+      );
+    }, squareRootRef.current);
+    return () => context.revert();
+  }, []);
+
+  useEffect(() => {
+    if (!feedRef.current || postsState.loading) return undefined;
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        '.square-post',
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.34, ease: 'power2.out', stagger: 0.045, clearProps: 'transform,opacity,visibility' }
+      );
+    }, feedRef.current);
+    return () => context.revert();
+  }, [postsState.loading, category, tick]);
+
+  useEffect(() => {
+    if (!composerOpen || !composerRef.current) return undefined;
+    const context = gsap.context(() => {
+      gsap.fromTo('.square-modal-backdrop', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.16, ease: 'power1.out' });
+      gsap.fromTo(
+        '.square-modal',
+        { autoAlpha: 0, y: 24, scale: 0.985 },
+        { autoAlpha: 1, y: 0, scale: 1, duration: 0.32, ease: 'power3.out', clearProps: 'transform,opacity,visibility' }
+      );
+    }, composerRef.current);
+    return () => context.revert();
+  }, [composerOpen]);
+
   useEffect(() => {
     if (!composerOpen) return undefined;
     const closeOnEscape = (event) => {
@@ -2016,20 +2074,41 @@ function Square() {
     }
   }
 
+  function openComposer() {
+    if (!account?.user?.loggedIn) {
+      navigateTo('/login');
+      return;
+    }
+    setMessage('');
+    setComposerOpen(true);
+  }
+
   return (
-    <main className="container">
-      <PageHero icon={Users} title="旅行广场" body="像小红书一样晒图文，像贴吧一样开帖讨论，像知乎一样沉淀旅行问答。" />
+    <main className="container square-page" ref={squareRootRef}>
+      <section className="square-hero">
+        <div className="square-hero-icon"><Users size={30} /></div>
+        <div className="square-hero-copy">
+          <span className="section-kicker">TRAVEL SQUARE</span>
+          <h1>旅行广场</h1>
+          <p>晒图文、开帖讨论、沉淀旅行问答，让真实经验更容易被看见。</p>
+        </div>
+        <div className="square-hero-metrics">
+          <span><strong>{posts.length || '--'}</strong> 条内容</span>
+          <span><strong>{postsWithMedia || '--'}</strong> 有媒体</span>
+          <span><strong>{discussionCount || '--'}</strong> 讨论问答</span>
+        </div>
+      </section>
       <div className="square-command-bar">
         <div>
           <strong>旅行社区</strong>
-          <span>发现旅行灵感、拼团邀约和真实问答。</span>
+          <span>{category === '全部' ? '正在浏览全部内容' : `正在浏览「${category}」`}</span>
         </div>
-        <button type="button" onClick={() => { setMessage(''); setComposerOpen(true); }}>
+        <button type="button" onClick={openComposer}>
           <Plus size={16} /> 发布
         </button>
       </div>
       <div className="square-shell">
-        <section className="square-feed">
+        <section className="square-feed" ref={feedRef}>
           <div className="square-tabs">
             {squareCategories.map((item) => (
               <button key={item} type="button" className={item === category ? 'active' : ''} onClick={() => setCategory(item)}>
@@ -2047,25 +2126,36 @@ function Square() {
         </section>
       </div>
       {composerOpen && (
-        <div className="square-modal-backdrop" role="presentation" onMouseDown={(event) => {
+        <div className="square-modal-backdrop" ref={composerRef} role="presentation" onMouseDown={(event) => {
           if (event.target === event.currentTarget) setComposerOpen(false);
         }}>
-          <section className="panel square-composer square-modal" role="dialog" aria-modal="true" aria-label="发布帖子">
+          <section
+            className="panel square-composer square-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-label="发布帖子"
+            style={{ width: 'min(860px, calc(100vw - 56px))', maxHeight: 'min(760px, calc(100vh - 64px))' }}
+          >
             <div className="square-modal-head">
-              <PanelTitle icon={Send} title="发布帖子" meta={postTypeLabel(form.postType)} />
+              <div>
+                <span className="section-kicker">NEW POST</span>
+                <h2>发布帖子</h2>
+                <p>{postTypeLabel(form.postType)} · 把旅行现场整理成一条清楚的内容。</p>
+              </div>
               <button type="button" className="icon-button ghost" onClick={() => setComposerOpen(false)} aria-label="关闭发布窗口">
                 <X size={18} />
               </button>
             </div>
             {message && <div className="message">{message}</div>}
-            <form className="form square-post-form" onSubmit={submitPost}>
-              <div className="square-type-switch wide">
+            <form className="form square-post-form" onSubmit={submitPost} style={{ gap: 14, padding: '16px 20px 20px' }}>
+              <div className="square-type-switch wide" style={{ gap: 8 }}>
                 {squarePostTypes.map(([value, label, desc]) => (
                   <button
                     key={value}
                     type="button"
                     className={form.postType === value ? 'active' : ''}
                     onClick={() => update('postType', value)}
+                    style={{ minHeight: 54, padding: '10px 12px' }}
                   >
                     <strong>{label}</strong>
                     <small>{desc}</small>
@@ -2081,23 +2171,17 @@ function Square() {
                 <input value={form.locationName} onChange={(e) => update('locationName', e.target.value)} placeholder="如 蜀南竹海" />
               </label>
               <label className="wide">标题
-                <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="给大家一个清楚的主题" required />
+                <input value={form.title} onChange={(e) => update('title', e.target.value)} placeholder="给大家一个清楚的主题" required style={{ minHeight: 42 }} />
               </label>
               <label className="wide">正文
-                <textarea value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="分享路线、费用、避坑点、集合信息或你的旅行故事" required />
+                <textarea value={form.content} onChange={(e) => update('content', e.target.value)} placeholder="分享路线、费用、避坑点、集合信息或你的旅行故事" required style={{ minHeight: 96 }} />
               </label>
               <div className="square-meta-fields wide">
-                <label>出行日期
-                  <input
-                    type="text"
-                    inputMode="numeric"
-                    value={form.tripDate}
-                    onChange={(e) => update('tripDate', normalizeDateInput(e.target.value))}
-                    placeholder="2026-06-01"
-                    pattern="\d{4}-\d{2}-\d{2}"
-                    aria-label="输入出行日期，格式为 YYYY-MM-DD"
-                  />
-                </label>
+                <DatePickerField
+                  label="出行日期"
+                  value={form.tripDate}
+                  onChange={(value) => update('tripDate', value)}
+                />
                 <label>标签
                   <input value={form.tags} onChange={(e) => update('tags', e.target.value)} placeholder="亲子游, 避坑, 周末游" />
                 </label>
@@ -2136,17 +2220,137 @@ function Square() {
   );
 }
 
+function DatePickerField({ label, value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [viewDate, setViewDate] = useState(() => value ? new Date(`${value}T00:00:00`) : new Date());
+  const pickerRef = useRef(null);
+  const today = new Date();
+  const selected = value ? new Date(`${value}T00:00:00`) : null;
+
+  useEffect(() => {
+    if (!open) return undefined;
+    const handlePointerDown = (event) => {
+      if (!pickerRef.current?.contains(event.target)) setOpen(false);
+    };
+    const handleKeyDown = (event) => {
+      if (event.key === 'Escape') setOpen(false);
+    };
+    document.addEventListener('pointerdown', handlePointerDown);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('pointerdown', handlePointerDown);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (value) setViewDate(new Date(`${value}T00:00:00`));
+  }, [value]);
+
+  const year = viewDate.getFullYear();
+  const month = viewDate.getMonth();
+  const monthStart = new Date(year, month, 1);
+  const start = new Date(year, month, 1 - ((monthStart.getDay() + 6) % 7));
+  const days = Array.from({ length: 42 }, (_, index) => {
+    const day = new Date(start);
+    day.setDate(start.getDate() + index);
+    return day;
+  });
+
+  function formatDate(date) {
+    const yyyy = date.getFullYear();
+    const mm = String(date.getMonth() + 1).padStart(2, '0');
+    const dd = String(date.getDate()).padStart(2, '0');
+    return `${yyyy}-${mm}-${dd}`;
+  }
+
+  function sameDay(a, b) {
+    return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  }
+
+  function changeMonth(offset) {
+    setViewDate(new Date(year, month + offset, 1));
+  }
+
+  return (
+    <label className="date-picker-field" ref={pickerRef}>
+      {label}
+      <button
+        type="button"
+        className={cx('date-picker-trigger', open && 'open', value && 'has-value')}
+        onClick={() => setOpen((current) => !current)}
+        aria-expanded={open}
+        aria-haspopup="dialog"
+      >
+        <span>{value || '选择日期'}</span>
+        <CalendarDays size={18} />
+      </button>
+      {open && (
+        <div className="date-picker-popover" role="dialog" aria-label="选择出行日期">
+          <div className="date-picker-head">
+            <button type="button" onClick={() => changeMonth(-1)} aria-label="上个月">‹</button>
+            <strong>{year}年{String(month + 1).padStart(2, '0')}月</strong>
+            <button type="button" onClick={() => changeMonth(1)} aria-label="下个月">›</button>
+          </div>
+          <div className="date-picker-weekdays">
+            {['一', '二', '三', '四', '五', '六', '日'].map((item) => <span key={item}>{item}</span>)}
+          </div>
+          <div className="date-picker-grid">
+            {days.map((day) => {
+              const dateValue = formatDate(day);
+              const inMonth = day.getMonth() === month;
+              return (
+                <button
+                  type="button"
+                  key={dateValue}
+                  className={cx(!inMonth && 'muted-day', sameDay(day, selected) && 'selected', sameDay(day, today) && 'today')}
+                  onClick={() => {
+                    onChange(dateValue);
+                    setOpen(false);
+                  }}
+                >
+                  {day.getDate()}
+                </button>
+              );
+            })}
+          </div>
+          <div className="date-picker-foot">
+            <button type="button" className="secondary" onClick={() => onChange('')}>清除</button>
+            <button type="button" onClick={() => {
+              onChange(formatDate(today));
+              setOpen(false);
+            }}>今天</button>
+          </div>
+        </div>
+      )}
+    </label>
+  );
+}
+
 function SquarePostCard({ post, onSelect }) {
   const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
   const cover = post.imageUrls?.[0];
   const isQuestion = post.postType === 'QUESTION';
   const isDiscussion = post.postType === 'DISCUSSION';
+  const imageCount = post.imageUrls?.length || 0;
+  const videoCount = post.videoUrls?.length || 0;
   return (
-    <article className={cx('square-post', post.postType?.toLowerCase())} data-type={post.postType} onClick={onSelect}>
+    <article
+      className={cx('square-post', post.postType?.toLowerCase())}
+      data-type={post.postType}
+      onClick={onSelect}
+      style={{
+        display: 'grid',
+        gridTemplateColumns: cover ? '176px minmax(0, 1fr)' : '1fr',
+        gap: '10px 16px',
+        padding: 14,
+        minHeight: cover ? 156 : 'auto'
+      }}
+    >
       {cover && (
-        <div className="square-cover">
-          <img src={cover} alt={post.title} />
-          {!!post.imageUrls?.length && post.imageUrls.length > 1 && <span>{post.imageUrls.length} 图</span>}
+        <div className="square-cover" style={{ gridRow: '1 / span 7', width: 176, minHeight: 128, maxHeight: 156, margin: 0, borderRadius: 10 }}>
+          <img src={cover} alt={post.title} style={{ width: '100%', height: '100%', minHeight: 128, objectFit: 'cover' }} />
+          {imageCount > 1 && <span>{imageCount} 图</span>}
         </div>
       )}
       <div className="square-post-top">
@@ -2157,8 +2361,8 @@ function SquarePostCard({ post, onSelect }) {
         </div>
         <span className="pill gold">{postTypeLabel(post.postType)}</span>
       </div>
-      <h2>{isQuestion ? `问：${post.title}` : post.title}</h2>
-      <p>{post.content}</p>
+      <h2 style={{ margin: 0, fontSize: '1.25rem', lineHeight: 1.22 }}>{isQuestion ? `问：${post.title}` : post.title}</h2>
+      <p style={{ margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{post.content}</p>
       {!!post.tags?.length && <div className="square-tag-row">{post.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
       {(post.locationName || post.tripDate) && (
         <div className="square-meta">
@@ -2168,19 +2372,20 @@ function SquarePostCard({ post, onSelect }) {
       )}
       {!cover && !!post.imageUrls?.length && (
         <div className="square-media-grid">
-          {post.imageUrls.slice(0, 4).map((url) => <img key={url} src={url} alt={post.title} />)}
+          {post.imageUrls.slice(0, 3).map((url) => <img key={url} src={url} alt={post.title} />)}
         </div>
       )}
-      {!!post.videoUrls?.length && (
-        <div className="square-video-list">
-          {post.videoUrls.slice(0, 2).map((url) => <video key={url} src={url} controls onClick={(event) => event.stopPropagation()} />)}
+      {!!videoCount && (
+        <div className="square-media-strip" aria-label={`${videoCount} 个视频`}>
+          <Video size={15} />
+          <span>{videoCount} 个视频，进入帖子播放</span>
         </div>
       )}
       <div className="square-actions">
         <span><Heart size={16} /> {post.likes || 0}</span>
         <span>{isQuestion ? <Lightbulb size={16} /> : <MessageCircle size={16} />} {isQuestion ? `${post.commentCount || 0} 回答` : isDiscussion ? `${post.commentCount || 0} 楼` : post.commentCount || 0}</span>
-        {!!post.imageUrls?.length && <span><Image size={15} /> {post.imageUrls.length}</span>}
-        {!!post.videoUrls?.length && <span><Video size={15} /> {post.videoUrls.length}</span>}
+        {!!imageCount && <span><Image size={15} /> {imageCount}</span>}
+        {!!videoCount && <span><Video size={15} /> {videoCount}</span>}
         <button type="button" className="reply-button" onClick={(event) => { event.stopPropagation(); onSelect(); }}>
           进入帖子
         </button>
@@ -2190,18 +2395,36 @@ function SquarePostCard({ post, onSelect }) {
 }
 
 function SquarePostDetail({ id }) {
-  const [tick, setTick] = useState(0);
   const [commentText, setCommentText] = useState('');
+  const [replyTarget, setReplyTarget] = useState(null);
   const [message, setMessage] = useState('');
-  const postState = useAsync(() => api(`/api/community/square/posts/${id}`), [id, tick]);
-  const commentsState = useAsync(() => api(`/api/community/square/posts/${id}/comments`), [id, tick]);
-  const post = postState.data;
-  const comments = commentsState.data || [];
+  const [activeImage, setActiveImage] = useState(null);
+  const postState = useAsync(() => api(`/api/community/square/posts/${id}`), [id]);
+  const commentsState = useAsync(() => api(`/api/community/square/posts/${id}/comments`), [id]);
+  const [post, setPost] = useState(null);
+  const [comments, setComments] = useState([]);
+
+  useEffect(() => {
+    if (postState.data) setPost(postState.data);
+  }, [postState.data]);
+
+  useEffect(() => {
+    if (commentsState.data) setComments(commentsState.data);
+  }, [commentsState.data]);
+
+  useEffect(() => {
+    if (!activeImage) return undefined;
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setActiveImage(null);
+    };
+    window.addEventListener('keydown', closeOnEscape);
+    return () => window.removeEventListener('keydown', closeOnEscape);
+  }, [activeImage]);
 
   async function likePost() {
     try {
-      await api(`/api/community/square/posts/${id}/like?userId=${currentUserId()}`, { method: 'POST' });
-      setTick((value) => value + 1);
+      const nextPost = await api(`/api/community/square/posts/${id}/like?userId=${currentUserId()}`, { method: 'POST' });
+      setPost(nextPost);
     } catch (error) {
       setMessage(error.message);
     }
@@ -2209,13 +2432,30 @@ function SquarePostDetail({ id }) {
 
   async function submitComment(event) {
     event.preventDefault();
+    const content = commentText.trim();
+    if (!content) return;
     try {
-      await api(`/api/community/square/posts/${id}/comments?userId=${currentUserId()}`, {
+      const saved = await api(`/api/community/square/posts/${id}/comments?userId=${currentUserId()}`, {
         method: 'POST',
-        body: JSON.stringify({ content: commentText })
+        body: JSON.stringify({ content, parentId: replyTarget?.rootId || null })
       });
       setCommentText('');
-      setTick((value) => value + 1);
+      setReplyTarget(null);
+      setComments((current) => [...current.map((item) => (
+        saved.parentId && item.id === saved.parentId
+          ? { ...item, replyCount: (item.replyCount || 0) + 1 }
+          : item
+      )), saved]);
+      setPost((current) => current ? { ...current, commentCount: (current.commentCount || 0) + 1 } : current);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+
+  async function likeComment(commentId) {
+    try {
+      const saved = await api(`/api/community/square/comments/${commentId}/like?userId=${currentUserId()}`, { method: 'POST' });
+      setComments((current) => current.map((item) => item.id === saved.id ? saved : item));
     } catch (error) {
       setMessage(error.message);
     }
@@ -2238,6 +2478,13 @@ function SquarePostDetail({ id }) {
   const isQuestion = post.postType === 'QUESTION';
   const isDiscussion = post.postType === 'DISCUSSION';
   const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
+  const rootComments = comments.filter((comment) => !comment.parentId);
+  const repliesByParent = comments.reduce((groups, comment) => {
+    if (comment.parentId) {
+      groups[comment.parentId] = [...(groups[comment.parentId] || []), comment];
+    }
+    return groups;
+  }, {});
 
   return (
     <main className="container square-detail-page">
@@ -2245,42 +2492,52 @@ function SquarePostDetail({ id }) {
         <ArrowLeft size={16} /> 返回广场
       </button>
       <article className="panel square-detail-card">
-        <div className="square-detail-top">
-          <div className="comment-avatar">{(post.authorName || '旅').slice(0, 1)}</div>
+        <div className="square-detail-layout">
           <div>
-            <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
-            <span>{time}</span>
+            <div className="square-detail-top">
+              <div className="comment-avatar">{(post.authorName || '旅').slice(0, 1)}</div>
+              <div>
+                <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
+                <span>{time}</span>
+              </div>
+              <div className="pill-row">
+                <span className="pill gold">{post.category}</span>
+                <span className="pill">{postTypeLabel(post.postType)}</span>
+              </div>
+            </div>
+            <h1>{isQuestion ? `问：${post.title}` : post.title}</h1>
+            <p className="square-detail-content">{post.content}</p>
+            {!!post.tags?.length && <div className="square-tag-row">{post.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}
+            {(post.locationName || post.tripDate) && (
+              <div className="square-meta">
+                {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
+                {post.tripDate && <span><CalendarDays size={14} /> {post.tripDate}</span>}
+              </div>
+            )}
+            <div className="square-detail-actions">
+              <button type="button" className={cx('heart-button detail-like', liked && 'liked')} onClick={likePost}>
+                <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
+                {liked ? '已点赞' : '点赞'} {post.likes || 0}
+              </button>
+              <span>{isQuestion ? <Lightbulb size={16} /> : <MessageCircle size={16} />} {isQuestion ? `${post.commentCount || 0} 个回答` : isDiscussion ? `${post.commentCount || 0} 层讨论` : `${post.commentCount || 0} 条评论`}</span>
+            </div>
           </div>
-          <div className="pill-row">
-            <span className="pill gold">{post.category}</span>
-            <span className="pill">{postTypeLabel(post.postType)}</span>
+          <div className="square-detail-media">
+            {!!post.imageUrls?.length && (
+              <div className="square-detail-gallery">
+                {post.imageUrls.map((url, index) => (
+                  <button key={url} type="button" className="square-image-thumb" onClick={() => setActiveImage({ url, index })}>
+                    <img src={url} alt={`${post.title} 图片 ${index + 1}`} />
+                  </button>
+                ))}
+              </div>
+            )}
+            {!!post.videoUrls?.length && (
+              <div className="square-video-list">
+                {post.videoUrls.map((url) => <video key={url} src={url} controls />)}
+              </div>
+            )}
           </div>
-        </div>
-        <h1>{isQuestion ? `问：${post.title}` : post.title}</h1>
-        <p className="square-detail-content">{post.content}</p>
-        {!!post.tags?.length && <div className="square-tag-row">{post.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>}
-        {(post.locationName || post.tripDate) && (
-          <div className="square-meta">
-            {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
-            {post.tripDate && <span><CalendarDays size={14} /> {post.tripDate}</span>}
-          </div>
-        )}
-        {!!post.imageUrls?.length && (
-          <div className="square-detail-gallery">
-            {post.imageUrls.map((url) => <img key={url} src={url} alt={post.title} />)}
-          </div>
-        )}
-        {!!post.videoUrls?.length && (
-          <div className="square-video-list">
-            {post.videoUrls.map((url) => <video key={url} src={url} controls />)}
-          </div>
-        )}
-        <div className="square-detail-actions">
-          <button type="button" className={cx('heart-button detail-like', liked && 'liked')} onClick={likePost}>
-            <Heart size={18} fill={liked ? 'currentColor' : 'none'} />
-            {liked ? '已点赞' : '点赞'} {post.likes || 0}
-          </button>
-          <span>{isQuestion ? <Lightbulb size={16} /> : <MessageCircle size={16} />} {isQuestion ? `${post.commentCount || 0} 个回答` : isDiscussion ? `${post.commentCount || 0} 层讨论` : `${post.commentCount || 0} 条评论`}</span>
         </div>
         {message && <div className="message error">{message}</div>}
       </article>
@@ -2289,34 +2546,105 @@ function SquarePostDetail({ id }) {
         <form className="review-composer square-detail-composer" onSubmit={submitComment}>
           <div className="comment-avatar">我</div>
           <div className="composer-main">
+            {replyTarget && (
+              <div className="replying-to">
+                追评 @{replyTarget.name}
+                <button type="button" onClick={() => setReplyTarget(null)}>取消</button>
+              </div>
+            )}
             <textarea
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
-              placeholder={isQuestion ? '写下你的回答' : '写下你的评论'}
+              placeholder={replyTarget ? '写下你的追评' : isQuestion ? '写下你的回答' : '写下你的评论'}
               required
             />
             <div className="composer-actions">
-              <span className="muted">{isQuestion ? '回答会展示在帖子下方。' : '评论会展示在帖子下方。'}</span>
+              <span className="muted">{replyTarget ? '追评会展示在这条评论下方。' : isQuestion ? '回答会展示在帖子下方。' : '评论会展示在帖子下方。'}</span>
               <button><Send size={16} /> 发布</button>
             </div>
           </div>
         </form>
         <div className="review-list">
-          {comments.length ? comments.map((comment, index) => (
-            <div className={cx('comment-item reply', isQuestion && 'answer')} key={comment.id}>
-              <div className="comment-avatar small">{(comment.authorName || '游').slice(0, 1)}</div>
-              <div className="comment-body">
-                <div className="comment-topline">
-                  <strong>{comment.authorName || `游客${comment.userId || ''}`}</strong>
-                  <span>{isDiscussion ? `${index + 2} 楼 · ` : ''}{comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : ''}</span>
-                </div>
-                <p>{comment.content}</p>
-              </div>
-            </div>
+          {rootComments.length ? rootComments.map((comment, index) => (
+            <SquareThreadComment
+              key={comment.id}
+              comment={comment}
+              replies={repliesByParent[comment.id] || []}
+              index={index}
+              isDiscussion={isDiscussion}
+              onLike={likeComment}
+              onReply={setReplyTarget}
+            />
           )) : <div className="empty-state compact">{isQuestion ? '还没有回答，来写第一条。' : '还没有评论，来写第一条。'}</div>}
         </div>
       </section>
+      {activeImage && (
+        <div className="square-lightbox" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setActiveImage(null);
+        }}>
+          <button type="button" className="icon-button ghost square-lightbox-close" onClick={() => setActiveImage(null)} aria-label="关闭图片预览">
+            <X size={22} />
+          </button>
+          <img src={activeImage.url} alt={`${post.title} 大图 ${activeImage.index + 1}`} />
+        </div>
+      )}
     </main>
+  );
+}
+
+function SquareThreadComment({ comment, replies, index, isDiscussion, onLike, onReply }) {
+  const liked = (comment.likedUserIds || []).includes(currentUserId());
+  const name = comment.authorName || `游客${comment.userId || ''}`;
+  const time = comment.createdAt ? String(comment.createdAt).replace('T', ' ').slice(0, 16) : '';
+  return (
+    <article className="square-thread-comment">
+      <div className="comment-avatar small">{name.slice(0, 1)}</div>
+      <div className="comment-body">
+        <div className="comment-topline">
+          <strong>{name}</strong>
+          <span>{isDiscussion ? `${index + 2} 楼 · ` : ''}{time}</span>
+        </div>
+        <p>{comment.content}</p>
+        <div className="comment-tools">
+          <button type="button" className={cx('heart-button', liked && 'liked')} onClick={() => onLike(comment.id)} aria-label={liked ? '取消点赞' : '点赞'}>
+            <Heart size={16} fill={liked ? 'currentColor' : 'none'} />
+            <span>{comment.likes || 0}</span>
+          </button>
+          <button type="button" className="reply-button" onClick={() => onReply({ rootId: comment.id, name })}>
+            追评
+          </button>
+        </div>
+        {!!replies.length && (
+          <div className="square-reply-stack">
+            {replies.map((reply) => {
+              const replyLiked = (reply.likedUserIds || []).includes(currentUserId());
+              const replyName = reply.authorName || `游客${reply.userId || ''}`;
+              return (
+                <div className="square-thread-comment nested" key={reply.id}>
+                  <div className="comment-avatar small">{replyName.slice(0, 1)}</div>
+                  <div className="comment-body">
+                    <div className="comment-topline">
+                      <strong>{replyName}</strong>
+                      <span>{reply.createdAt ? String(reply.createdAt).replace('T', ' ').slice(0, 16) : ''}</span>
+                    </div>
+                    <p>{reply.content}</p>
+                    <div className="comment-tools">
+                      <button type="button" className={cx('heart-button', replyLiked && 'liked')} onClick={() => onLike(reply.id)} aria-label={replyLiked ? '取消点赞' : '点赞'}>
+                        <Heart size={15} fill={replyLiked ? 'currentColor' : 'none'} />
+                        <span>{reply.likes || 0}</span>
+                      </button>
+                      <button type="button" className="reply-button" onClick={() => onReply({ rootId: comment.id, name: replyName })}>
+                        追评
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
+    </article>
   );
 }
 
@@ -2448,20 +2776,85 @@ function FootprintBadges({ total }) {
 }
 
 function SubmitSpot() {
-  const [form, setForm] = useState({ name: '', type: '', address: '', latitude: '', longitude: '', description: '', reason: '', photoUrls: '' });
+  const [form, setForm] = useState({
+    name: '',
+    type: '',
+    address: '',
+    latitude: '',
+    longitude: '',
+    openHours: '',
+    price: '',
+    bestSeason: '',
+    phone: '',
+    description: '',
+    reason: ''
+  });
+  const [imageUrls, setImageUrls] = useState([]);
+  const [videoUrls, setVideoUrls] = useState([]);
+  const [products, setProducts] = useState([]);
+  const [uploading, setUploading] = useState('');
   const [message, setMessage] = useState('');
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
+
+  function applyLocation(location) {
+    setForm((current) => ({
+      ...current,
+      address: location.address || current.address,
+      latitude: location.lat,
+      longitude: location.lng
+    }));
+  }
+
+  async function uploadFiles(type, files) {
+    const selected = Array.from(files || []);
+    if (!selected.length) return;
+    setUploading(type);
+    setMessage('');
+    try {
+      const body = new FormData();
+      selected.forEach((file) => body.append('files', file));
+      const result = await api(`/api/community/submissions/uploads?type=${type}`, {
+        method: 'POST',
+        body,
+        timeoutMs: type === 'video' ? 90000 : 30000
+      });
+      const urls = result.urls || [];
+      if (type === 'video') {
+        setVideoUrls((current) => [...current, ...urls]);
+      } else {
+        setImageUrls((current) => [...current, ...urls]);
+      }
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setUploading('');
+    }
+  }
+
   async function submit(event) {
     event.preventDefault();
+    const culturalProducts = products
+      .map((product) => ({
+        ...product,
+        name: product.name.trim(),
+        category: product.category.trim(),
+        description: product.description.trim(),
+        tags: product.tags.trim(),
+        imageUrl: product.imageUrl.trim()
+      }))
+      .filter((product) => product.name);
     try {
       await api(`/api/community/submissions?userId=${currentUserId()}`, {
         method: 'POST',
-        body: JSON.stringify({ ...form, photoUrls: form.photoUrls.split(/\n|,/).map((item) => item.trim()).filter(Boolean) })
+        body: JSON.stringify({ ...form, price: form.price === '' ? 0 : Number(form.price), photoUrls: imageUrls, videoUrls, culturalProducts })
       });
       setMessage('提交成功，已进入平台审核。');
-      setForm({ name: '', type: '', address: '', latitude: '', longitude: '', description: '', reason: '', photoUrls: '' });
+      setForm({ name: '', type: '', address: '', latitude: '', longitude: '', openHours: '', price: '', bestSeason: '', phone: '', description: '', reason: '' });
+      setImageUrls([]);
+      setVideoUrls([]);
+      setProducts([]);
     } catch (error) {
       setMessage(error.message);
     }
@@ -2469,18 +2862,271 @@ function SubmitSpot() {
   return (
     <main className="container">
       <PageHero icon={Plus} title="景点申报" body="推荐你发现的好去处，平台审核后可进入景点库。" />
-      <form className="panel form" onSubmit={submit}>
-        {['name:景点名称', 'type:类型', 'address:地址', 'latitude:纬度', 'longitude:经度'].map((spec) => {
-          const [key, label] = spec.split(':');
-          return <label key={key}>{label}<input value={form[key]} onChange={(e) => update(key, e.target.value)} required /></label>;
-        })}
-        <label className="wide">图片地址<textarea value={form.photoUrls} onChange={(e) => update('photoUrls', e.target.value)} placeholder="多个地址可换行或用逗号分隔" /></label>
+      <form className="panel form spot-submit-form" onSubmit={submit}>
+        <div className="form-row">
+          <label>景点名称<input value={form.name} onChange={(e) => update('name', e.target.value)} required /></label>
+          <label>类型<input value={form.type} onChange={(e) => update('type', e.target.value)} required /></label>
+        </div>
+        <LocationPickerField value={form} onSelect={applyLocation} />
+        <div className="form-row">
+          <label>开放时间<input value={form.openHours} onChange={(e) => update('openHours', e.target.value)} placeholder="如 08:30-18:00 / 全天" /></label>
+          <label>门票<input type="number" min="0" step="0.01" value={form.price} onChange={(e) => update('price', e.target.value)} placeholder="免费填 0，可留空" /></label>
+        </div>
+        <div className="form-row">
+          <label>最佳季节<input value={form.bestSeason} onChange={(e) => update('bestSeason', e.target.value)} placeholder="如 春秋 / 3-5月" /></label>
+          <label>咨询电话<input value={form.phone} onChange={(e) => update('phone', e.target.value)} placeholder="没有可留空" /></label>
+        </div>
+        <div className="submission-upload-row">
+          <SubmissionMediaUploader
+            type="image"
+            icon={Image}
+            title="上传图片"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            urls={imageUrls}
+            uploading={uploading === 'image'}
+            onFiles={(files) => uploadFiles('image', files)}
+            onRemove={(url) => setImageUrls((current) => current.filter((item) => item !== url))}
+          />
+          <SubmissionMediaUploader
+            type="video"
+            icon={Video}
+            title="上传视频"
+            accept="video/mp4,video/webm,video/quicktime"
+            urls={videoUrls}
+            uploading={uploading === 'video'}
+            onFiles={(files) => uploadFiles('video', files)}
+            onRemove={(url) => setVideoUrls((current) => current.filter((item) => item !== url))}
+          />
+        </div>
         <label className="wide">景点描述<textarea value={form.description} onChange={(e) => update('description', e.target.value)} required /></label>
         <label className="wide">推荐理由<textarea value={form.reason} onChange={(e) => update('reason', e.target.value)} required /></label>
+        <CulturalProductSubmission products={products} setProducts={setProducts} />
         <button>提交审核</button>
         {message && <div className="message">{message}</div>}
       </form>
     </main>
+  );
+}
+
+const emptySubmissionProduct = {
+  name: '',
+  category: '',
+  price: '',
+  stock: '',
+  imageUrl: '',
+  tags: '',
+  description: ''
+};
+
+function CulturalProductSubmission({ products, setProducts }) {
+  function addProduct() {
+    setProducts((current) => [...current, { ...emptySubmissionProduct }]);
+  }
+
+  function updateProduct(index, key, value) {
+    setProducts((current) => current.map((product, itemIndex) => itemIndex === index ? { ...product, [key]: value } : product));
+  }
+
+  function removeProduct(index) {
+    setProducts((current) => current.filter((_, itemIndex) => itemIndex !== index));
+  }
+
+  return (
+    <section className="submission-products wide">
+      <div className="submission-products-head">
+        <div>
+          <strong>文创商品</strong>
+          <small>有真实商品资料才填写；没有就留空，不会自动生成。</small>
+        </div>
+        <button type="button" className="secondary" onClick={addProduct}><Plus size={16} /> 添加商品</button>
+      </div>
+      {products.map((product, index) => (
+        <article className="submission-product-card" key={index}>
+          <div className="submission-product-title">
+            <strong>商品 {index + 1}</strong>
+            <button type="button" className="icon-button ghost" onClick={() => removeProduct(index)} aria-label="删除文创商品"><Trash2 size={16} /></button>
+          </div>
+          <div className="form-row">
+            <label>商品名称<input value={product.name} onChange={(e) => updateProduct(index, 'name', e.target.value)} placeholder="如 校区纪念冰箱贴" /></label>
+            <label>分类<input value={product.category} onChange={(e) => updateProduct(index, 'category', e.target.value)} placeholder="如 纪念品 / 纸品" /></label>
+          </div>
+          <div className="form-row">
+            <label>价格<input type="number" min="0" step="0.01" value={product.price} onChange={(e) => updateProduct(index, 'price', e.target.value)} /></label>
+            <label>库存<input type="number" min="0" value={product.stock} onChange={(e) => updateProduct(index, 'stock', e.target.value)} /></label>
+          </div>
+          <label>商品图片地址<input value={product.imageUrl} onChange={(e) => updateProduct(index, 'imageUrl', e.target.value)} placeholder="没有图片可留空" /></label>
+          <label>标签<input value={product.tags} onChange={(e) => updateProduct(index, 'tags', e.target.value)} placeholder="如 伴手礼,轻便" /></label>
+          <label>商品说明<textarea value={product.description} onChange={(e) => updateProduct(index, 'description', e.target.value)} rows={3} placeholder="有说明就写，没有可留空" /></label>
+        </article>
+      ))}
+    </section>
+  );
+}
+
+function LocationPickerField({ value, onSelect }) {
+  const [open, setOpen] = useState(false);
+  const [keyword, setKeyword] = useState(value.name || value.address || '');
+  const [picked, setPicked] = useState(null);
+  const [status, setStatus] = useState('');
+  const mapRef = useRef(null);
+  const markerRef = useRef(null);
+  const geocoderRef = useRef(null);
+  const mapBoxRef = useRef(null);
+  const { ready, error } = useBaiduMap();
+
+  useEffect(() => {
+    if (!open || !ready || !mapBoxRef.current || !window.BMap) return undefined;
+    const BMap = window.BMap;
+    const startPoint = value.latitude && value.longitude
+      ? new BMap.Point(Number(value.longitude), Number(value.latitude))
+      : new BMap.Point(defaultLocation.lng, defaultLocation.lat);
+    const map = new BMap.Map(mapBoxRef.current);
+    const geocoder = new BMap.Geocoder();
+    mapRef.current = map;
+    geocoderRef.current = geocoder;
+    map.centerAndZoom(startPoint, value.latitude ? 16 : 13);
+    map.enableScrollWheelZoom(true);
+    if (value.latitude && value.longitude) {
+      const marker = new BMap.Marker(startPoint);
+      markerRef.current = marker;
+      map.addOverlay(marker);
+      setPicked({ lat: value.latitude, lng: value.longitude, address: value.address });
+    }
+    const handleClick = (event) => selectPoint(event.point);
+    map.addEventListener('click', handleClick);
+    return () => {
+      try {
+        map.removeEventListener('click', handleClick);
+        map.clearOverlays();
+      } catch (ignore) {
+        // Baidu SDK cleanup is best-effort.
+      }
+      mapRef.current = null;
+      markerRef.current = null;
+      geocoderRef.current = null;
+      if (mapBoxRef.current) mapBoxRef.current.innerHTML = '';
+    };
+  }, [open, ready]);
+
+  function selectPoint(point, fallbackAddress = '') {
+    if (!point || !mapRef.current || !window.BMap) return;
+    const BMap = window.BMap;
+    mapRef.current.clearOverlays();
+    const marker = new BMap.Marker(point);
+    markerRef.current = marker;
+    mapRef.current.addOverlay(marker);
+    mapRef.current.panTo(point);
+    setStatus('正在解析地址...');
+    const commit = (address) => {
+      const next = {
+        lat: Number(point.lat).toFixed(6),
+        lng: Number(point.lng).toFixed(6),
+        address: address || fallbackAddress || `${Number(point.lat).toFixed(6)}, ${Number(point.lng).toFixed(6)}`
+      };
+      setPicked(next);
+      setStatus('已选中位置，确认后会回填到申报表。');
+    };
+    if (geocoderRef.current) {
+      geocoderRef.current.getLocation(point, (result) => commit(result?.address || fallbackAddress));
+    } else {
+      commit(fallbackAddress);
+    }
+  }
+
+  function searchPlace() {
+    if (!keyword.trim() || !mapRef.current || !window.BMap) return;
+    const BMap = window.BMap;
+    setStatus('正在搜索地点...');
+    const local = new BMap.LocalSearch(mapRef.current, {
+      onSearchComplete: () => {
+        const results = local.getResults();
+        const poi = results?.getPoi?.(0);
+        if (!poi) {
+          setStatus('没有找到匹配地点，可以直接在地图上点击选点。');
+          return;
+        }
+        selectPoint(poi.point, [poi.title, poi.address].filter(Boolean).join(' · '));
+      }
+    });
+    local.search(keyword.trim());
+  }
+
+  function confirmLocation() {
+    if (!picked) {
+      setStatus('请先搜索或点击地图选择一个位置。');
+      return;
+    }
+    onSelect(picked);
+    setOpen(false);
+  }
+
+  return (
+    <section className="location-picker-field wide">
+      <div className="location-picker-summary">
+        <div>
+          <span>地址</span>
+          <strong>{value.address || '尚未选择位置'}</strong>
+          <small>{value.latitude && value.longitude ? `${value.latitude}, ${value.longitude}` : '通过百度地图搜索或点选后自动回填'}</small>
+        </div>
+        <button type="button" className="secondary" onClick={() => setOpen(true)}><LocateFixed size={16} /> 百度地图定位</button>
+      </div>
+      {open && (
+        <div className="map-picker-backdrop" role="presentation" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) setOpen(false);
+        }}>
+          <section className="map-picker-modal" role="dialog" aria-modal="true" aria-label="百度地图选择景点位置">
+            <div className="map-picker-head">
+              <div>
+                <h2>选择景点位置</h2>
+                <p>搜索地点或直接点击地图，确认后回填地址与经纬度。</p>
+              </div>
+              <button type="button" className="icon-button ghost" onClick={() => setOpen(false)} aria-label="关闭地图"><X size={18} /></button>
+            </div>
+            <div className="map-picker-search">
+              <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="输入景点名、学校、商圈或地址" />
+              <button type="button" onClick={searchPlace}><Search size={16} /> 搜索</button>
+            </div>
+            {error ? <div className="message error">{error}</div> : <div ref={mapBoxRef} className="map-picker-canvas">{ready ? '' : '百度地图加载中...'}</div>}
+            <div className="map-picker-result">
+              <span>{status || '点击地图任意位置开始选择。'}</span>
+              <strong>{picked?.address || '未选择'}</strong>
+              {picked && <small>{picked.lat}, {picked.lng}</small>}
+            </div>
+            <div className="form-actions">
+              <button type="button" className="secondary" onClick={() => setOpen(false)}>取消</button>
+              <button type="button" onClick={confirmLocation}><MapPin size={16} /> 使用此位置</button>
+            </div>
+          </section>
+        </div>
+      )}
+    </section>
+  );
+}
+
+function SubmissionMediaUploader({ type, icon: Icon, title, accept, urls, uploading, onFiles, onRemove }) {
+  const inputId = `submission-${type}-upload`;
+  return (
+    <section className="submission-uploader">
+      <div className="submission-uploader-head">
+        <span><Icon size={18} /> {title}</span>
+        <label htmlFor={inputId}><UploadCloud size={16} /> {uploading ? '上传中' : '选择文件'}</label>
+        <input id={inputId} type="file" accept={accept} multiple disabled={uploading} onChange={(event) => {
+          onFiles(event.target.files);
+          event.target.value = '';
+        }} />
+      </div>
+      <small>{type === 'video' ? '支持 MP4、WebM、MOV，单个不超过 80MB。' : '支持 JPG、PNG、WebP、GIF，单张不超过 10MB。'}</small>
+      {!!urls.length && (
+        <div className="submission-media-preview">
+          {urls.map((url) => (
+            <div className="submission-media-item" key={url}>
+              {type === 'video' ? <video src={url} controls /> : <img src={url} alt="申报媒体" />}
+              <button type="button" className="icon-button ghost" onClick={() => onRemove(url)} aria-label="移除文件"><X size={15} /></button>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -2509,7 +3155,7 @@ function Login({ refreshAccount }) {
       await api(endpoint, { method: 'POST', body: JSON.stringify({ username, email, password }) });
       await refreshAccount();
       const nextPath = isAdminLogin ? '/admin' : '/me';
-      window.history.pushState(null, '', window.location.port === '5173' ? `/app${nextPath}` : nextPath);
+      window.history.pushState(null, '', window.location.port === '8080' ? `/app${nextPath}` : nextPath);
       window.dispatchEvent(new PopStateEvent('popstate'));
     } catch (error) {
       setMessage(error.message);
@@ -2517,9 +3163,9 @@ function Login({ refreshAccount }) {
   }
   return (
     <main className="login-stage">
-      <section className="login-showcase" aria-label="星涌登录">
+      <section className="login-showcase" aria-label="星躔登录">
         <div className="login-art-copy">
-          <span>Star Surge Map</span>
+          <span>Xingchan Map</span>
           <strong>把下一段旅程接入你的星图</strong>
         </div>
         <div className="login-starfield" aria-hidden="true">
@@ -2556,7 +3202,7 @@ function Login({ refreshAccount }) {
           <span className="solar-planet neptune" />
           <div className="login-brand-core">
             <span className="login-brand-mark">星</span>
-            <strong>星涌</strong>
+            <strong>星躔</strong>
             <small>把风景、路线和故事收进同一张旅行星图</small>
           </div>
         </div>
@@ -2608,38 +3254,287 @@ function Login({ refreshAccount }) {
 }
 
 function Admin() {
-  const spots = useAsync(() => api('/api/admin/spots'), []);
-  const facilities = useAsync(() => api('/api/admin/facilities'), []);
-  const submissions = useAsync(() => api('/api/admin/submissions'), []);
-  async function approve(id) {
-    await api(`/api/admin/submissions/${id}/approve`, { method: 'POST' });
-    window.location.reload();
-  }
+  const [reloadKey, setReloadKey] = useState(0);
+  const [activePanel, setActivePanel] = useState('submissions');
+  const spots = useAsync(() => api('/api/admin/spots'), [reloadKey]);
+  const facilities = useAsync(() => api('/api/admin/facilities'), [reloadKey]);
+  const submissions = useAsync(() => api('/api/admin/submissions'), [reloadKey]);
+  const spotList = spots.data || [];
+  const submissionList = submissions.data || [];
+  const pendingCount = submissionList.filter((item) => item.status === 'PENDING').length;
+  const featuredCount = spotList.filter((item) => item.homeFeatured).length;
+  const refreshAdmin = () => setReloadKey((key) => key + 1);
+
   return (
-    <main className="container">
-      <PageHero icon={ShieldCheck} title="运营后台" body="管理景点、周边设施和用户申报。" />
-      <div className="dashboard">
-        <Metric value={spots.data?.length ?? '--'} label="景点" />
-        <Metric value={facilities.data?.length ?? '--'} label="设施" />
-        <Metric value={submissions.data?.length ?? '--'} label="申报" />
+    <main className="container admin-shell">
+      <section className="admin-hero">
+        <div className="admin-hero-copy">
+          <span className="admin-kicker"><ShieldCheck size={18} /> 运营后台</span>
+          <h1>把申报、景点库和首页内容放回可控状态。</h1>
+          <p>审核用户提交的新地点，编辑正式景点资料，并维护首页 Hero 轮播与精选景点。</p>
+        </div>
+        <button className="secondary admin-refresh" type="button" onClick={refreshAdmin}><RefreshCw size={16} /> 刷新数据</button>
+      </section>
+
+      <div className="admin-metrics">
+        <Metric value={spots.loading ? '--' : spotList.length} label="正式景点" />
+        <Metric value={facilities.loading ? '--' : (facilities.data || []).length} label="周边设施" />
+        <Metric value={submissions.loading ? '--' : pendingCount} label="待审核申报" />
+        <Metric value={spots.loading ? '--' : featuredCount} label="首页精选" />
       </div>
-      <HomeContentManager spots={spots.data || []} />
-      <div className="layout">
-        <ListPanel title="景点库" icon={MapPin} items={(spots.data || []).map((item) => ({ title: item.name, body: `${item.type} · ${item.rating} 分 · 承载 ${item.maxCapacity}` }))} empty="暂无景点" />
-        <section className="panel">
-          <PanelTitle icon={MessageCircle} title="用户申报" />
-          <div className="list">
-            {(submissions.data || []).map((item) => (
-              <div className="list-item" key={item.id}>
-                <strong>{item.name}</strong>
-                <p>{item.status} · {item.address}</p>
-                {item.status === 'PENDING' && <button className="secondary" onClick={() => approve(item.id)}>通过审核</button>}
-              </div>
-            ))}
-          </div>
-        </section>
+
+      <div className="admin-tabs" role="tablist" aria-label="后台管理模块">
+        {[
+          ['submissions', MessageCircle, '申报审核', pendingCount],
+          ['spots', MapPin, '景点管理', spotList.length],
+          ['home', ImagePlus, '首页内容', featuredCount]
+        ].map(([key, Icon, label, count]) => (
+          <button key={key} type="button" className={activePanel === key ? 'active' : ''} onClick={() => setActivePanel(key)}>
+            <Icon size={18} />
+            <span>{label}</span>
+            <strong>{count}</strong>
+          </button>
+        ))}
       </div>
+
+      {activePanel === 'submissions' && <SubmissionManager submissions={submissionList} loading={submissions.loading} onChanged={refreshAdmin} />}
+      {activePanel === 'spots' && <SpotLibraryManager spots={spotList} loading={spots.loading} onChanged={refreshAdmin} />}
+      {activePanel === 'home' && <HomeContentManager spots={spotList} />}
     </main>
+  );
+}
+
+const emptySpotDraft = {
+  name: '',
+  type: '自然风光',
+  address: '',
+  latitude: '',
+  longitude: '',
+  openHours: '全天',
+  phone: '',
+  price: 0,
+  rating: 4.6,
+  maxCapacity: 2000,
+  coverImage: '',
+  gallery: [],
+  videoUrl: '',
+  description: '',
+  guide: '',
+  history: '',
+  highlights: '',
+  bestSeason: '',
+  notice: '',
+  approved: true,
+  homeFeatured: false,
+  homeFeaturedSort: 0
+};
+
+function normalizeSpotDraft(spot = {}) {
+  return {
+    ...emptySpotDraft,
+    ...spot,
+    galleryText: (spot.gallery || []).join('\n')
+  };
+}
+
+function serializeSpotDraft(draft) {
+  return {
+    ...draft,
+    latitude: draft.latitude === '' ? null : Number(draft.latitude),
+    longitude: draft.longitude === '' ? null : Number(draft.longitude),
+    price: draft.price === '' ? 0 : Number(draft.price),
+    rating: draft.rating === '' ? 0 : Number(draft.rating),
+    maxCapacity: draft.maxCapacity === '' ? 0 : Number(draft.maxCapacity),
+    gallery: String(draft.galleryText || '')
+      .split(/\n|,/)
+      .map((item) => item.trim())
+      .filter(Boolean),
+    galleryText: undefined
+  };
+}
+
+function SpotLibraryManager({ spots, loading, onChanged }) {
+  const [query, setQuery] = useState('');
+  const [editing, setEditing] = useState(null);
+  const [message, setMessage] = useState('');
+  const filtered = spots.filter((spot) => {
+    const text = `${spot.name || ''} ${spot.type || ''} ${spot.address || ''}`.toLowerCase();
+    return text.includes(query.trim().toLowerCase());
+  });
+
+  async function saveSpot(draft) {
+    const payload = serializeSpotDraft(draft);
+    const endpoint = payload.id ? `/api/admin/spots/${payload.id}` : '/api/admin/spots';
+    await api(endpoint, { method: payload.id ? 'PUT' : 'POST', body: JSON.stringify(payload) });
+    setEditing(null);
+    setMessage(payload.id ? '景点资料已更新。' : '新景点已加入景点库。');
+    onChanged();
+  }
+
+  async function deleteSpot(id) {
+    if (!window.confirm('确认删除这个景点？相关详情页将不再显示。')) return;
+    await api(`/api/admin/spots/${id}`, { method: 'DELETE' });
+    setMessage('景点已删除。');
+    onChanged();
+  }
+
+  return (
+    <section className="admin-workspace">
+      <div className="admin-panel-main">
+        <div className="admin-panel-head">
+          <PanelTitle icon={MapPin} title="景点库" meta={`${filtered.length} / ${spots.length}`} />
+          <button type="button" onClick={() => setEditing(normalizeSpotDraft())}><Plus size={16} /> 新增景点</button>
+        </div>
+        {message && <div className="message">{message}</div>}
+        <div className="admin-toolbar">
+          <label>
+            <Search size={16} />
+            <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="按名称、类型或地址搜索" />
+          </label>
+        </div>
+        {loading ? <Loading /> : (
+          <div className="admin-spot-table">
+            {filtered.map((spot) => (
+              <article className="admin-spot-row" key={spot.id}>
+                <img src={spot.coverImage} alt={spot.name} />
+                <div>
+                  <strong>{spot.name}</strong>
+                  <p>{spot.type} · {spot.rating} 分 · 承载 {spot.maxCapacity || '--'}</p>
+                  <small>{spot.address}</small>
+                </div>
+                <span className={cx('status-chip', spot.approved ? 'ok' : 'muted')}>{spot.approved ? '已上架' : '未上架'}</span>
+                <div className="row-actions">
+                  <button className="secondary" type="button" onClick={() => setEditing(normalizeSpotDraft(spot))}><Edit3 size={15} /> 编辑</button>
+                  <button className="secondary danger" type="button" onClick={() => deleteSpot(spot.id)}><Trash2 size={15} /> 删除</button>
+                </div>
+              </article>
+            ))}
+            {!filtered.length && <div className="empty-state compact">没有匹配的景点</div>}
+          </div>
+        )}
+      </div>
+      <aside className="admin-editor-panel">
+        {editing ? (
+          <SpotEditorForm draft={editing} setDraft={setEditing} onSave={saveSpot} onCancel={() => setEditing(null)} />
+        ) : (
+          <div className="admin-editor-empty">
+            <SlidersHorizontal size={30} />
+            <strong>选择一个景点开始编辑</strong>
+            <p>可维护封面、坐标、开放时间、票价、图集和详情文案。</p>
+          </div>
+        )}
+      </aside>
+    </section>
+  );
+}
+
+function SpotEditorForm({ draft, setDraft, onSave, onCancel }) {
+  const [saving, setSaving] = useState(false);
+  const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  async function submit(event) {
+    event.preventDefault();
+    setSaving(true);
+    try {
+      await onSave(draft);
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form className="admin-spot-form" onSubmit={submit}>
+      <PanelTitle icon={Edit3} title={draft.id ? '编辑景点' : '新增景点'} meta={draft.id ? `ID ${draft.id}` : '新记录'} />
+      <label>名称<input value={draft.name || ''} onChange={(e) => update('name', e.target.value)} required /></label>
+      <div className="form-row">
+        <label>类型<input value={draft.type || ''} onChange={(e) => update('type', e.target.value)} /></label>
+        <label>评分<input type="number" min="0" max="5" step="0.1" value={draft.rating ?? ''} onChange={(e) => update('rating', e.target.value)} /></label>
+      </div>
+      <label>地址<input value={draft.address || ''} onChange={(e) => update('address', e.target.value)} /></label>
+      <div className="form-row">
+        <label>纬度<input type="number" step="0.000001" value={draft.latitude ?? ''} onChange={(e) => update('latitude', e.target.value)} /></label>
+        <label>经度<input type="number" step="0.000001" value={draft.longitude ?? ''} onChange={(e) => update('longitude', e.target.value)} /></label>
+      </div>
+      <div className="form-row">
+        <label>票价<input type="number" min="0" step="0.01" value={draft.price ?? ''} onChange={(e) => update('price', e.target.value)} /></label>
+        <label>承载量<input type="number" min="0" value={draft.maxCapacity ?? ''} onChange={(e) => update('maxCapacity', e.target.value)} /></label>
+      </div>
+      <label>封面图<input value={draft.coverImage || ''} onChange={(e) => update('coverImage', e.target.value)} placeholder="https://..." /></label>
+      <label>图集 URL<textarea value={draft.galleryText || ''} onChange={(e) => update('galleryText', e.target.value)} placeholder="每行一个图片地址" rows={3} /></label>
+      <label>描述<textarea value={draft.description || ''} onChange={(e) => update('description', e.target.value)} rows={4} /></label>
+      <label>游览建议<textarea value={draft.guide || ''} onChange={(e) => update('guide', e.target.value)} rows={3} /></label>
+      <div className="form-row">
+        <label>开放时间<input value={draft.openHours || ''} onChange={(e) => update('openHours', e.target.value)} /></label>
+        <label>最佳季节<input value={draft.bestSeason || ''} onChange={(e) => update('bestSeason', e.target.value)} /></label>
+      </div>
+      <label className="check-row"><input type="checkbox" checked={draft.approved !== false} onChange={(e) => update('approved', e.target.checked)} /> 上架展示</label>
+      <div className="form-actions">
+        <button className="secondary" type="button" onClick={onCancel}>取消</button>
+        <button type="submit" disabled={saving}><CheckCircle2 size={16} /> {saving ? '保存中' : '保存景点'}</button>
+      </div>
+    </form>
+  );
+}
+
+function SubmissionManager({ submissions, loading, onChanged }) {
+  const [filter, setFilter] = useState('PENDING');
+  const [remarks, setRemarks] = useState({});
+  const [message, setMessage] = useState('');
+  const shown = submissions.filter((item) => filter === 'ALL' || item.status === filter);
+
+  async function audit(id, action) {
+    const remark = remarks[id] || '';
+    await api(`/api/admin/submissions/${id}/${action}`, {
+      method: 'POST',
+      body: JSON.stringify({ auditRemark: remark })
+    });
+    setMessage(action === 'approve' ? '申报已通过，并已生成正式景点。' : '申报已驳回。');
+    onChanged();
+  }
+
+  return (
+    <section className="admin-panel-main">
+      <div className="admin-panel-head">
+        <PanelTitle icon={MessageCircle} title="用户申报" meta={`${shown.length} 条`} />
+        <div className="admin-filter">
+          <ListFilter size={16} />
+          <select value={filter} onChange={(e) => setFilter(e.target.value)}>
+            <option value="PENDING">待审核</option>
+            <option value="APPROVED">已通过</option>
+            <option value="REJECTED">已驳回</option>
+            <option value="ALL">全部</option>
+          </select>
+        </div>
+      </div>
+      {message && <div className="message">{message}</div>}
+      {loading ? <Loading /> : (
+        <div className="submission-grid">
+          {shown.map((item) => (
+            <article className="submission-card" key={item.id}>
+              <div className="submission-cover">
+                {item.photoUrls?.[0] ? <img src={item.photoUrls[0]} alt={item.name} /> : item.videoUrls?.[0] ? <video src={item.videoUrls[0]} controls /> : <Image size={28} />}
+                <span className={cx('status-chip', item.status === 'APPROVED' && 'ok', item.status === 'REJECTED' && 'danger')}>{item.status || 'PENDING'}</span>
+              </div>
+              <div className="submission-body">
+                <strong>{item.name}</strong>
+                <p>{item.type || '未分类'} · {item.address}</p>
+                <small>{(item.photoUrls?.length || 0)} 张图片 · {(item.videoUrls?.length || 0)} 个视频</small>
+                <small>{item.description || item.reason || '暂无补充说明'}</small>
+                {item.status === 'PENDING' && (
+                  <>
+                    <textarea value={remarks[item.id] || ''} onChange={(e) => setRemarks((current) => ({ ...current, [item.id]: e.target.value }))} placeholder="审核备注，可选" rows={2} />
+                    <div className="row-actions">
+                      <button type="button" onClick={() => audit(item.id, 'approve')}><CheckCircle2 size={16} /> 通过并入库</button>
+                      <button className="secondary danger" type="button" onClick={() => audit(item.id, 'reject')}><X size={16} /> 驳回</button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </article>
+          ))}
+          {!shown.length && <div className="empty-state compact">当前没有申报记录</div>}
+        </div>
+      )}
+    </section>
   );
 }
 
@@ -2691,31 +3586,44 @@ function HomeContentManager({ spots }) {
   }
 
   return (
-    <section className="panel admin-home-manager">
-      <PanelTitle icon={Sparkles} title="首页内容管理" meta="Hero + 精选景点" />
+    <section className="admin-workspace single">
+      <div className="admin-panel-main admin-home-manager">
+      <PanelTitle icon={Sparkles} title="首页内容管理" meta="Hero 轮播 + 精选景点" />
       {message && <div className="message">{message}</div>}
-      <h3>Hero 轮播图</h3>
+      <div className="admin-section-title">
+        <h3>Hero 轮播图</h3>
+        <button className="secondary" type="button" onClick={addSlide}><Plus size={16} /> 新增轮播</button>
+      </div>
       <div className="hero-admin-list">
         {slides.map((slide, index) => (
           <div className="hero-admin-item" key={index}>
-            <img src={slide.imageUrl} alt={slide.title || 'Hero'} />
+            <div className="hero-admin-preview">
+              <img src={slide.imageUrl} alt={slide.title || 'Hero'} />
+              <span>#{index + 1}</span>
+            </div>
             <div className="hero-admin-fields">
               <input value={slide.imageUrl || ''} onChange={(e) => updateSlide(index, 'imageUrl', e.target.value)} placeholder="高清图片 URL" />
-              <input value={slide.eyebrow || ''} onChange={(e) => updateSlide(index, 'eyebrow', e.target.value)} placeholder="角标" />
-              <input value={slide.title || ''} onChange={(e) => updateSlide(index, 'title', e.target.value)} placeholder="标题" />
-              <input value={slide.body || ''} onChange={(e) => updateSlide(index, 'body', e.target.value)} placeholder="描述" />
-              <input value={slide.actionText || ''} onChange={(e) => updateSlide(index, 'actionText', e.target.value)} placeholder="按钮文字" />
-              <input value={slide.actionHref || ''} onChange={(e) => updateSlide(index, 'actionHref', e.target.value)} placeholder="按钮链接，如 /guide" />
-              <label className="check-row"><input type="checkbox" checked={slide.enabled !== false} onChange={(e) => updateSlide(index, 'enabled', e.target.checked)} /> 启用</label>
-              <button className="secondary" type="button" onClick={() => removeSlide(index)}>删除</button>
+              <div className="form-row">
+                <input value={slide.eyebrow || ''} onChange={(e) => updateSlide(index, 'eyebrow', e.target.value)} placeholder="角标" />
+                <input value={slide.title || ''} onChange={(e) => updateSlide(index, 'title', e.target.value)} placeholder="标题" />
+              </div>
+              <textarea value={slide.body || ''} onChange={(e) => updateSlide(index, 'body', e.target.value)} placeholder="描述" rows={2} />
+              <div className="form-row">
+                <input value={slide.actionText || ''} onChange={(e) => updateSlide(index, 'actionText', e.target.value)} placeholder="按钮文字" />
+                <input value={slide.actionHref || ''} onChange={(e) => updateSlide(index, 'actionHref', e.target.value)} placeholder="按钮链接，如 /guide" />
+              </div>
+              <div className="row-actions">
+                <label className="check-row"><input type="checkbox" checked={slide.enabled !== false} onChange={(e) => updateSlide(index, 'enabled', e.target.checked)} /> 启用</label>
+                <button className="secondary danger" type="button" onClick={() => removeSlide(index)}><Trash2 size={15} /> 删除</button>
+              </div>
             </div>
           </div>
         ))}
       </div>
-      <div className="actions">
-        <button className="secondary" type="button" onClick={addSlide}>新增轮播</button>
+      <div className="admin-section-title">
+        <h3>精选景点</h3>
+        <small>勾选后会出现在首页推荐区</small>
       </div>
-      <h3>精选景点</h3>
       <div className="featured-admin-grid">
         {spots.map((spot) => (
           <label className="featured-admin-item" key={spot.id}>
@@ -2725,7 +3633,10 @@ function HomeContentManager({ spots }) {
           </label>
         ))}
       </div>
-      <button type="button" onClick={saveHomeContent}>保存首页配置</button>
+      <div className="form-actions">
+        <button type="button" onClick={saveHomeContent}><CheckCircle2 size={16} /> 保存首页配置</button>
+      </div>
+      </div>
     </section>
   );
 }
@@ -2813,7 +3724,7 @@ function App() {
   if (path === '/guide/locate') page = <GuideLanding />;
   if (path === '/guide/nearby') page = <Guide {...props} useSavedLocation />;
   if (path === '/route') page = <RoutePage {...props} />;
-  if (path === '/square') page = <Square />;
+  if (path === '/square') page = <Square account={account} />;
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
   if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} />;
   if (path === '/me') page = <Profile />;
@@ -2828,7 +3739,7 @@ function App() {
       {path !== '/login' && path !== '/guide/locate' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
       {page}
       {path !== '/login' && path !== '/guide/locate' && <footer className="footer">
-        <span>星涌 · 智慧文旅综合服务平台</span>
+        <span>星躔 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
           await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});

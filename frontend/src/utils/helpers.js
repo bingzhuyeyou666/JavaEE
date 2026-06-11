@@ -13,7 +13,7 @@ export function currentUserId() {
 }
 
 export function normalizeAppHref(href) {
-  return window.location.port === '5173' && href.startsWith('/')
+  return window.location.port === '8080' && href.startsWith('/')
     ? `/app${href === '/' ? '/' : href}`
     : href;
 }

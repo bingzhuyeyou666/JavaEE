@@ -1,19 +1,136 @@
 @echo off
-set "JAVA_HOME=D:\JDK18"
-set "PATH=%JAVA_HOME%\bin;%PATH%"
+setlocal EnableExtensions
 
-echo Using JAVA_HOME=%JAVA_HOME%
+set "ROOT=%~dp0"
+if exist "D:\JDK\bin\java.exe" (
+  set "JAVA_HOME=D:\JDK"
+) else if exist "D:\JDK18\bin\java.exe" (
+  set "JAVA_HOME=D:\JDK18"
+) else (
+  set "JAVA_HOME="
+)
+if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
+set "APP_URL=http://localhost:8080/app/"
+set "JAR=%ROOT%target\travel-cloud-map-0.0.1-SNAPSHOT.jar"
+
+title Xingchan - one click restart
+
+echo.
+echo [1/6] Using JAVA_HOME=%JAVA_HOME%
 java -version
-
-where mvn >nul 2>nul
 if errorlevel 1 (
-  echo.
-  echo Maven is not installed or not in PATH.
-  echo Please install Maven, then run this file again.
-  echo.
+  echo Java is not available. Check JAVA_HOME in run.bat.
   pause
   exit /b 1
 )
 
-mvn spring-boot:run
+where mvn >nul 2>nul
+if errorlevel 1 (
+  echo Maven is not installed or not in PATH.
+  pause
+  exit /b 1
+)
+
+where npm >nul 2>nul
+if errorlevel 1 (
+  echo Node.js/npm is not installed or not in PATH.
+  pause
+  exit /b 1
+)
+
+echo.
+echo [2/6] Stopping old Spring Boot app if it is still running...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$root = (Resolve-Path '%ROOT%').Path; Get-CimInstance Win32_Process | Where-Object { $_.Name -match 'java|javaw' -and $_.CommandLine -and (($_.CommandLine -like '*com.zhuly.TravelCloudMapApplication*') -or ($_.CommandLine -like '*travel-cloud-map-0.0.1-SNAPSHOT.jar*') -or (($_.CommandLine -like '*spring-boot:run*') -and ($_.CommandLine -like ('*' + $root + '*')))) } | ForEach-Object { Write-Host ('Stopping PID ' + $_.ProcessId); Stop-Process -Id $_.ProcessId -Force }"
+
+echo.
+echo [3/6] Building frontend and syncing static files...
+pushd "%ROOT%frontend"
+if not exist node_modules (
+  call npm install
+  if errorlevel 1 (
+    popd
+    pause
+    exit /b 1
+  )
+)
+call npm run build
+if errorlevel 1 (
+  popd
+  pause
+  exit /b 1
+)
+popd
+
+echo.
+echo [4/6] Packaging latest Spring Boot app...
+pushd "%ROOT%"
+call mvn -q -DskipTests clean package
+if errorlevel 1 (
+  popd
+  pause
+  exit /b 1
+)
+popd
+
+if not exist "%JAR%" (
+  echo Cannot find app jar: %JAR%
+  pause
+  exit /b 1
+)
+
+echo.
+echo Checking packaged frontend assets...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$jar='%JAR%'; $hasCss = (& jar tf $jar) -match '^BOOT-INF/classes/static/app/assets/.+\.css$'; if (-not $hasCss) { Write-Host 'Packaged jar is missing CSS assets. Rebuilding once after frontend sync...'; exit 2 }"
+if errorlevel 2 (
+  pushd "%ROOT%"
+  call mvn -q -DskipTests clean package
+  if errorlevel 1 (
+    popd
+    pause
+    exit /b 1
+  )
+  popd
+)
+
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$jar='%JAR%'; $hasCss = (& jar tf $jar) -match '^BOOT-INF/classes/static/app/assets/.+\.css$'; if (-not $hasCss) { Write-Host 'ERROR: CSS assets are still missing from the jar. Please check frontend build output.'; exit 1 }"
+if errorlevel 1 (
+  pause
+  exit /b 1
+)
+
+echo.
+echo [5/6] Starting app on port 8080...
+if defined JAVA_HOME (
+  set "JAVA_EXE=%JAVA_HOME%\bin\java.exe"
+) else (
+  set "JAVA_EXE=java"
+)
+start "Xingchan Server" /D "%ROOT%" "%JAVA_EXE%" -jar "%JAR%"
+
+echo Waiting for %APP_URL% ...
+set "READY="
+for /L %%i in (1,1,60) do (
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%APP_URL%' -TimeoutSec 2; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>nul
+  if not errorlevel 1 (
+    set "READY=1"
+    goto open_browser
+  )
+  timeout /t 1 /nobreak >nul
+)
+
+:open_browser
+echo.
+if "%READY%"=="1" (
+  echo [6/6] App is ready. Opening browser...
+) else (
+  echo [6/6] Server is still starting. Opening browser anyway...
+)
+start "" "%APP_URL%"
+
+echo.
+echo Done. Keep the server window open while using the site.
+echo URL: %APP_URL%
 pause

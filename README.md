@@ -86,7 +86,7 @@ npm install
 npm run dev
 ```
 
-Dev URL: `http://localhost:5173/app/`
+Dev URL: `http://localhost:8080/app/`
 
 The Vite dev server proxies `/api` to `http://localhost:8080`, so keep Spring Boot running with:
 

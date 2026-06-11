@@ -15,10 +15,16 @@ export default defineConfig({
     }
   },
   server: {
-    port: 5173,
+    port: 8080,
+    strictPort: true,
     proxy: {
-      '/api': 'http://localhost:8080'
+      '/api': 'http://localhost:8080',
+      '/uploads': 'http://localhost:8080'
     }
+  },
+  preview: {
+    port: 8080,
+    strictPort: true
   },
   build: {
     outDir: '../src/main/resources/static/app',

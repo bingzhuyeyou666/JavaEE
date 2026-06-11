@@ -6,6 +6,7 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.OrderColumn;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -29,6 +30,10 @@ public class SpotSubmission {
     private String address;
     private BigDecimal latitude;
     private BigDecimal longitude;
+    private String openHours;
+    private BigDecimal price;
+    private String bestSeason;
+    private String phone;
 
     @javax.persistence.Column(length = 2000)
     private String description;
@@ -37,7 +42,15 @@ public class SpotSubmission {
     private String reason;
 
     @ElementCollection(fetch = FetchType.EAGER)
+    @OrderColumn(name = "sort_order")
     private List<String> photoUrls = new ArrayList<>();
+
+    @ElementCollection(fetch = FetchType.EAGER)
+    @OrderColumn(name = "sort_order")
+    private List<String> videoUrls = new ArrayList<>();
+
+    @javax.persistence.Column(length = 6000)
+    private String culturalProductsJson;
 
     private String status;
     private String auditRemark;
