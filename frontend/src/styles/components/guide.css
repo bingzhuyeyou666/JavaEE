@@ -11,6 +11,21 @@
   margin-bottom: var(--space-8);
 }
 
+.guide-command h1 {
+  max-width: 980px;
+  margin: var(--space-2) 0 var(--space-3);
+  font-size: clamp(2.6rem, 5vw, 4.8rem);
+  line-height: 1.08;
+}
+
+.guide-command p {
+  max-width: 760px;
+  margin: 0 0 var(--space-4);
+  color: var(--color-text-secondary);
+  font-size: var(--text-lg);
+  line-height: 1.75;
+}
+
 .guide-command-stats {
   display: flex;
   flex-wrap: wrap;
@@ -43,6 +58,29 @@
   width: 100%;
 }
 
+.guide-search-console .toolbar {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) 150px 150px auto;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.guide-search-console .toolbar label {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-2);
+  margin: 0;
+}
+
+.guide-search-console .toolbar input,
+.guide-search-console .toolbar select,
+.guide-search-console .toolbar button {
+  width: 100%;
+  min-height: 48px;
+  margin: 0;
+}
+
 /* 位置条 */
 .location-strip {
   display: flex;
@@ -66,6 +104,8 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
   gap: var(--space-8);
+  align-items: stretch;
+  min-height: 0;
 }
 
 .guide-results {
@@ -73,11 +113,44 @@
   flex-direction: column;
   gap: var(--space-6);
   min-width: 0;
+  max-height: calc(100vh - 230px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding-right: 6px;
+  scrollbar-gutter: stable;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guide-layout .route-capsule {
+  position: sticky;
+  top: 132px;
+  max-height: calc(100vh - 156px);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.guide-results::-webkit-scrollbar,
+.guide-layout .route-capsule::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+  display: none;
 }
 
 .guide-results-title {
+  display: flex;
+  align-items: center;
+  min-height: 36px;
   font-size: var(--text-xl);
   margin-bottom: var(--space-2);
+}
+
+.guide-results-title strong {
+  font-size: var(--text-2xl);
+  line-height: 1.2;
 }
 
 /* 地图面板 */
@@ -116,4 +189,17 @@
 
 .guide-card-cloud .actions {
   margin-top: auto;
+}
+
+@media (max-width: 960px) {
+  .guide-search-console .toolbar {
+    grid-template-columns: 1fr;
+  }
+
+  .guide-results,
+  .guide-layout .route-capsule {
+    max-height: none;
+    overflow: visible;
+    padding-right: 0;
+  }
 }

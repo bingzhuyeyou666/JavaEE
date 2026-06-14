@@ -426,7 +426,7 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
           <span className="brand-mark">星</span>
           <span>
             <strong>陌路寻景</strong>
-            <small>Xingchan Map</small>
+            <small>Molu Xunjing</small>
           </span>
         </Link>
         <div className="header-right">
@@ -517,7 +517,20 @@ function Hero({ spots, slides = defaultHeroSlides }) {
 
 function SpotCard({ spot, addRoute }) {
   return (
-    <article className="card">
+    <article
+      className="card spot-click-card"
+      role="link"
+      tabIndex={0}
+      onClick={(event) => {
+        if (event.target.closest('a, button, input, select, textarea')) return;
+        navigateTo(`/spots/${spot.id}`);
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== 'Enter' && event.key !== ' ') return;
+        event.preventDefault();
+        navigateTo(`/spots/${spot.id}`);
+      }}
+    >
       <div className="card-media">
         <img src={spot.coverImage} alt={spot.name} />
         <span className="rating-badge"><Star size={14} fill="currentColor" /> {spot.rating}</span>
@@ -532,7 +545,7 @@ function SpotCard({ spot, addRoute }) {
         <p className="muted">{spot.address}</p>
         <div className="actions">
           <Link className="button-like" href={`/spots/${spot.id}`}>查看详情</Link>
-          {addRoute && <button className="secondary" onClick={() => addRoute(spot)}><Plus size={16} /> 加入路线</button>}
+          {addRoute && <button className="secondary" onClick={(event) => { event.stopPropagation(); addRoute(spot); }}><Plus size={16} /> 加入路线</button>}
         </div>
       </div>
     </article>
@@ -617,7 +630,6 @@ function Loading() {
 
 function useNearbyLocation() {
   return useMemo(() => {
-    if (!readSessionFlag(sessionLocatedKey)) return null;
     const saved = readStorageJson(nearbyLocationKey, null);
     const location = saved ? readLocationState(nearbyLocationKey, { lat: 0, lng: 0, label: '当前位置' }) : null;
     return isBlockedPresetLocation(location) && location?.source !== 'explore-fallback' ? null : location;
@@ -1138,7 +1150,7 @@ function GuideLanding() {
         </div>
         {(loading || !hasLocated) && (
           <div className="guide-locate-text">
-            {loading ? '星图正在折叠，锁定你的坐标' : '点击定位，点亮附近景点星图'}
+            {loading ? '正在锁定你的当前位置' : '点击定位，查看附近景点'}
           </div>
         )}
         {showSuccessToast && <div className="locate-success-flash">定位成功，附近景点已点亮</div>}
@@ -1178,7 +1190,7 @@ function GuideLanding() {
 
 function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = false }) {
   const savedNearbyLocation = useNearbyLocation();
-  const nearbyLocation = useSavedLocation ? savedNearbyLocation : null;
+  const nearbyLocation = savedNearbyLocation;
   const [keyword, setKeyword] = useState('');
   const [type, setType] = useState('');
   const [sort, setSort] = useState('distance');
@@ -1195,14 +1207,25 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
     if (sort === 'price') list.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
     return list;
   }, [data, sort]);
+  function handleGuidePanelWheel(event) {
+    const target = event.currentTarget;
+    if (target.scrollHeight <= target.clientHeight) return;
+    if (!target.classList.contains('route-capsule')) {
+      event.stopPropagation();
+      return;
+    }
+    event.preventDefault();
+    event.stopPropagation();
+    target.scrollTop += event.deltaY;
+  }
 
   return (
     <main className="container guide-page">
       <section className="guide-command">
         <div className="guide-command-copy">
-          <span className="section-kicker">附近探索星图</span>
+          <span className="section-kicker">附近景点导览</span>
           <h1>发现附近，把风景串成路线</h1>
-          <p>搜索、筛选、定位和路线收集被放进同一个探索舱，适合边发现边规划。</p>
+          <p>按距离、评分和类型筛选周边景点，快速查看详情并加入路线。</p>
           <div className="guide-command-stats">
             <span><strong>{spots.length || '--'}</strong> 个信号</span>
             <span><strong>{route.length}</strong> 个已选</span>
@@ -1239,9 +1262,8 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
         </div>
       </section>
       <div className="layout guide-layout">
-        <section className="guide-results">
+        <section className="guide-results" onWheelCapture={handleGuidePanelWheel}>
           <div className="guide-results-title">
-            <span>DISCOVERY FEED</span>
             <strong>{sort === 'distance' ? '距离优先' : sort === 'rating' ? '评分优先' : '票价优先'}</strong>
           </div>
           {locationMessage && <div className="message">{locationMessage}</div>}
@@ -1260,7 +1282,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
             </div>
           )}
         </section>
-        <aside className="panel sticky route-capsule">
+        <aside className="panel sticky route-capsule" onWheelCapture={handleGuidePanelWheel}>
           <PanelTitle icon={Map} title="当前位置地图" />
           {location ? <BaiduMap center={location} markers={[location]} className="side-map" /> : <div className="empty-state compact">定位后显示当前位置地图</div>}
           <PanelTitle icon={Navigation} title="已选路线" meta={`${route.length} / 5`} />
@@ -1494,11 +1516,14 @@ function SpotDetail({ id, addRoute }) {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
-    { role: 'assistant', content: '你好，我是陌路寻景导览助手。可以问我当前景点怎么玩、适合什么时候去、有什么文创伴手礼。', meta: '当前景点' }
+    { role: 'assistant', content: '菲比已待命。点我就能问当前景点怎么玩、什么时候去、附近有什么值得顺手带走。', meta: '菲比待命' }
   ]);
   const [assistantPosition, setAssistantPosition] = useState(null);
+  const assistantShellRef = useRef(null);
+  const assistantPositionRef = useRef(null);
   const assistantDragRef = useRef(null);
   const assistantDraggedRef = useRef(false);
+  const assistantDragClickTimerRef = useRef(null);
   const [message, setMessage] = useState('');
   useEffect(() => {
     const list = products.data || [];
@@ -1583,8 +1608,15 @@ function SpotDetail({ id, addRoute }) {
   }
   function startAssistantDrag(event) {
     if (event.button !== 0) return;
-    const box = event.currentTarget.closest('.floating-ai')?.getBoundingClientRect();
+    const isPetHandle = event.currentTarget.classList?.contains('pet-sprite-button');
+    if (!isPetHandle && event.target.closest('input, textarea, select, button, a')) return;
+    const shell = assistantShellRef.current;
+    const box = shell?.getBoundingClientRect();
     if (!box) return;
+    if (assistantDragClickTimerRef.current) {
+      window.clearTimeout(assistantDragClickTimerRef.current);
+      assistantDragClickTimerRef.current = null;
+    }
     assistantDragRef.current = {
       startX: event.clientX,
       startY: event.clientY,
@@ -1592,6 +1624,11 @@ function SpotDetail({ id, addRoute }) {
       y: box.top,
       moved: false
     };
+    shell.classList.add('dragged');
+    shell.style.right = 'auto';
+    shell.style.bottom = 'auto';
+    shell.style.left = `${box.left}px`;
+    shell.style.top = `${box.top}px`;
     event.currentTarget.setPointerCapture?.(event.pointerId);
   }
   function moveAssistantDrag(event) {
@@ -1602,21 +1639,50 @@ function SpotDetail({ id, addRoute }) {
     if (Math.hypot(deltaX, deltaY) > 4) {
       drag.moved = true;
       assistantDraggedRef.current = true;
+      const shell = assistantShellRef.current;
+      if (shell) {
+        shell.classList.add('pet-moving');
+        shell.classList.toggle('pet-moving-left', deltaX < -2);
+        shell.classList.toggle('pet-moving-right', deltaX >= -2);
+      }
     }
-    const panelWidth = assistantOpen ? 420 : 88;
-    const panelHeight = assistantOpen ? 620 : 88;
-    setAssistantPosition({
-      x: Math.max(10, Math.min(window.innerWidth - panelWidth - 10, drag.x + deltaX)),
-      y: Math.max(10, Math.min(window.innerHeight - Math.min(panelHeight, window.innerHeight - 20) - 10, drag.y + deltaY))
-    });
+    const panelBox = assistantShellRef.current?.querySelector('.pet-panel')?.getBoundingClientRect();
+    const minX = assistantOpen && panelBox ? Math.max(10, panelBox.width) : 10;
+    const maxX = assistantOpen && panelBox ? Math.min(window.innerWidth - 138, window.innerWidth - 20) : window.innerWidth - 138;
+    const minY = assistantOpen && panelBox ? Math.max(10, panelBox.height - 94) : 10;
+    const maxY = assistantOpen && panelBox ? Math.min(window.innerHeight - 142, window.innerHeight - 114) : window.innerHeight - 142;
+    const nextPosition = {
+      x: Math.max(minX, Math.min(maxX, drag.x + deltaX)),
+      y: Math.max(minY, Math.min(maxY, drag.y + deltaY))
+    };
+    assistantPositionRef.current = nextPosition;
+    if (assistantShellRef.current) {
+      assistantShellRef.current.style.left = `${nextPosition.x}px`;
+      assistantShellRef.current.style.top = `${nextPosition.y}px`;
+    }
   }
   function endAssistantDrag(event) {
+    assistantShellRef.current?.classList.remove('pet-moving', 'pet-moving-left', 'pet-moving-right');
     if (assistantDragRef.current?.moved) {
-      window.setTimeout(() => {
+      if (assistantPositionRef.current) {
+        setAssistantPosition(assistantPositionRef.current);
+      }
+      assistantDragClickTimerRef.current = window.setTimeout(() => {
         assistantDraggedRef.current = false;
-      }, 0);
+        assistantDragClickTimerRef.current = null;
+      }, 220);
+    } else if (!assistantPosition) {
+      const shell = assistantShellRef.current;
+      if (shell) {
+        shell.classList.remove('dragged');
+        shell.style.left = '';
+        shell.style.top = '';
+        shell.style.right = '';
+        shell.style.bottom = '';
+      }
     }
     assistantDragRef.current = null;
+    assistantPositionRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
   async function submitReview(event) {
@@ -1786,83 +1852,241 @@ function SpotDetail({ id, addRoute }) {
           </div>
         </aside>
       </div>
-      <div className={cx('floating-ai', assistantOpen && 'open', assistantPosition && 'dragged')} style={assistantPosition ? { left: assistantPosition.x, top: assistantPosition.y } : undefined}>
-        {assistantOpen && (
-          <section className="floating-ai-panel" aria-label="AI 景点助手">
-            <div className="floating-ai-head" onPointerDown={startAssistantDrag} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag}>
-              <span className="ai-avatar-mini"><Sparkles size={18} /></span>
-              <div>
-                <strong>陌路寻景 AI 导览</strong>
-                <small>{spot.name}</small>
-              </div>
-              <button className="icon-button ghost" type="button" onClick={() => setAssistantOpen(false)} aria-label="关闭 AI 助手">
-                <X size={17} />
-              </button>
-            </div>
-            <div className="floating-ai-scroll">
-              <div className="floating-ai-messages">
-                {assistantMessages.map((item, index) => (
-                  <div className={cx('floating-ai-message', item.role)} key={`${item.role}-${index}`}>
-                    {item.meta && <small>{item.meta}</small>}
-                    <p>{item.content}</p>
-                  </div>
-                ))}
-                {assistantLoading && <div className="floating-ai-message assistant"><small>思考中</small><p>正在结合当前景点资料生成回答...</p></div>}
-              </div>
-              {!!assistantProducts.length && (
-                <div className="ai-product-list compact">
-                  <strong>AI 推荐文创</strong>
-                  {assistantProducts.map((product) => (
-                    <button
-                      className="ai-product-button"
-                      type="button"
-                      key={product.id}
-                      onClick={() => {
-                        setSelectedProductId(product.id);
-                        setAssistantOpen(false);
-                        document.getElementById('cultural-shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                      }}
-                    >
-                      <ShoppingBag size={15} /> {product.name} · ¥{Number(product.price || 0).toFixed(2)}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-            <div className="ai-suggestion-row">
-              <button className="secondary" type="button" disabled={assistantLoading} onClick={() => askAssistant('这个景点有什么文创伴手礼可以买？')}>文创推荐</button>
-              <button className="secondary" type="button" disabled={assistantLoading} onClick={() => askAssistant('第一次来这里应该怎么玩？')}>游玩建议</button>
-            </div>
-            <div className="ai-input">
-              <input value={question} onChange={(e) => setQuestion(e.target.value)} placeholder={`问 ${spot.name} 的攻略`} disabled={assistantLoading} />
-              <button onClick={() => askAssistant()} disabled={assistantLoading}>
-                {assistantLoading ? <RefreshCw size={16} /> : <Send size={16} />}
-              </button>
-            </div>
-          </section>
-        )}
-        <button
-          className="floating-ai-person"
-          type="button"
-          onPointerDown={startAssistantDrag}
-          onPointerMove={moveAssistantDrag}
-          onPointerUp={endAssistantDrag}
-          onPointerCancel={endAssistantDrag}
-          onClick={() => {
-            if (assistantDraggedRef.current) return;
-            setAssistantOpen((value) => !value);
-          }}
-          aria-label="打开 AI 景点助手"
-        >
-          <span className="ai-face">
-            <span className="ai-eye left" />
-            <span className="ai-eye right" />
-            <span className="ai-mouth" />
-          </span>
-          <span className="ai-bubble-dot" />
-        </button>
-      </div>
     </main>
+  );
+}
+
+function TravelPetAssistant({ path }) {
+  const detailMatch = path.match(/^\/spots\/(\d+)$/);
+  const spotId = detailMatch?.[1] || null;
+  const { data: spot } = useAsync(() => (spotId ? api(`/api/spots/${spotId}`) : Promise.resolve(null)), [spotId]);
+  const pageNames = {
+    '/': '首页',
+    '/guide': '景点导览',
+    '/guide/locate': '附近定位',
+    '/guide/nearby': '附近景点',
+    '/route': '路线规划',
+    '/square': '旅行广场',
+    '/me': '个人中心',
+    '/submit-spot': '景点申报',
+    '/login': '登录页'
+  };
+  const contextName = spot?.name || pageNames[path] || '陌路寻景';
+  const [question, setQuestion] = useState('');
+  const [assistantProducts, setAssistantProducts] = useState([]);
+  const [assistantLoading, setAssistantLoading] = useState(false);
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const [assistantMessages, setAssistantMessages] = useState([
+    { role: 'assistant', content: '菲比已待命。你可以直接输入想问的内容，我会按当前页面给你建议。', meta: '菲比待命' }
+  ]);
+  const [assistantPosition, setAssistantPosition] = useState(null);
+  const assistantShellRef = useRef(null);
+  const assistantPositionRef = useRef(null);
+  const assistantDragRef = useRef(null);
+  const assistantDraggedRef = useRef(false);
+  const assistantDragClickTimerRef = useRef(null);
+
+  useEffect(() => {
+    setAssistantProducts([]);
+    setQuestion('');
+    setAssistantMessages([
+      {
+        role: 'assistant',
+        content: spot ? `我正在看 ${spot.name} 的资料。你可以问开放时间、路线、门票、玩法或附近安排。` : '我会跟着当前页面待命。你可以问路线怎么排、附近怎么找、卡片怎么用，或者直接说你的出行需求。',
+        meta: spot ? '当前景点' : '当前页面'
+      }
+    ]);
+  }, [spotId, spot?.name, path]);
+
+  async function askAssistant(nextQuestion = question) {
+    const normalized = nextQuestion.trim();
+    if (!normalized || assistantLoading) return;
+    setAssistantLoading(true);
+    try {
+      if (spotId) {
+        const data = await api(`/api/spots/${spotId}/assistant`, {
+          method: 'POST',
+          timeoutMs: 30000,
+          body: JSON.stringify({ question: normalized })
+        });
+        const meta = data.source === 'aliyun-bailian' ? `百炼 ${data.model || ''}`.trim() : '本地知识库';
+        setAssistantProducts(data.productRecommendations || []);
+        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: data.answer, meta }]);
+      } else {
+        const answer = `收到。当前在「${contextName}」，你可以继续告诉我目的地、出发时间、同行人数或偏好，我会帮你把问题拆成可执行的下一步。`;
+        setAssistantProducts([]);
+        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: answer, meta: '页面助手' }]);
+      }
+      setQuestion('');
+    } catch (error) {
+      const fallbackAnswer = error.message || '菲比暂时连不上导览服务，请稍后再试。';
+      setAssistantProducts([]);
+      setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
+    } finally {
+      setAssistantLoading(false);
+    }
+  }
+
+  function startAssistantDrag(event) {
+    if (event.button !== 0) return;
+    const isPetHandle = event.currentTarget.classList?.contains('pet-sprite-button');
+    if (!isPetHandle && event.target.closest('input, textarea, select, button, a')) return;
+    const shell = assistantShellRef.current;
+    const box = shell?.getBoundingClientRect();
+    if (!box) return;
+    if (assistantDragClickTimerRef.current) {
+      window.clearTimeout(assistantDragClickTimerRef.current);
+      assistantDragClickTimerRef.current = null;
+    }
+    assistantDragRef.current = {
+      startX: event.clientX,
+      startY: event.clientY,
+      lastX: event.clientX,
+      x: box.left,
+      y: box.top,
+      moved: false
+    };
+    shell.classList.add('dragged');
+    shell.style.right = 'auto';
+    shell.style.bottom = 'auto';
+    shell.style.left = `${box.left}px`;
+    shell.style.top = `${box.top}px`;
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+  }
+
+  function moveAssistantDrag(event) {
+    const drag = assistantDragRef.current;
+    if (!drag) return;
+    const deltaX = event.clientX - drag.startX;
+    const deltaY = event.clientY - drag.startY;
+    if (Math.hypot(deltaX, deltaY) > 4) {
+      drag.moved = true;
+      assistantDraggedRef.current = true;
+      const shell = assistantShellRef.current;
+      if (shell) {
+        const stepX = event.clientX - drag.lastX;
+        shell.classList.add('pet-moving');
+        if (Math.abs(stepX) > 1) {
+          shell.classList.toggle('pet-moving-left', stepX < 0);
+          shell.classList.toggle('pet-moving-right', stepX > 0);
+        }
+      }
+    }
+    drag.lastX = event.clientX;
+    const shellBox = assistantShellRef.current?.getBoundingClientRect();
+    const shellWidth = shellBox?.width || 128;
+    const shellHeight = shellBox?.height || 132;
+    const minX = 10;
+    const maxX = window.innerWidth - shellWidth - 10;
+    const minY = 10;
+    const maxY = window.innerHeight - shellHeight - 10;
+    const nextPosition = {
+      x: Math.max(minX, Math.min(maxX, drag.x + deltaX)),
+      y: Math.max(minY, Math.min(maxY, drag.y + deltaY))
+    };
+    assistantPositionRef.current = nextPosition;
+    if (assistantShellRef.current) {
+      assistantShellRef.current.style.left = `${nextPosition.x}px`;
+      assistantShellRef.current.style.top = `${nextPosition.y}px`;
+    }
+  }
+
+  function endAssistantDrag(event) {
+    assistantShellRef.current?.classList.remove('pet-moving', 'pet-moving-left', 'pet-moving-right');
+    if (assistantDragRef.current?.moved) {
+      if (assistantPositionRef.current) {
+        setAssistantPosition(assistantPositionRef.current);
+      }
+      assistantDragClickTimerRef.current = window.setTimeout(() => {
+        assistantDraggedRef.current = false;
+        assistantDragClickTimerRef.current = null;
+      }, 220);
+    } else if (!assistantPosition) {
+      const shell = assistantShellRef.current;
+      if (shell) {
+        shell.classList.remove('dragged');
+        shell.style.left = '';
+        shell.style.top = '';
+        shell.style.right = '';
+        shell.style.bottom = '';
+      }
+    }
+    assistantDragRef.current = null;
+    assistantPositionRef.current = null;
+    event.currentTarget.releasePointerCapture?.(event.pointerId);
+  }
+
+  return (
+    <div ref={assistantShellRef} className={cx('floating-ai travel-pet', assistantOpen && 'open', assistantLoading && 'thinking', assistantPosition && 'dragged')} style={assistantPosition ? { left: assistantPosition.x, top: assistantPosition.y } : undefined}>
+      {assistantOpen && (
+        <section className="pet-panel" aria-label="菲比导览助手" onWheel={(event) => event.stopPropagation()}>
+          <div className="pet-panel-head" onPointerDown={startAssistantDrag} onPointerMove={moveAssistantDrag} onPointerUp={endAssistantDrag} onPointerCancel={endAssistantDrag}>
+            <span className="pet-panel-mark" aria-hidden="true"><Sparkles size={17} /></span>
+            <div>
+              <strong>菲比导览助手</strong>
+              <small>{assistantLoading ? '正在翻资料' : `${contextName} · 可拖拽 / 可拉伸`}</small>
+            </div>
+            <button className="icon-button ghost pet-close" type="button" onClick={() => setAssistantOpen(false)} aria-label="收起菲比">
+              <X size={17} />
+            </button>
+          </div>
+          <div className="pet-scroll">
+            <div className="pet-messages">
+              {assistantMessages.map((item, index) => (
+                <div className={cx('pet-message', item.role)} key={`${item.role}-${index}`}>
+                  {item.meta && <small>{item.meta}</small>}
+                  <p>{item.content}</p>
+                </div>
+              ))}
+              {assistantLoading && <div className="pet-message assistant"><small>嗡嗡检索中</small><p>正在结合当前上下文生成回答...</p></div>}
+            </div>
+            {!!assistantProducts.length && (
+              <div className="pet-product-list compact">
+                <strong>菲比推荐文创</strong>
+                {assistantProducts.map((product) => (
+                  <button
+                    className="pet-product-button"
+                    type="button"
+                    key={product.id}
+                    onClick={() => {
+                      setAssistantOpen(false);
+                      if (spotId) document.getElementById('cultural-shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }}
+                  >
+                    <ShoppingBag size={15} /> {product.name} · ¥{Number(product.price || 0).toFixed(2)}
+                  </button>
+                ))}
+              </div>
+            )}
+          </div>
+          <form className="pet-input" onSubmit={(event) => { event.preventDefault(); askAssistant(); }}>
+            <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={`问 ${contextName} 的攻略`} disabled={assistantLoading} />
+            <button type="submit" disabled={assistantLoading || !question.trim()} aria-label="发送问题">
+              {assistantLoading ? <RefreshCw size={16} /> : <Send size={16} />}
+            </button>
+          </form>
+        </section>
+      )}
+      <button
+        className="pet-sprite-button"
+        type="button"
+        onPointerDown={startAssistantDrag}
+        onPointerMove={moveAssistantDrag}
+        onPointerUp={endAssistantDrag}
+        onPointerCancel={endAssistantDrag}
+        onClick={() => {
+          if (assistantDraggedRef.current) return;
+          setAssistantOpen((value) => !value);
+        }}
+        aria-label={assistantOpen ? '收起菲比导览助手' : '打开菲比导览助手'}
+      >
+        <span className="pet-sprite-orient" aria-hidden="true">
+          <span className="pet-sprite" />
+        </span>
+        <span className="pet-nameplate">{assistantLoading ? '思考中' : '问路'}</span>
+        <span className="pet-ping" aria-hidden="true" />
+      </button>
+    </div>
   );
 }
 
@@ -2116,13 +2340,17 @@ function Square({ account }) {
               </button>
             ))}
           </div>
-          {postsState.loading ? <Loading /> : posts.length ? posts.map((post) => (
-            <SquarePostCard
-              key={post.id}
-              post={post}
-              onSelect={() => navigateTo(`/square/posts/${post.id}`)}
-            />
-          )) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
+          {postsState.loading ? <Loading /> : posts.length ? (
+            <div className="square-post-grid">
+              {posts.map((post) => (
+                <SquarePostCard
+                  key={post.id}
+                  post={post}
+                  onSelect={() => navigateTo(`/square/posts/${post.id}`)}
+                />
+              ))}
+            </div>
+          ) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
         </section>
       </div>
       {composerOpen && (
@@ -2341,14 +2569,14 @@ function SquarePostCard({ post, onSelect }) {
       onClick={onSelect}
       style={{
         display: 'grid',
-        gridTemplateColumns: cover ? '176px minmax(0, 1fr)' : '1fr',
+        gridTemplateColumns: cover ? 'minmax(132px, 38%) minmax(0, 1fr)' : '1fr',
         gap: '10px 16px',
         padding: 14,
         minHeight: cover ? 156 : 'auto'
       }}
     >
       {cover && (
-        <div className="square-cover" style={{ gridRow: '1 / span 7', width: 176, minHeight: 128, maxHeight: 156, margin: 0, borderRadius: 10 }}>
+        <div className="square-cover" style={{ gridRow: '1 / span 7', width: '100%', minHeight: 128, maxHeight: 156, margin: 0, borderRadius: 10 }}>
           <img src={cover} alt={post.title} style={{ width: '100%', height: '100%', minHeight: 128, objectFit: 'cover' }} />
           {imageCount > 1 && <span>{imageCount} 图</span>}
         </div>
@@ -2728,20 +2956,42 @@ function Profile() {
         <PanelTitle icon={Map} title="旅游足迹地图" />
         <BaiduMap center={defaultLocation} markers={footprints.data?.checkedInSpots || []} polyline className="footprint-map" />
       </section>
-      <div className="layout">
-        <ListPanel title="最近解锁" icon={BadgeCheck} items={(footprints.data?.badges || []).map((badge) => ({ title: badge, body: '继续探索解锁更多勋章' }))} empty="暂无勋章" />
-        <ListPanel title="我的预约" icon={CalendarDays} items={(reservations.data || []).map((item) => ({ title: `景点 ID ${item.spotId}`, body: `${item.visitDate} ${item.timeSlot} · ${item.status}` }))} empty="暂无预约" />
+      <div className="profile-panel-grid">
+        <ListPanel
+          title="最近解锁"
+          icon={BadgeCheck}
+          className="profile-list-panel"
+          items={(footprints.data?.badges || []).map((badge) => ({
+            title: badge,
+            body: '继续探索解锁更多勋章',
+            actionText: '去景点导览',
+            onAction: () => navigateTo('/guide')
+          }))}
+          empty="暂无勋章"
+          emptyActionText="去景点导览"
+          onEmptyAction={() => navigateTo('/guide')}
+        />
+        <ListPanel title="我的预约" icon={CalendarDays} className="profile-list-panel" items={(reservations.data || []).map((item) => ({ title: `景点 ID ${item.spotId}`, body: `${item.visitDate} ${item.timeSlot} · ${item.status}` }))} empty="暂无预约" />
       </div>
       <ListPanel
         title="我的文创订单"
         icon={ShoppingBag}
+        className="profile-list-panel profile-wide-panel"
         items={(culturalOrders.data || []).map((item) => ({
           title: item.productName,
           body: `${item.orderNo} · ${item.status} · ${item.quantity} 件 · ¥${Number(item.totalAmount || 0).toFixed(2)} · ${item.shippingAddress}`
         }))}
         empty={culturalOrders.error || '暂无文创订单'}
       />
-      <ListPanel title="我的申报" icon={Plus} items={(submissions.data || []).map((item) => ({ title: item.name, body: `${item.status} · ${item.address}` }))} empty="暂无申报" />
+      <ListPanel
+        title="我的申报"
+        icon={Plus}
+        className="profile-list-panel profile-submission-panel"
+        items={(submissions.data || []).map((item) => ({ title: item.name, body: `${item.status} · ${item.address}` }))}
+        empty="暂无申报"
+        panelActionText="申报景点"
+        onPanelAction={() => navigateTo('/submit-spot')}
+      />
     </main>
   );
 }
@@ -3133,7 +3383,7 @@ function SubmissionMediaUploader({ type, icon: Icon, title, accept, urls, upload
 function Login({ refreshAccount }) {
   const [authMode, setAuthMode] = useState('login');
   const [adminUsername, setAdminUsername] = useState('admin');
-  const [username, setUsername] = useState('demo');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -3164,42 +3414,36 @@ function Login({ refreshAccount }) {
   return (
     <main className="login-stage">
       <section className="login-showcase" aria-label="陌路寻景登录">
-        <div className="login-ink-wash" aria-hidden="true">
-          <span className="wash-sun" />
-          <span className="mountain ridge-back" />
-          <span className="mountain ridge-mid" />
-          <span className="mountain ridge-front" />
-          <span className="ink-mist mist-one" />
-          <span className="ink-mist mist-two" />
-          <span className="ink-mist mist-three" />
-          <span className="river-glow" />
-          <span className="islet" />
-          <span className="pavilion" />
-          <span className="pine pine-left" />
-          <span className="boat" />
-          <span className="bird bird-one" />
-          <span className="bird bird-two" />
-          <svg className="journey-route" viewBox="0 0 1000 560" preserveAspectRatio="none" focusable="false">
-            <path d="M94 395 C210 305 246 470 362 357 C465 255 565 410 686 300 C785 210 837 304 930 196" />
+        <div className="login-image-scene" aria-hidden="true">
+          <span className="image-kenburns" />
+          <span className="scene-vignette" />
+          <span className="scene-mist mist-a" />
+          <span className="scene-mist mist-b" />
+          <span className="scene-mist mist-c" />
+          <span className="scene-water water-a" />
+          <span className="scene-water water-b" />
+          <span className="scene-route-glow route-a" />
+          <span className="scene-route-glow route-b" />
+          <span className="scene-route-glow route-c" />
+          <svg className="login-motion-route" viewBox="0 0 1000 560" preserveAspectRatio="none" focusable="false">
+            <path className="route-ink" d="M72 318 C185 246 244 364 354 286 C475 198 542 302 644 236 C750 166 836 244 942 150" />
+            <path className="route-light" d="M72 318 C185 246 244 364 354 286 C475 198 542 302 644 236 C750 166 836 244 942 150" />
+            <circle className="route-traveler traveler-one" r="5">
+              <animateMotion dur="10s" repeatCount="indefinite" path="M72 318 C185 246 244 364 354 286 C475 198 542 302 644 236 C750 166 836 244 942 150" />
+            </circle>
+            <circle className="route-traveler traveler-two" r="4">
+              <animateMotion dur="14s" begin="3s" repeatCount="indefinite" path="M72 318 C185 246 244 364 354 286 C475 198 542 302 644 236 C750 166 836 244 942 150" />
+            </circle>
           </svg>
-          {[14, 37, 58, 77, 91].map((left, index) => (
-            <span
-              className="route-pin"
-              key={left}
-              style={{
-                left: `${left}%`,
-                top: `${[68, 58, 70, 52, 38][index]}%`,
-                '--pin-delay': `${index * 0.35}s`
-              }}
-            />
-          ))}
-          <span className="contour-lines contour-left" />
-          <span className="contour-lines contour-right" />
+        </div>
+        <div className="login-scroll-seal" aria-hidden="true">
+          <span>陌路</span>
+          <span>寻景</span>
         </div>
         <div className="login-art-copy">
-          <span>陌路寻景</span>
-          <strong>循山入画，沿路寻景</strong>
-          <p>把景点、预约、足迹与路线收进一张安静的旅行画卷。</p>
+          <span>行旅画卷</span>
+          <strong data-text="山水有路 远行有迹">山水有路 远行有迹</strong>
+          <p>登录后继续整理你的路线、预约与足迹。</p>
         </div>
         <div className="login-art-notes" aria-hidden="true">
           <span>路线规划</span>
@@ -3222,8 +3466,8 @@ function Login({ refreshAccount }) {
         </div>
         <form className="login-form" onSubmit={submit}>
           <label>
-            <span>{isRegister ? '用户名' : '账号'}</span>
-            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={isRegister ? '你的名字' : 'demo'} required />
+            <span>用户名</span>
+            <input value={username} onChange={(e) => setUsername(e.target.value)} placeholder={isRegister ? '你的名字' : '请输入用户名'} required />
           </label>
           {isRegister && (
             <label>
@@ -3233,7 +3477,7 @@ function Login({ refreshAccount }) {
           )}
           <label>
             <span>密码</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isRegister ? '至少6位' : '默认密码 demo123'} required />
+            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isRegister ? '至少6位' : '请输入密码'} required />
           </label>
           {isRegister && (
             <label>
@@ -3244,7 +3488,6 @@ function Login({ refreshAccount }) {
           <button className="login-submit">{isRegister ? <UserPlus size={18} /> : <LogIn size={18} />} {isRegister ? '注册' : '登录'}</button>
         </form>
         <div className="login-hint">
-          <span>默认账号 demo</span>
           <Link href="/" className="login-home-link">返回首页</Link>
         </div>
         {message && <div className="message error">{message}</div>}
@@ -3670,12 +3913,28 @@ function InfoGrid({ items }) {
   return <div className="info-grid">{items.map(([label, value]) => <div key={label}><strong>{label}</strong><span>{value || '--'}</span></div>)}</div>;
 }
 
-function ListPanel({ title, icon: Icon, items, empty }) {
+function ListPanel({ title, icon: Icon, items, empty, className = '', actionText, onAction, emptyActionText, onEmptyAction, panelActionText, onPanelAction }) {
   return (
-    <section className="panel">
-      <PanelTitle icon={Icon} title={title} />
+    <section className={cx('panel list-panel', className)}>
+      <div className="list-panel-head">
+        <PanelTitle icon={Icon} title={title} />
+        {panelActionText && <button type="button" className="secondary list-panel-action" onClick={onPanelAction}>{panelActionText}</button>}
+      </div>
       <div className="list">
-        {items.length ? items.map((item, index) => <div className="list-item" key={`${item.title}-${index}`}><strong>{item.title}</strong><p>{item.body}</p></div>) : <div className="empty-state compact">{empty}</div>}
+        {items.length ? items.map((item, index) => (
+          <div className="list-item profile-list-item" key={`${item.title}-${index}`}>
+            <span>
+              <strong>{item.title}</strong>
+              <p>{item.body}</p>
+            </span>
+            {(item.actionText || actionText) && <button type="button" className="secondary list-panel-action" onClick={item.onAction || onAction}>{item.actionText || actionText}</button>}
+          </div>
+        )) : (
+          <div className="empty-state compact profile-empty-state">
+            <span>{empty}</span>
+            {emptyActionText && <button type="button" className="secondary list-panel-action" onClick={onEmptyAction}>{emptyActionText}</button>}
+          </div>
+        )}
       </div>
     </section>
   );
@@ -3738,6 +3997,7 @@ function App() {
     <>
       {path !== '/login' && path !== '/guide/locate' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
       {page}
+      {path !== '/admin' && <TravelPetAssistant path={path} />}
       {path !== '/login' && path !== '/guide/locate' && <footer className="footer">
         <span>陌路寻景 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {

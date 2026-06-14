@@ -135,3 +135,123 @@
   font-size: var(--text-sm);
   color: var(--color-text-secondary);
 }
+
+.profile-panel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(320px, 0.46fr);
+  gap: var(--space-6);
+  align-items: stretch;
+  margin-bottom: var(--space-6);
+}
+
+.list-panel {
+  min-height: 220px;
+}
+
+.profile-list-panel {
+  display: flex;
+  flex-direction: column;
+}
+
+.profile-wide-panel {
+  min-height: 280px;
+  margin-bottom: var(--space-6);
+}
+
+.list-panel-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-5);
+}
+
+.list-panel-head .panel-title {
+  margin-bottom: 0;
+}
+
+.list-panel .list {
+  flex: 1;
+  display: grid;
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.profile-list-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--space-4);
+  min-height: 68px;
+  padding: var(--space-4);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-card) 78%, transparent);
+}
+
+.profile-list-item strong,
+.profile-list-item p {
+  margin: 0;
+}
+
+.profile-list-item p {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  line-height: 1.55;
+}
+
+.profile-empty-state {
+  min-height: 130px;
+  display: grid;
+  place-items: center;
+  gap: var(--space-3);
+}
+
+.profile-empty-state span {
+  color: var(--color-text-secondary);
+}
+
+.list-panel-action {
+  min-height: 38px;
+  border-radius: var(--radius-md);
+}
+
+.profile-submission-panel {
+  position: relative;
+  min-height: 190px;
+  overflow: hidden;
+  margin-bottom: var(--space-8);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--color-accent) 10%, transparent), transparent 48%),
+    var(--color-surface-card);
+}
+
+.profile-submission-panel .list-panel-head {
+  align-items: center;
+}
+
+.profile-submission-panel .panel-title {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.profile-submission-panel .panel-title h2,
+.profile-submission-panel .panel-title h3 {
+  line-height: 1.15;
+}
+
+.profile-submission-panel .profile-list-item {
+  border-color: color-mix(in srgb, var(--color-border) 70%, var(--color-accent));
+}
+
+@media (max-width: 900px) {
+  .profile-panel-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .profile-list-item {
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+}
