@@ -17,7 +17,6 @@ public class ReservationService {
 
     private final ReservationRepository reservationRepository;
     private final ScenicSpotRepository scenicSpotRepository;
-    private final CrowdIndexService crowdIndexService;
 
     public Reservation create(Long userId, ReservationRequest request) {
         scenicSpotRepository.findById(request.getSpotId()).orElseThrow(() -> new IllegalArgumentException("景点不存在"));
@@ -30,9 +29,7 @@ public class ReservationService {
         reservation.setStatus("RESERVED");
         reservation.setQrCode("ZHULY-" + UUID.randomUUID());
         reservation.setCreatedAt(LocalDateTime.now());
-        Reservation saved = reservationRepository.save(reservation);
-        crowdIndexService.addPeople(request.getSpotId(), request.getPeople());
-        return saved;
+        return reservationRepository.save(reservation);
     }
 
     public Reservation cancel(Long userId, Long reservationId) {

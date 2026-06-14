@@ -24,6 +24,7 @@ public class CulturalShopService {
     private final CulturalProductRepository productRepository;
     private final CulturalOrderRepository orderRepository;
     private final ScenicSpotRepository spotRepository;
+    private final FriendlyPointService friendlyPointService;
 
     public List<CulturalProduct> productsForSpot(Long spotId) {
         spotRepository.findById(spotId)
@@ -56,7 +57,9 @@ public class CulturalShopService {
         order.setStatus("PAID_MOCK");
         order.setOrderNo("WENCHUANG-" + UUID.randomUUID().toString().substring(0, 8).toUpperCase());
         order.setCreatedAt(LocalDateTime.now());
-        return orderRepository.save(order);
+        CulturalOrder saved = orderRepository.save(order);
+        friendlyPointService.award(userId, 15, "LOCAL_CULTURAL_ORDER", "支持本地文创", "购买文创商品，支持地方文化消费", saved.getId());
+        return saved;
     }
 
     public List<CulturalOrder> mine(Long userId) {

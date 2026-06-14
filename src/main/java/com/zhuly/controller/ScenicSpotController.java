@@ -47,6 +47,7 @@ public class ScenicSpotController {
         return spots.stream()
                 .filter(spot -> !searching || matchesSearchIntent(spot, normalizedKeyword))
                 .filter(spot -> type == null || type.trim().isEmpty() || spot.getType().equals(type))
+                .filter(this::isGuideVisibleSpot)
                 .map(spot -> toListItem(spot, lat, lng, checked.contains(spot.getId()), normalizedKeyword))
                 .sorted(searching
                         ? Comparator
@@ -88,6 +89,15 @@ public class ScenicSpotController {
                 || normalizedAddress.contains(normalizedKeyword + "\u5e02")
                 || normalizedAddress.contains(normalizedKeyword + "\u7701")
                 || normalizedAddress.contains(normalizedKeyword + "\u81ea\u6cbb\u533a");
+    }
+
+    private boolean isGuideVisibleSpot(ScenicSpot spot) {
+        String type = safe(spot.getType()).trim();
+        if (type.isEmpty()) {
+            return true;
+        }
+        return !Set.of("学校", "大学", "校区", "医院", "停车场", "加油站", "超市", "餐馆", "酒店", "厕所", "卫生间")
+                .contains(type);
     }
 
     private boolean contains(String value, String keyword) {

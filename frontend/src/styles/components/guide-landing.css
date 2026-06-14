@@ -30,7 +30,7 @@ body.guide-open {
   place-items: center;
   perspective: 1100px;
   cursor: default;
-  touch-action: auto;
+  touch-action: none;
   user-select: none;
   background:
     radial-gradient(ellipse at 60% 35%, rgba(186, 160, 107, 0.06), transparent 55%),
@@ -432,7 +432,7 @@ body.guide-open {
   top: 0;
   display: block;
   border-radius: 50%;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--map-scale, 1));
 }
 
 .scan-ring {
@@ -525,15 +525,15 @@ body.guide-open {
 
 .guide-sphere-shell {
   position: absolute;
-  left: 0;
-  top: 0;
-  z-index: 4;
-  width: min(20vmin, 120px);
+  left: 50%;
+  top: 50%;
+  z-index: 5;
+  width: min(24vmin, 150px);
   aspect-ratio: 1;
   border-radius: 50%;
-  opacity: 0.35;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--map-scale, 1));
   pointer-events: none;
+  opacity: 0.9;
 }
 
 .sphere-ring,
@@ -545,16 +545,33 @@ body.guide-open {
 
 .sphere-glow {
   background:
-    radial-gradient(circle at 50% 50%, rgba(186, 160, 107, 0.7) 0 4%, rgba(186, 160, 107, 0.25) 5% 8%, transparent 9%);
+    radial-gradient(circle at 50% 50%, rgba(255, 238, 176, 0.34) 0 4%, rgba(186, 160, 107, 0.12) 5% 18%, transparent 42%),
+    conic-gradient(from -20deg, transparent 0 18%, rgba(210, 184, 112, 0.18) 18% 22%, transparent 22% 50%, rgba(210, 184, 112, 0.14) 50% 54%, transparent 54% 100%);
+  filter: drop-shadow(0 0 18px rgba(186, 160, 107, 0.18));
 }
 
 .sphere-ring {
-  border: 1px dotted rgba(200, 190, 170, 0.2);
+  border: 1px solid rgba(220, 204, 160, 0.16);
+  box-shadow: inset 0 0 18px rgba(186, 160, 107, 0.04);
 }
 
-.ring-x { transform: rotateX(66deg); }
-.ring-y { transform: rotateY(62deg); }
-.ring-z { transform: rotateZ(-16deg) rotateX(72deg); }
+.ring-x {
+  inset: 22%;
+  border-style: dashed;
+  transform: rotate(28deg);
+}
+
+.ring-y {
+  inset: 8%;
+  border-color: rgba(220, 204, 160, 0.12);
+  transform: rotate(-18deg);
+}
+
+.ring-z {
+  inset: 36%;
+  border-color: rgba(245, 202, 90, 0.24);
+  background: radial-gradient(circle, rgba(245, 202, 90, 0.1), transparent 62%);
+}
 
 /* === 景点信号层 === */
 
@@ -649,6 +666,7 @@ body.guide-open {
   font-weight: var(--font-bold);
   white-space: nowrap;
   background: var(--color-bg-overlay);
+  transform: translate3d(var(--label-x, 0px), var(--label-y, 0px), 0);
 }
 
 .nearby-signal.nearest .signal-extreme {
@@ -677,6 +695,7 @@ body.guide-open {
   font-size: 14px;
   font-weight: var(--font-bold);
   text-shadow: 0 0 8px rgba(8, 12, 20, 0.8);
+  transform: translate3d(var(--label-x, 0px), var(--label-y, 0px), 0);
 }
 
 /* === 悬停预览浮窗 === */
@@ -695,7 +714,7 @@ body.guide-open {
   color: var(--color-text-primary);
   opacity: 0;
   visibility: hidden;
-  transform: translate3d(-50%, 8px, 0) scale(0.96);
+  transform: translate3d(calc(-50% + var(--label-x, 0px)), calc(8px + var(--label-y, 0px)), 0) scale(0.96);
   transition: opacity 180ms ease, transform 180ms ease, visibility 180ms ease;
   backdrop-filter: blur(14px);
 }
@@ -735,7 +754,7 @@ body.guide-open {
 .nearby-signal.preview-below .signal-preview {
   top: calc(100% + 12px);
   bottom: auto;
-  transform: translate3d(-50%, -8px, 0) scale(0.96);
+  transform: translate3d(calc(-50% + var(--label-x, 0px)), calc(-8px + var(--label-y, 0px)), 0) scale(0.96);
 }
 
 .nearby-signal.preview-below .signal-preview::after {
@@ -751,7 +770,7 @@ body.guide-open {
 .nearby-signal:focus-visible .signal-preview {
   opacity: 1;
   visibility: visible;
-  transform: translate3d(-50%, 0, 0) scale(1);
+  transform: translate3d(calc(-50% + var(--label-x, 0px)), var(--label-y, 0px), 0) scale(1);
 }
 
 /* === 中心探索按钮 === */
@@ -775,7 +794,7 @@ body.guide-open {
   color: var(--color-accent-warm);
   font-size: 12px;
   font-weight: var(--font-bold);
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, -50%) translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--map-scale, 1));
   transform-origin: center;
   pointer-events: auto;
   transition: opacity 220ms ease, filter 220ms ease;
@@ -787,7 +806,7 @@ body.guide-open {
 .center-locate-button:focus-visible,
 .center-locate-button.loading,
 .guide-intro-stage.center-occluded .center-locate-button {
-  transform: translate(-50%, -50%) !important;
+  transform: translate(-50%, -50%) translate3d(var(--pan-x, 0px), var(--pan-y, 0px), 0) scale(var(--map-scale, 1)) !important;
 }
 
 .center-locate-sphere {
@@ -795,23 +814,56 @@ body.guide-open {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 76px;
-  height: 76px;
+  width: 78px;
+  height: 78px;
   flex-direction: column;
-  border: 1px solid rgba(186, 160, 107, 0.3);
-  border-radius: 50%;
+  border: 1px solid rgba(245, 221, 160, 0.44);
+  border-radius: 24px;
   background:
-    radial-gradient(circle at 40% 32%, rgba(255, 250, 240, 0.8) 0 10%, transparent 12%),
-    radial-gradient(circle at 50% 50%, #f5e6c8 0 10%, #c4a35a 24%, rgba(80, 45, 15, 0.6) 50%, rgba(8, 12, 20, 0.9) 100%);
+    linear-gradient(145deg, rgba(255, 242, 190, 0.22), rgba(186, 123, 48, 0.08)),
+    radial-gradient(circle at 50% 44%, rgba(255, 232, 152, 0.52) 0 9%, rgba(194, 139, 48, 0.34) 10% 30%, rgba(19, 22, 25, 0.92) 66%);
   box-shadow:
+    inset 0 1px 0 rgba(255, 248, 218, 0.28),
+    inset 0 -18px 34px rgba(0, 0, 0, 0.26),
     0 0 0 8px rgba(186, 160, 107, 0.04),
-    0 0 22px rgba(186, 160, 107, 0.2);
+    0 14px 36px rgba(186, 127, 40, 0.22);
+  backdrop-filter: blur(10px);
+}
+
+.center-locate-sphere::before,
+.center-locate-sphere::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.center-locate-sphere::before {
+  inset: 11px;
+  border: 1px solid rgba(255, 232, 164, 0.24);
+  border-radius: 18px;
+}
+
+.center-locate-sphere::after {
+  left: 50%;
+  top: 10px;
+  width: 1px;
+  height: 58px;
+  background: linear-gradient(180deg, transparent, rgba(255, 228, 150, 0.56), transparent);
+  transform: translateX(-50%) rotate(42deg);
+}
+
+.center-locate-sphere svg,
+.center-locate-sphere span {
+  position: relative;
+  z-index: 1;
 }
 
 .center-locate-button:hover .center-locate-sphere {
   box-shadow:
+    inset 0 1px 0 rgba(255, 248, 218, 0.32),
+    inset 0 -18px 34px rgba(0, 0, 0, 0.22),
     0 0 0 12px rgba(186, 160, 107, 0.06),
-    0 0 32px rgba(186, 160, 107, 0.28);
+    0 18px 44px rgba(186, 127, 40, 0.3);
 }
 
 .center-locate-button::before,
@@ -824,13 +876,14 @@ body.guide-open {
 
 .center-locate-button::before {
   inset: 8px;
-  border: 1px dotted rgba(186, 160, 107, 0.25);
+  border: 1px dashed rgba(224, 198, 126, 0.2);
+  border-radius: 32px;
   animation: guideControlSpin 6000ms linear infinite;
 }
 
 .center-locate-button::after {
-  inset: 0;
-  background: radial-gradient(circle at center, rgba(186, 160, 107, 0.05), transparent 54%);
+  inset: 2px;
+  background: radial-gradient(circle at center, rgba(245, 202, 90, 0.08), transparent 58%);
 }
 
 @keyframes guideControlSpin {

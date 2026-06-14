@@ -131,6 +131,26 @@
   align-items: center;
 }
 
+.route-mode-switch {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-4) 0;
+}
+
+.route-mode-switch button {
+  min-height: 42px;
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  color: var(--color-text-secondary);
+}
+
+.route-mode-switch button.active {
+  border-color: var(--color-accent-green);
+  background: color-mix(in srgb, var(--color-accent-green) 14%, var(--color-bg-card));
+  color: var(--color-text-primary);
+}
+
 .route-live-map,
 .route-map {
   min-height: 360px;

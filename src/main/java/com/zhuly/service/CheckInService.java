@@ -24,6 +24,8 @@ public class CheckInService {
 
     private final ScenicSpotRepository spotRepository;
     private final CheckInRecordRepository checkInRecordRepository;
+    private final CrowdIndexService crowdIndexService;
+    private final FriendlyPointService friendlyPointService;
 
     @Transactional
     public CheckInResponse checkIn(Long userId, Long spotId, BigDecimal latitude, BigDecimal longitude) {
@@ -33,6 +35,7 @@ public class CheckInService {
         if (distance > CHECK_IN_RADIUS_KM) {
             throw new IllegalArgumentException("当前位置距离景点超过500米，暂不能打卡");
         }
+        boolean firstCheckIn = !checkInRecordRepository.findByUserIdAndSpotId(userId, spotId).isPresent();
         checkInRecordRepository.findByUserIdAndSpotId(userId, spotId).orElseGet(() -> {
             CheckInRecord record = new CheckInRecord();
             record.setUserId(userId);
@@ -40,6 +43,12 @@ public class CheckInService {
             record.setCheckedInAt(LocalDateTime.now());
             return checkInRecordRepository.save(record);
         });
+        if (firstCheckIn) {
+            friendlyPointService.award(userId, 10, "CHECK_IN", "完成景点打卡", "用真实足迹点亮城市探索", spotId);
+            if ("green".equals(crowdIndexService.getCrowdIndex(spotId).getColor())) {
+                friendlyPointService.award(userId, 8, "OFF_PEAK_CHECK_IN", "低拥堵错峰打卡", "选择舒适时段，为景区分流贡献一份力量", spotId);
+            }
+        }
         return profile(userId, spotId);
     }
 

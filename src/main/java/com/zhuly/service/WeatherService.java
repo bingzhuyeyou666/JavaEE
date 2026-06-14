@@ -39,6 +39,20 @@ public class WeatherService {
         return mockThreeDays();
     }
 
+    public List<WeatherForecast> threeDaysByDistrictId(String districtId) {
+        if (baiduWeatherAk != null && !baiduWeatherAk.trim().isEmpty() && districtId != null && !districtId.trim().isEmpty()) {
+            try {
+                List<WeatherForecast> baiduWeather = baiduWeatherByDistrictId(districtId.trim());
+                if (!baiduWeather.isEmpty()) {
+                    return baiduWeather;
+                }
+            } catch (Exception ignored) {
+                return mockThreeDays();
+            }
+        }
+        return mockThreeDays();
+    }
+
     private List<WeatherForecast> baiduWeather(BigDecimal latitude, BigDecimal longitude) throws Exception {
         String url = UriComponentsBuilder
                 .fromHttpUrl("https://api.map.baidu.com/weather/v1/")
@@ -47,6 +61,21 @@ public class WeatherService {
                 .queryParam("ak", baiduWeatherAk)
                 .build()
                 .toUriString();
+        return baiduWeatherFromUrl(url);
+    }
+
+    private List<WeatherForecast> baiduWeatherByDistrictId(String districtId) throws Exception {
+        String url = UriComponentsBuilder
+                .fromHttpUrl("https://api.map.baidu.com/weather/v1/")
+                .queryParam("district_id", districtId)
+                .queryParam("data_type", "all")
+                .queryParam("ak", baiduWeatherAk)
+                .build()
+                .toUriString();
+        return baiduWeatherFromUrl(url);
+    }
+
+    private List<WeatherForecast> baiduWeatherFromUrl(String url) throws Exception {
         String body = restTemplate.getForObject(url, String.class);
         JsonNode root = objectMapper.readTree(body);
         if (root.path("status").asInt(-1) != 0) {

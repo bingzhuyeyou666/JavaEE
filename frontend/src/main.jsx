@@ -538,7 +538,7 @@ function SpotCard({ spot, addRoute }) {
       <div className="card-body">
         <div className="pill-row">
           <span className="pill gold">{spot.type}</span>
-          {spot.distanceKm !== undefined && spot.distanceKm !== 99999 && <span className="pill">{spot.distanceKm} km</span>}
+          {spot.distanceKm !== undefined && spot.distanceKm !== 99999 && <span className="pill">直线约 {spot.distanceKm} km</span>}
           {spot.checkedIn && <span className="pill"><BadgeCheck size={14} /> 已打卡</span>}
         </div>
         <h2>{spot.name}</h2>
@@ -663,7 +663,55 @@ function nearestVisibleRadius(spots, currentRadius) {
     .filter((distance) => Number.isFinite(distance) && distance > 0 && distance < 99999)
     .sort((a, b) => a - b);
   if (!distances.length || distances[0] <= currentRadius) return currentRadius;
-  return Math.min(3000, Math.max(currentRadius, Math.ceil(distances[0] / 25) * 25));
+  return Math.min(1000, Math.max(currentRadius, Math.ceil(distances[0] / 25) * 25));
+}
+
+function spreadSignalLabels(points) {
+  const placed = [];
+  return points.map((spot, index) => {
+    const nameLength = String(spot.name || '').length;
+    const width = Math.min(220, Math.max(116, 42 + nameLength * 14));
+    const height = 30;
+    const candidates = [
+      { x: 0, y: 0 },
+      { x: 0, y: -34 },
+      { x: 0, y: 34 },
+      { x: 44, y: 0 },
+      { x: -44, y: 0 },
+      { x: 54, y: -32 },
+      { x: -54, y: -32 },
+      { x: 54, y: 32 },
+      { x: -54, y: 32 },
+      { x: 0, y: -68 },
+      { x: 0, y: 68 }
+    ];
+    let selected = candidates[0];
+    for (const candidate of candidates) {
+      const box = {
+        left: spot.x + candidate.x - 12,
+        right: spot.x + candidate.x + width,
+        top: spot.y + candidate.y - height / 2,
+        bottom: spot.y + candidate.y + height / 2
+      };
+      const overlaps = placed.some((existing) => (
+        box.left < existing.right
+        && box.right > existing.left
+        && box.top < existing.bottom
+        && box.bottom > existing.top
+      ));
+      if (!overlaps || candidate === candidates[candidates.length - 1]) {
+        selected = candidate;
+        placed.push(box);
+        break;
+      }
+    }
+    return {
+      ...spot,
+      labelX: selected.x,
+      labelY: selected.y,
+      z: index * 0.01
+    };
+  });
 }
 
 let baiduMapLoader;
@@ -956,34 +1004,15 @@ function GuideLanding() {
   }
 
   const projectedSignals = useMemo(() => {
-    if (nearbySignals.length <= 3) {
-      const anchors = [
-        { x: -260, y: -92 },
-        { x: 260, y: -92 },
-        { x: 0, y: 190 }
-      ];
-      return nearbySignals.map((spot, index) => {
-        const anchor = anchors[index] || { x: (index - 1) * 220, y: 160 };
-        return {
-          ...spot,
-          x: anchor.x,
-          y: anchor.y,
-          z: 0,
-          centerPassing: Math.hypot(anchor.x * mapScale, anchor.y * mapScale) < 96,
-          visibleScale: 1,
-          visibleOpacity: 1
-        };
-      });
-    }
     const points = nearbySignals.map((spot, index) => {
       const distance = Number(spot.distanceKm ?? 99999);
       const distanceRatio = Number.isFinite(distance) && distance !== 99999
         ? Math.min(1, distance / Math.max(exploreRadius, 1))
         : index / Math.max(nearbySignals.length - 1, 1);
-      const radius = Math.min(620, 190 + distanceRatio * 430 + (index % 4) * 24);
-      const angle = index * 2.3999632297 + (index % 2 ? 0.28 : -0.18);
+      const radius = 150 + Math.sqrt(distanceRatio) * 500;
+      const angle = index * 2.3999632297 - Math.PI / 8;
       const x = Math.cos(angle) * radius;
-      const y = Math.sin(angle) * radius * 0.62 + ((index % 3) - 1) * 18;
+      const y = Math.sin(angle) * radius;
       const z = 0;
       return {
         ...spot,
@@ -995,23 +1024,10 @@ function GuideLanding() {
         visibleOpacity: 1
       };
     });
-    if (!points.length) return points;
-    const minX = Math.min(...points.map((spot) => spot.x));
-    const maxX = Math.max(...points.map((spot) => spot.x));
-    const minY = Math.min(...points.map((spot) => spot.y));
-    const maxY = Math.max(...points.map((spot) => spot.y));
-    const centerX = (minX + maxX) / 2;
-    const centerY = (minY + maxY) / 2;
-    return points.map((spot) => {
-      const x = spot.x - centerX;
-      const y = spot.y - centerY;
-      return {
-        ...spot,
-        x,
-        y,
-        centerPassing: Math.hypot(x * mapScale, y * mapScale) < 96
-      };
-    });
+    return spreadSignalLabels(points).map((spot) => ({
+      ...spot,
+      centerPassing: Math.hypot(spot.x * mapScale, spot.y * mapScale) < 96
+    }));
   }, [nearbySignals, exploreRadius, mapScale]);
 
   const centerOccluded = projectedSignals.some((spot) => spot.centerPassing);
@@ -1042,7 +1058,7 @@ function GuideLanding() {
           <input
             type="range"
             min="5"
-            max="3000"
+            max="1000"
             step="25"
             value={exploreRadius}
             onChange={(event) => setExploreRadius(Number(event.target.value))}
@@ -1090,12 +1106,6 @@ function GuideLanding() {
               '--map-scale': mapScale
             }}
           >
-            <div className="guide-sphere-shell" aria-hidden="true">
-              <span className="sphere-ring ring-x" />
-              <span className="sphere-ring ring-y" />
-              <span className="sphere-ring ring-z" />
-              <span className="sphere-glow" />
-            </div>
             <div className="nearby-signal-layer">
               {projectedSignals.map((spot, index) => {
                 const isNearest = index === 0;
@@ -1125,6 +1135,8 @@ function GuideLanding() {
                       '--x': `${spot.x}px`,
                       '--y': `${spot.y}px`,
                       '--z': `${spot.z}px`,
+                      '--label-x': `${spot.labelX || 0}px`,
+                      '--label-y': `${spot.labelY || 0}px`,
                       '--depth-scale': spot.visibleScale,
                       '--depth-opacity': spot.visibleOpacity,
                       '--delay': `${index * 140}ms`,
@@ -1147,6 +1159,20 @@ function GuideLanding() {
               })}
             </div>
           </div>
+          <div
+            className="guide-sphere-shell"
+            aria-hidden="true"
+            style={{
+              '--pan-x': `${panOffset.x}px`,
+              '--pan-y': `${panOffset.y}px`,
+              '--map-scale': mapScale
+            }}
+          >
+            <span className="sphere-ring ring-x" />
+            <span className="sphere-ring ring-y" />
+            <span className="sphere-ring ring-z" />
+            <span className="sphere-glow" />
+          </div>
         </div>
         {(loading || !hasLocated) && (
           <div className="guide-locate-text">
@@ -1167,6 +1193,11 @@ function GuideLanding() {
       <button
         className={cx('center-locate-button', loading && 'loading')}
         type="button"
+        style={{
+          '--pan-x': `${panOffset.x}px`,
+          '--pan-y': `${panOffset.y}px`,
+          '--map-scale': mapScale
+        }}
         onPointerDown={(event) => {
           event.preventDefault();
           event.stopPropagation();
@@ -1317,6 +1348,7 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState('');
   const [origin, setOrigin] = useState(defaultLocation);
+  const [mode, setMode] = useState('driving');
   function locateOrigin() {
     locateByBrowser(
       (nextOrigin) => setOrigin({ ...nextOrigin, label: '当前位置' }),
@@ -1330,9 +1362,9 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
     }
     setMessage('正在生成路线...');
     try {
-      const data = await api('/api/routes/plan', { method: 'POST', body: JSON.stringify({ spotIds: route.map((item) => item.id), mode: 'driving' }) });
+      const data = await api(`/api/routes/plan?userId=${currentUserId()}`, { method: 'POST', body: JSON.stringify({ spotIds: route.map((item) => item.id), mode }) });
       setResult(data);
-      setMessage('');
+      setMessage(mode === 'driving' ? '' : '已记录绿色出行积分，可在个人中心查看。');
     } catch (error) {
       setMessage(error.message);
     }
@@ -1348,6 +1380,18 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
             <strong>出发地：{origin.label}</strong>
             <span>{Number(origin.lat).toFixed(4)}, {Number(origin.lng).toFixed(4)}</span>
             <button className="secondary" type="button" onClick={locateOrigin}>定位</button>
+          </div>
+          <div className="route-mode-switch" aria-label="出行方式">
+            {[
+              ['driving', '驾车', Car],
+              ['transit', '公交', Navigation],
+              ['cycling', '骑行', Compass],
+              ['walking', '步行', MapPin]
+            ].map(([value, label, Icon]) => (
+              <button key={value} type="button" className={mode === value ? 'active' : ''} onClick={() => setMode(value)}>
+                <Icon size={16} /> {label}
+              </button>
+            ))}
           </div>
           <SelectedRoute route={route} removeRoute={removeRoute} />
           <div className="actions">
@@ -1516,7 +1560,7 @@ function SpotDetail({ id, addRoute }) {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
-    { role: 'assistant', content: '菲比已待命。点我就能问当前景点怎么玩、什么时候去、附近有什么值得顺手带走。', meta: '菲比待命' }
+    { role: 'assistant', content: '我在。你想问这个景点，还是准备直接出发？', meta: '菲比' }
   ]);
   const [assistantPosition, setAssistantPosition] = useState(null);
   const assistantShellRef = useRef(null);
@@ -1590,14 +1634,16 @@ function SpotDetail({ id, addRoute }) {
         timeoutMs: 30000,
         body: JSON.stringify({ question: normalized })
       });
-      const meta = data.source === 'aliyun-bailian' ? `百炼 ${data.model || ''}`.trim() : '本地知识库';
+      const meta = '菲比';
+      const reply = buildAssistantReply(data.answer);
+      openAssistantMapAction(reply);
       setAnswer(data.answer);
       setAssistantProducts(data.productRecommendations || []);
       setAssistantMeta(meta);
-      setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: data.answer, meta }]);
+      setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       setQuestion('');
     } catch (error) {
-      const fallbackAnswer = error.message || 'AI 助手暂时不可用，请稍后再试。';
+      const fallbackAnswer = error.message || '我这边刚刚没连上服务，先别急。你可以稍后再问我一次，或者换个更具体的问题试试。';
       setAnswer(fallbackAnswer);
       setAssistantProducts([]);
       setAssistantMeta('请求失败');
@@ -1877,7 +1923,7 @@ function TravelPetAssistant({ path }) {
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
-    { role: 'assistant', content: '菲比已待命。你可以直接输入想问的内容，我会按当前页面给你建议。', meta: '菲比待命' }
+    { role: 'assistant', content: '我在。你直接说想做什么就好。', meta: '菲比' }
   ]);
   const [assistantPosition, setAssistantPosition] = useState(null);
   const assistantShellRef = useRef(null);
@@ -1885,45 +1931,127 @@ function TravelPetAssistant({ path }) {
   const assistantDragRef = useRef(null);
   const assistantDraggedRef = useRef(false);
   const assistantDragClickTimerRef = useRef(null);
+  const petScrollRef = useRef(null);
+  const petInputRef = useRef(null);
+  const assistantStickToBottomRef = useRef(true);
 
   useEffect(() => {
     setAssistantProducts([]);
     setQuestion('');
+    assistantStickToBottomRef.current = true;
     setAssistantMessages([
       {
         role: 'assistant',
-        content: spot ? `我正在看 ${spot.name} 的资料。你可以问开放时间、路线、门票、玩法或附近安排。` : '我会跟着当前页面待命。你可以问路线怎么排、附近怎么找、卡片怎么用，或者直接说你的出行需求。',
-        meta: spot ? '当前景点' : '当前页面'
+        content: spot ? `我正在看 ${spot.name}。你想了解它，还是准备过去？` : '我在。你直接说想做什么就好。',
+        meta: '菲比'
       }
     ]);
   }, [spotId, spot?.name, path]);
 
+  useEffect(() => {
+    const scrollBox = petScrollRef.current;
+    if (!assistantOpen || !scrollBox || !assistantStickToBottomRef.current) return;
+    requestAnimationFrame(() => {
+      scrollBox.scrollTop = scrollBox.scrollHeight;
+    });
+  }, [assistantMessages, assistantLoading, assistantProducts, assistantOpen]);
+
+  function handlePetScroll(event) {
+    const scrollBox = event.currentTarget;
+    const distanceToBottom = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
+    assistantStickToBottomRef.current = distanceToBottom < 56;
+  }
+
   async function askAssistant(nextQuestion = question) {
     const normalized = nextQuestion.trim();
     if (!normalized || assistantLoading) return;
+    const savedLocation = readAssistantLocation();
+    if (needsAssistantLocation(normalized, assistantMessages) && !savedLocation) {
+      requestAssistantLocation(normalized);
+      return;
+    }
+    const payloadQuestion = buildAssistantQuestion(normalized, assistantMessages, savedLocation);
+    assistantStickToBottomRef.current = true;
     setAssistantLoading(true);
     try {
       if (spotId) {
         const data = await api(`/api/spots/${spotId}/assistant`, {
           method: 'POST',
           timeoutMs: 30000,
-          body: JSON.stringify({ question: normalized })
+          body: JSON.stringify({ question: payloadQuestion })
         });
-        const meta = data.source === 'aliyun-bailian' ? `百炼 ${data.model || ''}`.trim() : '本地知识库';
+        const meta = '菲比';
+        const reply = buildAssistantReply(data.answer);
+        openAssistantMapAction(reply);
         setAssistantProducts(data.productRecommendations || []);
-        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: data.answer, meta }]);
+        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       } else {
-        const answer = `收到。当前在「${contextName}」，你可以继续告诉我目的地、出发时间、同行人数或偏好，我会帮你把问题拆成可执行的下一步。`;
+        const data = await api('/api/assistant', {
+          method: 'POST',
+          timeoutMs: 30000,
+          body: JSON.stringify({ question: payloadQuestion })
+        });
+        const meta = '菲比';
+        const reply = buildAssistantReply(data.answer);
+        openAssistantMapAction(reply);
         setAssistantProducts([]);
-        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: answer, meta: '页面助手' }]);
+        setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       }
       setQuestion('');
     } catch (error) {
-      const fallbackAnswer = error.message || '菲比暂时连不上导览服务，请稍后再试。';
+      const fallbackAnswer = error.message || '我这边刚刚没连上服务。你先把位置或目的地留给我，稍后我再帮你继续查。';
       setAssistantProducts([]);
       setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
     } finally {
       setAssistantLoading(false);
+      window.setTimeout(() => petInputRef.current?.focus(), 0);
+    }
+  }
+
+  function requestAssistantLocation(originalQuestion) {
+    assistantStickToBottomRef.current = true;
+    setAssistantLoading(true);
+    setAssistantMessages((messages) => [
+      ...messages,
+      { role: 'user', content: originalQuestion },
+      { role: 'assistant', content: '我需要先知道你的位置，才好查附近的内容。请允许浏览器定位，我拿到位置后继续帮你查。', meta: '菲比' }
+    ]);
+    locateByBrowser(
+      (nextLocation) => {
+        const normalizedLocation = { ...nextLocation, label: nextLocation.label || '当前位置' };
+        saveLocationState(nearbyLocationKey, normalizedLocation);
+        writeSessionFlag(sessionLocatedKey, true);
+        const payloadQuestion = buildAssistantQuestion(originalQuestion, assistantMessages, normalizedLocation);
+        continueAssistantAfterLocation(originalQuestion, payloadQuestion);
+      },
+      (status) => {
+        if (status.includes('正在获取')) return;
+        if (status.includes('成功')) return;
+        setAssistantLoading(false);
+        setAssistantMessages((messages) => [...messages, { role: 'assistant', content: status || '定位没有成功。你也可以直接告诉我城市或具体地点。', meta: '菲比' }]);
+        window.setTimeout(() => petInputRef.current?.focus(), 0);
+      }
+    );
+  }
+
+  async function continueAssistantAfterLocation(originalQuestion, payloadQuestion) {
+    try {
+      const data = await api('/api/assistant', {
+        method: 'POST',
+        timeoutMs: 30000,
+        body: JSON.stringify({ question: payloadQuestion })
+      });
+      setAssistantProducts([]);
+      const reply = buildAssistantReply(data.answer);
+      openAssistantMapAction(reply);
+      setAssistantMessages((messages) => [...messages, reply]);
+      setQuestion('');
+    } catch (error) {
+      const fallbackAnswer = error.message || '定位拿到了，但查询服务刚刚没接上。你可以再发一次，我继续帮你查。';
+      setAssistantMessages((messages) => [...messages, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
+    } finally {
+      setAssistantLoading(false);
+      window.setTimeout(() => petInputRef.current?.focus(), 0);
     }
   }
 
@@ -2024,21 +2152,26 @@ function TravelPetAssistant({ path }) {
             <span className="pet-panel-mark" aria-hidden="true"><Sparkles size={17} /></span>
             <div>
               <strong>菲比导览助手</strong>
-              <small>{assistantLoading ? '正在翻资料' : `${contextName} · 可拖拽 / 可拉伸`}</small>
+              <small>{assistantLoading ? '我想一下' : contextName}</small>
             </div>
             <button className="icon-button ghost pet-close" type="button" onClick={() => setAssistantOpen(false)} aria-label="收起菲比">
               <X size={17} />
             </button>
           </div>
-          <div className="pet-scroll">
+          <div ref={petScrollRef} className="pet-scroll" onScroll={handlePetScroll}>
             <div className="pet-messages">
               {assistantMessages.map((item, index) => (
                 <div className={cx('pet-message', item.role)} key={`${item.role}-${index}`}>
                   {item.meta && <small>{item.meta}</small>}
                   <p>{item.content}</p>
+                  {item.actionUrl && (
+                    <a className="pet-message-action" href={item.actionUrl} target="_blank" rel="noreferrer">
+                      {item.actionLabel || '打开百度地图'}
+                    </a>
+                  )}
                 </div>
               ))}
-              {assistantLoading && <div className="pet-message assistant"><small>嗡嗡检索中</small><p>正在结合当前上下文生成回答...</p></div>}
+              {assistantLoading && <div className="pet-message assistant"><small>菲比在看</small><p>我正在结合你刚才说的内容整理回答...</p></div>}
             </div>
             {!!assistantProducts.length && (
               <div className="pet-product-list compact">
@@ -2060,7 +2193,7 @@ function TravelPetAssistant({ path }) {
             )}
           </div>
           <form className="pet-input" onSubmit={(event) => { event.preventDefault(); askAssistant(); }}>
-            <input value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={`问 ${contextName} 的攻略`} disabled={assistantLoading} />
+            <input ref={petInputRef} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={`直接问菲比`} disabled={assistantLoading} />
             <button type="submit" disabled={assistantLoading || !question.trim()} aria-label="发送问题">
               {assistantLoading ? <RefreshCw size={16} /> : <Send size={16} />}
             </button>
@@ -2083,11 +2216,82 @@ function TravelPetAssistant({ path }) {
         <span className="pet-sprite-orient" aria-hidden="true">
           <span className="pet-sprite" />
         </span>
-        <span className="pet-nameplate">{assistantLoading ? '思考中' : '问路'}</span>
-        <span className="pet-ping" aria-hidden="true" />
+        <span className="pet-nameplate">{assistantLoading ? '想想' : '菲比'}</span>
       </button>
     </div>
   );
+}
+
+function buildAssistantReply(answer) {
+  const raw = String(answer || '');
+  const actionUrl = extractBaiduMapUrl(raw);
+  const content = actionUrl ? cleanMapUrlFromAnswer(raw, actionUrl) : raw;
+  return {
+    role: 'assistant',
+    content: content || '我已经帮你整理好了。',
+    meta: '菲比',
+    actionUrl,
+    actionLabel: actionUrl ? '打开百度地图' : ''
+  };
+}
+
+function extractBaiduMapUrl(text) {
+  const match = String(text || '').match(/https:\/\/api\.map\.baidu\.com\/[^\s，。；;）)]+/);
+  return match ? match[0] : '';
+}
+
+function cleanMapUrlFromAnswer(text, url) {
+  return String(text || '')
+    .split('\n')
+    .filter((line) => !line.includes(url))
+    .join('\n')
+    .replace(/你可以打开百度导航[:：]?\s*/g, '百度地图我已经帮你打开了，下面也留了一个备用入口。')
+    .replace(/\n{3,}/g, '\n\n')
+    .trim();
+}
+
+function openAssistantMapAction(reply) {
+  if (!reply?.actionUrl) return;
+  window.setTimeout(() => {
+    const opened = window.open(reply.actionUrl, '_blank', 'noopener,noreferrer');
+    if (!opened) {
+      window.location.href = reply.actionUrl;
+    }
+  }, 80);
+}
+
+function buildAssistantQuestion(question, messages, location) {
+  const recentMessages = (messages || [])
+    .slice(-6)
+    .map((item) => `${item.role === 'user' ? '用户' : '菲比'}：${item.content}`)
+    .join('\n');
+  const locationText = location
+    ? `当前定位：${location.lat},${location.lng}（${location.label || '当前位置'}）\n`
+    : '';
+  if (!recentMessages) return `${locationText}用户当前输入：${question}`;
+  return `${locationText}最近对话：\n${recentMessages}\n\n用户当前输入：${question}`;
+}
+
+function readAssistantLocation() {
+  if (!readSessionFlag(sessionLocatedKey)) return null;
+  const saved = readStorageJson(nearbyLocationKey, null);
+  const location = saved ? readLocationState(nearbyLocationKey, { lat: 0, lng: 0, label: '当前位置' }) : null;
+  return isBlockedPresetLocation(location) || location?.source === 'explore-fallback' ? null : location;
+}
+
+function needsAssistantLocation(question, messages = []) {
+  const normalized = question.trim();
+  if (/^(你好|您好|嗨|hi|hello|在吗|菲比)$/i.test(normalized)) return false;
+  const recentUserText = messages
+    .filter((item) => item.role === 'user')
+    .slice(-3)
+    .map((item) => item.content)
+    .join(' ');
+  const needsCurrentLocation = /附近|周边|当前|我旁边|离我|身边|好吃|餐厅|吃的|景点|停车|加油站|厕所|卫生间|路线|怎么走|想去|带我去|导航到|怎么去/.test(normalized);
+  const followsLocationIntent = /^(可以|可以啊|好|好的|行|走|导航|规划|川菜|火锅|小吃|餐厅)$/.test(normalized)
+    && /附近|周边|好吃|餐厅|吃的|景点|路线|怎么走|规划/.test(recentUserText);
+  return (needsCurrentLocation || followsLocationIntent)
+    && !/天气/.test(question);
 }
 
 function CommentItem({ review, replies, onLike, onReply }) {
@@ -2177,6 +2381,7 @@ function Square({ account }) {
   const composerRef = useRef(null);
   const [category, setCategory] = useState('全部');
   const [tick, setTick] = useState(0);
+  const [shopTick, setShopTick] = useState(0);
   const [composerOpen, setComposerOpen] = useState(false);
   const [message, setMessage] = useState('');
   const [uploading, setUploading] = useState('');
@@ -2191,6 +2396,7 @@ function Square({ account }) {
     videoUrls: '',
     tags: ''
   });
+  const friendlyState = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), [shopTick]);
   const postsState = useAsync(() => api(category === '全部' ? '/api/community/square/posts' : `/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
   const posts = postsState.data || [];
   const postsWithMedia = posts.filter((post) => post.imageUrls?.length || post.videoUrls?.length).length;
@@ -2307,6 +2513,16 @@ function Square({ account }) {
     setComposerOpen(true);
   }
 
+
+  async function redeemReward(rewardId) {
+    try {
+      await api(`/api/friendly-points/redeem?userId=${currentUserId()}&rewardId=${encodeURIComponent(rewardId)}`, { method: 'POST' });
+      setMessage('兑换成功，已写入你的友好积分记录。');
+      setShopTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
   return (
     <main className="container square-page" ref={squareRootRef}>
       <section className="square-hero">
@@ -2352,6 +2568,7 @@ function Square({ account }) {
             </div>
           ) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
         </section>
+        <FriendlyPointShop data={friendlyState.data} onRedeem={redeemReward} />
       </div>
       {composerOpen && (
         <div className="square-modal-backdrop" ref={composerRef} role="presentation" onMouseDown={(event) => {
@@ -2552,6 +2769,38 @@ function DatePickerField({ label, value, onChange }) {
         </div>
       )}
     </label>
+  );
+}
+
+function FriendlyPointShop({ data, onRedeem }) {
+  const rewards = data?.rewards || [];
+  const records = data?.records || [];
+  const balance = data?.balance ?? 0;
+  return (
+    <aside className="panel friendly-shop">
+      <PanelTitle icon={ShoppingBag} title="积分商店" meta={`${balance} 分`} />
+      <p className="friendly-shop-copy">绿色路线、低拥堵打卡和本地文创消费可获得友好积分，在这里兑换演示权益。</p>
+      <div className="friendly-reward-list">
+        {rewards.map((reward) => (
+          <article className="friendly-reward" key={reward.id}>
+            <div>
+              <strong>{reward.name}</strong>
+              <small>{reward.description}</small>
+            </div>
+            <button type="button" className="secondary" disabled={balance < reward.cost} onClick={() => onRedeem(reward.id)}>
+              {reward.cost} 分
+            </button>
+          </article>
+        ))}
+      </div>
+      <div className="friendly-shop-history">
+        <strong>最近记录</strong>
+        {records.slice(0, 3).map((record) => (
+          <span key={record.id}>{record.amount >= 0 ? '+' : ''}{record.amount} · {record.title}</span>
+        ))}
+        {!records.length && <span>暂无积分记录</span>}
+      </div>
+    </aside>
   );
 }
 
@@ -2940,6 +3189,7 @@ function Profile() {
   const footprints = useAsync(() => api(`/api/users/${currentUserId()}/footprints`), []);
   const reservations = useAsync(() => api(`/api/reservations/mine?userId=${currentUserId()}`), []);
   const culturalOrders = useAsync(() => api(`/api/cultural-orders/mine?userId=${currentUserId()}`), []);
+  const friendlyPoints = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), []);
   const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${currentUserId()}`), []);
   const checkedTotal = footprints.data?.total || 0;
   return (
@@ -2950,7 +3200,9 @@ function Profile() {
         <Metric value={footprintBadgeCatalog.filter((badge) => checkedTotal >= badge.required).length} label="勋章" />
         <Metric value={reservations.data?.length ?? '--'} label="预约" />
         <Metric value={culturalOrders.data?.length ?? '--'} label="文创订单" />
+        <Metric value={friendlyPoints.data?.balance ?? '--'} label="友好积分" />
       </div>
+      <FriendlyPointPanel data={friendlyPoints.data} />
       <FootprintBadges total={checkedTotal} />
       <section className="panel">
         <PanelTitle icon={Map} title="旅游足迹地图" />
@@ -2993,6 +3245,30 @@ function Profile() {
         onPanelAction={() => navigateTo('/submit-spot')}
       />
     </main>
+  );
+}
+
+function FriendlyPointPanel({ data }) {
+  const records = data?.records || [];
+  const balance = data?.balance ?? 0;
+  return (
+    <section className="panel friendly-point-panel">
+      <div>
+        <PanelTitle icon={Sparkles} title="城市友好积分" meta={`${balance} 分`} />
+        <p className="friendly-point-copy">步行、骑行、公交、低拥堵打卡和本地文创消费都会沉淀为友好积分。</p>
+      </div>
+      <div className="friendly-point-list">
+        {records.slice(0, 4).map((record) => (
+          <div className="friendly-point-item" key={record.id}>
+            <span className={record.amount >= 0 ? 'gain' : 'cost'}>{record.amount >= 0 ? '+' : ''}{record.amount}</span>
+            <strong>{record.title}</strong>
+            <small>{record.description}</small>
+          </div>
+        ))}
+        {!records.length && <div className="empty-state compact">还没有积分记录，先试试绿色路线或景点打卡。</div>}
+      </div>
+      <button type="button" className="secondary" onClick={() => navigateTo('/square')}>去积分商店</button>
+    </section>
   );
 }
 

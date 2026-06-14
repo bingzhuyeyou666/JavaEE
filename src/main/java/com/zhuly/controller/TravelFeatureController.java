@@ -11,6 +11,7 @@ import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.service.CheckInService;
 import com.zhuly.service.CrowdIndexService;
+import com.zhuly.service.FriendlyPointService;
 import com.zhuly.service.GeoUtils;
 import com.zhuly.service.RoutePlanService;
 import com.zhuly.service.SpotAssistantService;
@@ -29,6 +30,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -47,6 +49,7 @@ public class TravelFeatureController {
     private final SpotAssistantService spotAssistantService;
     private final ScenicSpotRepository spotRepository;
     private final FacilityRepository facilityRepository;
+    private final FriendlyPointService friendlyPointService;
 
     @Value("${travel.map.api-key:}")
     private String baiduMapAk;
@@ -126,8 +129,9 @@ public class TravelFeatureController {
     }
 
     @GetMapping("/spots/{spotId}/crowd-index")
-    public CrowdIndexResponse crowd(@PathVariable Long spotId) {
-        return crowdIndexService.getCrowdIndex(spotId);
+    public CrowdIndexResponse crowd(@PathVariable Long spotId,
+                                    @RequestParam(required = false) LocalDate visitDate) {
+        return crowdIndexService.getCrowdIndex(spotId, visitDate);
     }
 
     @GetMapping("/spots/{spotId}/tts")
@@ -145,14 +149,22 @@ public class TravelFeatureController {
     }
 
     @PostMapping("/routes/plan")
-    public RoutePlanResponse planRoute(@Valid @RequestBody RoutePlanRequest request) {
-        return routePlanService.plan(request.getSpotIds());
+    public RoutePlanResponse planRoute(@Valid @RequestBody RoutePlanRequest request,
+                                       @RequestParam(defaultValue = "1") Long userId) {
+        RoutePlanResponse response = routePlanService.plan(request.getSpotIds(), request.getMode());
+        friendlyPointService.awardRoute(userId, request.getMode(), response.getTotalDistanceKm());
+        return response;
     }
 
     @PostMapping("/spots/{spotId}/assistant")
     public SpotAssistantResponse assistant(@PathVariable Long spotId,
                                            @Valid @RequestBody SpotAssistantRequest request) {
         return spotAssistantService.answer(spotId, request.getQuestion());
+    }
+
+    @PostMapping("/assistant")
+    public SpotAssistantResponse generalAssistant(@Valid @RequestBody SpotAssistantRequest request) {
+        return spotAssistantService.answerGeneral(request.getQuestion());
     }
 
     @GetMapping(value = "/audio/mock/{name}", produces = MediaType.TEXT_PLAIN_VALUE)
