@@ -6,6 +6,7 @@ import com.zhuly.domain.Facility;
 import com.zhuly.domain.FacilityType;
 import com.zhuly.domain.ScenicSpot;
 import com.zhuly.dto.SpotAssistantResponse;
+import com.zhuly.dto.TravelCopyResponse;
 import com.zhuly.dto.WeatherForecast;
 import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.ScenicSpotRepository;
@@ -20,6 +21,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StringUtils;
 import org.springframework.web.client.RestTemplate;
+import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.util.UriComponentsBuilder;
 
 import java.math.BigDecimal;
@@ -27,8 +29,10 @@ import java.time.Duration;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -57,6 +61,9 @@ public class SpotAssistantService {
 
     @Value("${travel.ai.model:qwen-plus}")
     private String model;
+
+    @Value("${travel.ai.vision-model:qwen-vl-plus}")
+    private String visionModel;
 
     @Value("${travel.ai.timeout-seconds:20}")
     private int timeoutSeconds;
@@ -93,6 +100,161 @@ public class SpotAssistantService {
             "语气温柔、清楚、不过度热情。不要使用 emoji 或表情包符号，例如笑脸、餐具、汽车、太阳、雨伞、爱心、火焰等彩色符号。",
             "颜文字只在特别适合时少量使用，不要每句话都用。可用例如 (＾▽＾)、(｡･ω･｡)、(￣▽￣)。",
             "不要说“根据系统规则”“作为AI模型”这类生硬表述。");
+
+    public TravelCopyResponse generateTravelCopy(String locationName,
+                                                 String tripDate,
+                                                 String companions,
+                                                 String style,
+                                                 String length,
+                                                 String notes,
+                                                 MultipartFile[] images) throws java.io.IOException {
+        if (!aiEnabled || !StringUtils.hasText(apiKey)) {
+            throw new IllegalStateException("AI vision service is not configured");
+        }
+        String prompt = buildTravelCopyPrompt(locationName, tripDate, companions, style, length, notes);
+        String raw = askVisionModel(prompt, images);
+        TravelCopyResponse response = parseTravelCopy(raw);
+        response.setSource("aliyun-bailian-vision");
+        return response;
+    }
+
+    private String buildTravelCopyPrompt(String locationName,
+                                         String tripDate,
+                                         String companions,
+                                         String style,
+                                         String length,
+                                         String notes) {
+        String place = StringUtils.hasText(locationName) ? locationName.trim() : "这次旅行地";
+        String styleText = safePromptText(style, "真实游记");
+        return String.join("\n",
+                "任务：根据用户上传的旅行照片理解他去过的地方和现场景色，写一篇可以直接发布的中文旅行文案。",
+                "地点：" + place,
+                "出行日期：" + safePromptText(tripDate, "未填写"),
+                "同行人：" + safePromptText(companions, "未填写"),
+                "文案风格：" + styleText,
+                "长度：" + safePromptText(length, "标准"),
+                "用户补充：" + safePromptText(notes, "无"),
+                "",
+                "必须遵守：",
+                "1. 照片只用于识别景色、环境、氛围和旅行现场，正文写的是这次旅行，不是写照片。",
+                "2. 正文绝对不要出现“图片、照片、画面、镜头、上传、AI、模型、生成、标签”这些词。",
+                "3. 不要写字段说明，不要解释创作过程，不要出现“以下是文案”之类提示语。",
+                "4. 默认使用第一人称写法，像真实旅行者自己发出的内容，要有到达、行走、停留和感受。",
+                "5. 如果同行人是自己、一个人、独自、单人，要理解为独自出行，不要写“适合自己一起走”。",
+                "6. 不要编造精确门票、营业时间、交通班次、价格、距离；用户补充了才可以写。",
+                "7. 必须综合所有上传图片理解旅行现场，多张图分别代表不同景色或场景时，正文要自然覆盖这些景色，不能只写第一张。",
+                "8. 风格差异必须非常明显，不能只是换几个词。",
+                "9. 如果风格是“真实游记”：语气平实、客观、细节感强，像真实出行记录。可以写环境、声音、光线、路感和停留时的观察，不要浮夸。",
+                "10. 如果风格是“小红书风格”：标题要更抓眼；正文必须使用短句、分段明显、至少4个自然融入的emoji；要有明显情绪种草感和轻互动语气；结尾必须带3到5个#话题标签；整体像可直接发布的小红书文案，不要写成长篇散文。",
+                "11. 如果风格是“朋友圈随笔”：口语化、私人感受、短段落，像随手发的动态，不要太营销，不要太工整。",
+                "12. 如果风格是“诗意文艺”：意象化、抒情、节奏舒缓，要有留白感和文学感，但不要堆砌生僻词。",
+                "13. 返回严格 JSON：{\"title\":\"标题\",\"content\":\"正文自然分段\",\"tags\":[\"标签1\",\"标签2\"],\"category\":\"景点影像\",\"postType\":\"NOTE\"}");
+    }
+
+    private String askVisionModel(String userPrompt, MultipartFile[] images) throws java.io.IOException {
+        RestTemplate restTemplate = restTemplateBuilder
+                .setConnectTimeout(Duration.ofSeconds(Math.max(3, timeoutSeconds)))
+                .setReadTimeout(Duration.ofSeconds(Math.max(8, timeoutSeconds)))
+                .build();
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.setBearerAuth(apiKey.trim());
+
+        List<Map<String, Object>> content = new ArrayList<Map<String, Object>>();
+        Map<String, Object> textPart = new LinkedHashMap<String, Object>();
+        textPart.put("type", "text");
+        textPart.put("text", userPrompt);
+        content.add(textPart);
+        if (images != null) {
+            int count = 0;
+            for (MultipartFile image : images) {
+                if (image == null || image.isEmpty() || count >= 4) {
+                    continue;
+                }
+                String contentType = StringUtils.hasText(image.getContentType()) ? image.getContentType() : "image/jpeg";
+                if (!contentType.startsWith("image/")) {
+                    continue;
+                }
+                Map<String, Object> imageUrl = new LinkedHashMap<String, Object>();
+                imageUrl.put("url", "data:" + contentType + ";base64," + Base64.getEncoder().encodeToString(image.getBytes()));
+                Map<String, Object> imagePart = new LinkedHashMap<String, Object>();
+                imagePart.put("type", "image_url");
+                imagePart.put("image_url", imageUrl);
+                content.add(imagePart);
+                count++;
+            }
+        }
+
+        Map<String, Object> system = new LinkedHashMap<String, Object>();
+        system.put("role", "system");
+        system.put("content", "你是中文旅行内容编辑。只返回严格 JSON，不要 Markdown。");
+        Map<String, Object> user = new LinkedHashMap<String, Object>();
+        user.put("role", "user");
+        user.put("content", content);
+
+        Map<String, Object> body = new HashMap<String, Object>();
+        body.put("model", StringUtils.hasText(visionModel) ? visionModel : model);
+        body.put("temperature", 0.55);
+        body.put("max_tokens", 1200);
+        body.put("messages", Arrays.asList(system, user));
+
+        ResponseEntity<JsonNode> response = restTemplate.postForEntity(baseUrl, new HttpEntity<Map<String, Object>>(body, headers), JsonNode.class);
+        JsonNode contentNode = response.getBody() == null ? null : response.getBody().at("/choices/0/message/content");
+        if (contentNode == null || contentNode.isMissingNode() || !StringUtils.hasText(contentNode.asText())) {
+            throw new IllegalStateException("Vision model returned empty content");
+        }
+        return contentNode.asText().trim();
+    }
+
+    private TravelCopyResponse parseTravelCopy(String raw) throws java.io.IOException {
+        String json = raw == null ? "" : raw.trim();
+        if (json.startsWith("```")) {
+            json = json.replaceAll("^```[a-zA-Z]*\\s*", "").replaceAll("\\s*```$", "").trim();
+        }
+        int start = json.indexOf('{');
+        int end = json.lastIndexOf('}');
+        if (start >= 0 && end > start) {
+            json = json.substring(start, end + 1);
+        }
+        JsonNode root = objectMapper.readTree(json);
+        TravelCopyResponse response = new TravelCopyResponse();
+        response.setTitle(cleanGeneratedCopy(root.path("title").asText("旅行记录")));
+        response.setContent(cleanGeneratedCopy(root.path("content").asText("")));
+        List<String> tags = new ArrayList<String>();
+        JsonNode tagNode = root.path("tags");
+        if (tagNode.isArray()) {
+            for (JsonNode item : tagNode) {
+                String tag = cleanGeneratedCopy(item.asText(""));
+                if (StringUtils.hasText(tag)) {
+                    tags.add(tag);
+                }
+            }
+        }
+        response.setTags(tags);
+        response.setCategory(StringUtils.hasText(root.path("category").asText("")) ? root.path("category").asText() : "景点影像");
+        response.setPostType(StringUtils.hasText(root.path("postType").asText("")) ? root.path("postType").asText() : "NOTE");
+        return response;
+    }
+
+    private String cleanGeneratedCopy(String value) {
+        if (value == null) {
+            return "";
+        }
+        return value
+                .replace("图片", "")
+                .replace("照片", "")
+                .replace("画面", "风景")
+                .replace("镜头", "眼前")
+                .replace("AI", "")
+                .replace("标签：", "")
+                .replace("标签:", "")
+                .trim();
+    }
+
+    private String safePromptText(String value, String fallback) {
+        return StringUtils.hasText(value) ? value.trim() : fallback;
+    }
 
     public SpotAssistantResponse answer(Long spotId, String question) {
         ScenicSpot spot = spotRepository.findById(spotId)

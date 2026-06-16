@@ -736,6 +736,11 @@
   box-shadow: 0 24px 70px rgba(31, 26, 18, 0.2);
 }
 
+.date-picker-popover.below {
+  top: calc(100% + 8px);
+  bottom: auto;
+}
+
 .date-picker-head {
   display: grid;
   grid-template-columns: 36px 1fr 36px;

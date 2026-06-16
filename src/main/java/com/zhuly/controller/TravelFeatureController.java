@@ -6,6 +6,7 @@ import com.zhuly.dto.RoutePlanRequest;
 import com.zhuly.dto.RoutePlanResponse;
 import com.zhuly.dto.SpotAssistantRequest;
 import com.zhuly.dto.SpotAssistantResponse;
+import com.zhuly.dto.TravelCopyResponse;
 import com.zhuly.dto.WeatherForecast;
 import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.ScenicSpotRepository;
@@ -28,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -165,6 +167,17 @@ public class TravelFeatureController {
     @PostMapping("/assistant")
     public SpotAssistantResponse generalAssistant(@Valid @RequestBody SpotAssistantRequest request) {
         return spotAssistantService.answerGeneral(request.getQuestion());
+    }
+
+    @PostMapping(value = "/ai/travel-copy", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public TravelCopyResponse travelCopy(@RequestParam(required = false) String locationName,
+                                         @RequestParam(required = false) String tripDate,
+                                         @RequestParam(required = false) String companions,
+                                         @RequestParam(required = false) String style,
+                                         @RequestParam(required = false) String length,
+                                         @RequestParam(required = false) String notes,
+                                         @RequestParam("images") MultipartFile[] images) throws java.io.IOException {
+        return spotAssistantService.generateTravelCopy(locationName, tripDate, companions, style, length, notes, images);
     }
 
     @GetMapping(value = "/audio/mock/{name}", produces = MediaType.TEXT_PLAIN_VALUE)

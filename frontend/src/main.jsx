@@ -8,7 +8,10 @@ import {
   Car,
   CheckCircle2,
   Compass,
+  Copy,
+  Download,
   Edit3,
+  FileText,
   Headphones,
   Heart,
   House,
@@ -23,6 +26,7 @@ import {
   MapPin,
   MessageCircle,
   Moon,
+  NotebookPen,
   Navigation,
   Plus,
   RefreshCw,
@@ -40,6 +44,7 @@ import {
   UserRound,
   Users,
   Video,
+  Wand2,
   X
 } from 'lucide-react';
 import './styles/index.css';
@@ -49,6 +54,7 @@ const routeKey = 'travelCloudChosenRoute';
 const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
+const squareDraftKey = 'travelCloudSquareDraft';
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '默认中心' };
 const blockedPresetLocations = [
   { lat: 28.77, lng: 104.64, label: '' },
@@ -247,6 +253,7 @@ const navItems = [
   ['/guide', '景点导览', Compass],
   ['/route', '路线规划', Navigation],
   ['/square', '旅行广场', Users],
+  ['/ai-writer', '图生游记', Wand2],
   ['/me', '个人中心', UserRound],
   ['/submit-spot', '景点申报', Plus]
 ];
@@ -2403,6 +2410,31 @@ function Square({ account }) {
   const discussionCount = posts.filter((post) => post.postType === 'DISCUSSION' || post.postType === 'QUESTION').length;
 
   useEffect(() => {
+    const draft = readStorageJson(squareDraftKey, null);
+    if (!draft) return;
+    if (!account?.user?.loggedIn) return;
+    setForm((current) => ({
+      ...current,
+      postType: draft.postType || 'NOTE',
+      category: draft.category || '景点影像',
+      title: draft.title || '',
+      content: draft.content || '',
+      locationName: draft.locationName || '',
+      tripDate: draft.tripDate || '',
+      imageUrls: Array.isArray(draft.imageUrls) ? draft.imageUrls.join('\n') : '',
+      videoUrls: '',
+      tags: Array.isArray(draft.tags) ? draft.tags.join(', ') : (draft.tags || '')
+    }));
+    setComposerOpen(true);
+    setMessage('已从图生游记带入标题、正文和图片，确认后即可发布。');
+    try {
+      window.localStorage?.removeItem(squareDraftKey);
+    } catch (error) {
+      // Ignore unavailable storage.
+    }
+  }, [account?.user?.loggedIn]);
+
+  useEffect(() => {
     if (!squareRootRef.current) return undefined;
     const context = gsap.context(() => {
       gsap.fromTo(
@@ -2665,8 +2697,605 @@ function Square({ account }) {
   );
 }
 
+const writerStyles = [
+  { key: 'real', label: '真实游记', icon: NotebookPen },
+  { key: 'xiaohongshu', label: '小红书风格', icon: Sparkles },
+  { key: 'moments', label: '朋友圈随笔', icon: MessageCircle },
+  { key: 'poetic', label: '诗意文艺', icon: Heart }
+];
+
+const writerLengthOptions = [
+  { key: 'short', label: '短文案' },
+  { key: 'standard', label: '标准' },
+  { key: 'long', label: '长文攻略' }
+];
+
+function inferImageMood(files, imageInsight) {
+  const names = files.map((item) => item.file?.name || '').join(' ').toLowerCase();
+  const hints = [];
+  if (/竹|bamboo|forest|woods|tree|山|mountain/.test(names)) hints.push('自然风光', '清凉避暑', '步道漫游');
+  if (/海|lake|river|water|boat|beach|瀑|溪/.test(names)) hints.push('亲水风景', '慢节奏', '拍照友好');
+  if (/food|餐|饭|茶|coffee|cafe|shop/.test(names)) hints.push('美食休憩', '小店探访', '轻松补给');
+  if (/night|灯|city|street|town|古镇/.test(names)) hints.push('城市漫步', '夜景氛围', '街巷探索');
+  if (/kid|child|family|亲子|family/.test(names)) hints.push('亲子友好', '轻松不赶路', '安全舒适');
+  if (imageInsight?.tags?.length) hints.push(...imageInsight.tags);
+  return [...new Set(hints)].slice(0, 5);
+}
+
+function readImageBitmapSource(file) {
+  return new Promise((resolve, reject) => {
+    const image = new window.Image();
+    image.onload = () => resolve(image);
+    image.onerror = reject;
+    image.src = URL.createObjectURL(file);
+  });
+}
+
+async function analyzeImageContent(files) {
+  const selectedFiles = files.slice(0, 4).map((item) => item.file).filter(Boolean);
+  if (!selectedFiles.length) {
+    return {
+      scenery: '画面里保留了旅行现场的风景细节，适合作为一篇图文游记的开头。',
+      tags: []
+    };
+  }
+  const totals = { green: 0, blue: 0, warm: 0, bright: 0, dark: 0, neutral: 0, saturationTotal: 0, count: 0, wide: 0, tall: 0 };
+  for (const file of selectedFiles) {
+    const image = await readImageBitmapSource(file);
+    const canvas = document.createElement('canvas');
+    const width = 96;
+    const height = Math.max(1, Math.round((image.naturalHeight || image.height) / (image.naturalWidth || image.width) * width));
+    canvas.width = width;
+    canvas.height = Math.min(96, height);
+    const context = canvas.getContext('2d', { willReadFrequently: true });
+    context.drawImage(image, 0, 0, canvas.width, canvas.height);
+    const pixels = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    let green = 0;
+    let blue = 0;
+    let warm = 0;
+    let bright = 0;
+    let dark = 0;
+    let neutral = 0;
+    let saturationTotal = 0;
+    const count = pixels.length / 4;
+    for (let index = 0; index < pixels.length; index += 4) {
+      const r = pixels[index];
+      const g = pixels[index + 1];
+      const b = pixels[index + 2];
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      const light = (r + g + b) / 3;
+      const saturation = max === 0 ? 0 : (max - min) / max;
+      saturationTotal += saturation;
+      if (g > r * 1.08 && g > b * 1.04) green += 1;
+      if (b > r * 1.08 && b > g * 0.92) blue += 1;
+      if (r > b * 1.12 && g > b * 0.82) warm += 1;
+      if (light > 188) bright += 1;
+      if (light < 78) dark += 1;
+      if (saturation < 0.13) neutral += 1;
+    }
+    totals.green += green;
+    totals.blue += blue;
+    totals.warm += warm;
+    totals.bright += bright;
+    totals.dark += dark;
+    totals.neutral += neutral;
+    totals.saturationTotal += saturationTotal;
+    totals.count += count;
+    if ((image.naturalWidth || image.width) >= (image.naturalHeight || image.height)) totals.wide += 1;
+    else totals.tall += 1;
+    URL.revokeObjectURL(image.src);
+  }
+
+  const ratio = (value) => value / Math.max(1, totals.count);
+  const greenRatio = ratio(totals.green);
+  const blueRatio = ratio(totals.blue);
+  const warmRatio = ratio(totals.warm);
+  const brightRatio = ratio(totals.bright);
+  const darkRatio = ratio(totals.dark);
+  const neutralRatio = ratio(totals.neutral);
+  const avgSaturation = totals.saturationTotal / Math.max(1, totals.count);
+  const orientation = totals.tall > totals.wide ? '竖向' : '横向';
+  const tags = [];
+  const sceneParts = [];
+
+  if (greenRatio > 0.26) {
+    sceneParts.push('绿色占比很高，能感受到树木、草地或竹林一类的自然景观');
+    tags.push('自然风光', '清凉感');
+  }
+  if (blueRatio > 0.22) {
+    sceneParts.push('蓝色区域比较明显，像是天空、水面或远处开阔的背景');
+    tags.push('开阔风景', '亲水感');
+  }
+  if (warmRatio > 0.3) {
+    sceneParts.push('整体色调偏暖，有阳光、土地、建筑或傍晚光线带来的温度');
+    tags.push('暖色氛围');
+  }
+  if (neutralRatio > 0.48 && avgSaturation < 0.22) {
+    sceneParts.push('色彩比较克制，整体更偏安静、干净和留白');
+    tags.push('安静感', '简洁构图');
+  }
+  if (brightRatio > 0.34) {
+    sceneParts.push('光线明亮，第一眼会有比较轻松通透的观感');
+    tags.push('明亮通透');
+  }
+  if (darkRatio > 0.3) {
+    sceneParts.push('暗部较多，氛围更沉静，适合写成有故事感的旅行记录');
+    tags.push('沉静氛围');
+  }
+  if (!sceneParts.length) {
+    sceneParts.push('有清晰的旅行现场感，主体和环境都适合展开成一段风景描述');
+  }
+
+  return {
+    scenery: `${selectedFiles.length}张${orientation}为主的旅行图像呈现出${sceneParts.join('；')}。`,
+    tags: [...new Set(tags)].slice(0, 5)
+  };
+}
+
+function buildTravelCopy({ form, files, imageInsight }) {
+  const place = form.locationName.trim() || '这次旅行地';
+  const dateText = form.tripDate ? `${form.tripDate} 出行` : '近期出行';
+  const mood = inferImageMood(files, imageInsight);
+  const moodText = mood.length ? mood.join('、') : '风景、路线、现场体验';
+  const companion = normalizeTravelCompanion(form.companions);
+  const noteText = form.notes.trim();
+  const lengthLine = form.length === 'short' ? '短文案' : form.length === 'long' ? '长文案' : '标准文案';
+  const style = writerStyles.find((item) => item.key === form.style) || writerStyles[0];
+  const detailNote = noteText ? `\n${noteText}` : '';
+  const titleMap = {
+    real: `${place}旅行记录：慢慢走，反而更好看`,
+    xiaohongshu: `${place}也太会拿捏氛围感了吧✨`,
+    moments: `${place}，今晚很喜欢`,
+    poetic: `${place}，光影缓缓落下`
+  };
+  const contentMap = {
+    real: `这次去了${place}，${companion.firstSentence}${dateText}这一天没有排得太满，反而更容易把沿路的细节都看进去。${moodText}不是一下子扑过来的那种热闹，而是越走越耐看，走着走着就会想慢一点，再多停一会儿。${detailNote}
+
+真正留下印象的，不只是某一个打卡点，而是路上的空气、光线的变化，还有身边人偶尔说的一两句话。碰到顺眼的巷子、安静的转角或者视野突然打开的地方，我都会下意识放慢脚步。这样的旅行不需要很用力，节奏舒服，回头想起来也更真实。`,
+    xiaohongshu: `谁懂啊，${place}真的比想象中还要好逛${pickEmoji(['🌙', '✨', '📸'])}
+
+不是那种一眼就结束的商业化景点，反而是越走越有感觉。${moodText}叠在一起，整个人会自然放松下来${pickEmoji(['👀', '🫶', '🌆'])}${detailNote}
+
+${pickEmoji(['📍', '🏮', '🍃'])} 建议傍晚或者刚亮灯的时候来，氛围会特别满
+${pickEmoji(['📷', '✨', '🌃'])} 随手一停都很适合记录，照片和现场都很有感觉
+${pickEmoji(['🙌', '💛', '🚶'])} 如果你也喜欢慢慢逛、边走边看的城市夜晚，这里真的会让人想再来一次
+
+#城市漫步 #旅行碎片 #夜景拍照 #烟火气 #老街氛围`,
+    moments: `今晚去了${place}。
+
+本来只是随便走走，结果越走越舍不得出来。${moodText}混在一起，整个人一下子安静了很多。${detailNote}
+
+我其实没拍太多，更多时候是在路上慢慢看。那种不需要赶时间、不需要刻意找角度的感觉，反而最舒服。大概这就是会让我记很久的一次小出行。`,
+    poetic: `${place}像一页被夜色慢慢翻开的纸。
+
+${moodText}在光影里一层层铺开，近处有温度，远处有留白，风从其间穿过，连时间都像被放慢了。${detailNote}
+
+行走其间，并不急着抵达什么，只是任由视线、脚步与心绪一起缓下来。于是那些旧与新、明与暗、喧声与静意，便在同一刻轻轻叠合，留下很长的余味。`
+  };
+  const content = applyWriterLength(contentMap[form.style] || contentMap.real, form.length, form.style);
+  const tags = [...new Set([place, style.label, ...mood, '旅行记录', '图生游记'].filter(Boolean))].slice(0, 8);
+  return {
+    title: titleMap[form.style] || titleMap.real,
+    content,
+    summary: `${lengthLine} · ${style.label} · ${files.length || 0} 张图片 · ${moodText}`,
+    tags: tags.join(', '),
+    category: '景点影像',
+    postType: 'NOTE'
+  };
+}
+
+function applyWriterLength(content, length, style) {
+  const paragraphs = String(content || '').split(/\n{2,}/).filter(Boolean);
+  if (length === 'short') {
+    if (style === 'xiaohongshu') return paragraphs.slice(0, 4).join('\n\n');
+    return paragraphs.slice(0, 2).join('\n\n');
+  }
+  if (length === 'long') {
+    if (style === 'xiaohongshu') {
+      return `${content}\n\n${pickEmoji(['📌', '📝', '💡'])} 最适合留半天慢慢逛，不用赶，氛围会自己出来。`;
+    }
+    return `${content}\n\n回头再想，这趟行程最值的地方，还是那些没有刻意安排却刚好遇见的瞬间。`;
+  }
+  return content;
+}
+
+function pickEmoji(list) {
+  const items = Array.isArray(list) ? list.filter(Boolean) : [];
+  if (!items.length) return '';
+  return items[Math.floor(Math.random() * items.length)];
+}
+
+function normalizeTravelCompanion(value) {
+  const text = String(value || '').trim();
+  const normalized = text.replace(/\s/g, '');
+  if (!normalized) {
+    return {
+      firstSentence: '我觉得这里很适合慢慢走。',
+      observerSentence: '这里适合慢慢游览'
+    };
+  }
+  if (/^(自己|我自己|一个人|独自|单人|独行)$/.test(normalized)) {
+    return {
+      firstSentence: '我觉得这里很适合一个人慢慢走。',
+      observerSentence: '这里适合独自出行'
+    };
+  }
+  return {
+    firstSentence: `我觉得这里很适合和${text}一起走。`,
+    observerSentence: `这里适合${text}出行`
+  };
+}
+
+function escapeHtml(value) {
+  return String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
+
+function TravelWritingStudio({ account }) {
+  const [form, setForm] = useState({
+    style: 'real',
+    length: 'standard',
+    locationName: '',
+    tripDate: '',
+    companions: '',
+    notes: ''
+  });
+  const [files, setFiles] = useState([]);
+  const [draft, setDraft] = useState(null);
+  const [message, setMessage] = useState('');
+  const [busy, setBusy] = useState('');
+  const studioRef = useRef(null);
+  const filesRef = useRef([]);
+
+  useEffect(() => {
+    filesRef.current = files;
+  }, [files]);
+
+  useEffect(() => {
+    return () => filesRef.current.forEach((item) => URL.revokeObjectURL(item.preview));
+  }, []);
+
+  useEffect(() => {
+    if (!studioRef.current) return undefined;
+    const context = gsap.context(() => {
+      gsap.fromTo(
+        ['.writer-hero', '.writer-control-panel', '.writer-result-panel'],
+        { autoAlpha: 0, y: 18 },
+        { autoAlpha: 1, y: 0, duration: 0.42, ease: 'power2.out', stagger: 0.07, clearProps: 'transform,opacity,visibility' }
+      );
+    }, studioRef.current);
+    return () => context.revert();
+  }, []);
+
+  function update(key, value) {
+    setForm((current) => ({ ...current, [key]: value }));
+  }
+
+  function pickFiles(fileList) {
+    const selected = Array.from(fileList || []).filter((file) => file.type.startsWith('image/')).slice(0, 12);
+    if (!selected.length) return;
+    setFiles((current) => {
+      const next = [
+        ...current,
+        ...selected.map((file) => ({
+          id: `${file.name}-${file.lastModified}-${Math.random().toString(16).slice(2)}`,
+          file,
+          preview: URL.createObjectURL(file)
+        }))
+      ].slice(0, 12);
+      return next;
+    });
+    setMessage('');
+  }
+
+  function removeFile(id) {
+    setFiles((current) => {
+      const removed = current.find((item) => item.id === id);
+      if (removed) URL.revokeObjectURL(removed.preview);
+      return current.filter((item) => item.id !== id);
+    });
+  }
+
+  async function generateDraft() {
+    if (!files.length) {
+      setMessage('请先上传本地旅行图片，再生成文案。');
+      return;
+    }
+    setBusy('generate');
+    setMessage('正在识别旅行现场并生成可发布文案...');
+    try {
+      const modelDraft = await requestModelTravelCopy();
+      setDraft(normalizeGeneratedDraft(modelDraft));
+      setMessage('已根据上传图片和你的设置生成可发布文案。');
+    } catch (modelError) {
+      try {
+        const imageInsight = await analyzeImageContent(files);
+        const nextDraft = buildTravelCopy({ form, files, imageInsight });
+        setDraft(nextDraft);
+        setMessage('大模型接口暂时不可用，已使用本地识别生成一版可编辑文案。');
+      } catch (error) {
+        const nextDraft = buildTravelCopy({ form, files, imageInsight: null });
+        setDraft(nextDraft);
+        setMessage('已先生成可编辑文案。你可以补充真实旅行细节后再发布。');
+      }
+    } finally {
+      setBusy('');
+    }
+  }
+
+  async function requestModelTravelCopy() {
+    const body = new FormData();
+    files.forEach((item) => body.append('images', item.file));
+    body.append('locationName', form.locationName || '');
+    body.append('tripDate', form.tripDate || '');
+    body.append('companions', form.companions || '');
+    body.append('style', writerStyles.find((item) => item.key === form.style)?.label || form.style);
+    body.append('length', form.length || 'standard');
+    body.append('notes', form.notes || '');
+    const response = await fetch('/api/ai/travel-copy', { method: 'POST', body });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '文案生成服务暂时不可用' }));
+      throw new Error(error.message || '文案生成服务暂时不可用');
+    }
+    return response.json();
+  }
+
+  function normalizeGeneratedDraft(value) {
+    const tags = Array.isArray(value?.tags) ? value.tags.join(', ') : (value?.tags || '');
+    const content = cleanPublishCopy(value?.content || '');
+    return {
+      title: value?.title || '旅行记录',
+      content,
+      tags,
+      category: value?.category || '景点影像',
+      postType: value?.postType || 'NOTE',
+      summary: `${writerStyles.find((item) => item.key === form.style)?.label || '旅行文案'} · ${files.length || 0} 张图片`
+    };
+  }
+
+  function cleanPublishCopy(value) {
+    return String(value || '')
+      .replace(/图片|照片|上传|AI|模型|生成|标签[:：]?/gi, '')
+      .replace(/画面/g, '风景')
+      .replace(/镜头/g, '眼前')
+      .trim();
+  }
+
+  function applyDraft(key, value) {
+    setDraft((current) => ({ ...(current || {}), [key]: value }));
+  }
+
+  async function copyText() {
+    if (!draft) return;
+    const text = `${draft.title}\n\n${draft.content}`;
+    await navigator.clipboard?.writeText(text);
+    setMessage('文案已复制，可以粘贴到其他应用。');
+  }
+
+  function downloadText() {
+    if (!draft) return;
+    const blob = new Blob([`${draft.title}\n\n${draft.content}`], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${draft.title || '图生游记'}.txt`;
+    link.click();
+    URL.revokeObjectURL(url);
+    setMessage('TXT 已导出。');
+  }
+
+  function exportPdf() {
+    if (!draft) return;
+    const imageHtml = files.slice(0, 6).map((item) => `<img src="${item.preview}" alt="">`).join('');
+    const safeTitle = escapeHtml(draft.title);
+    const safeSummary = escapeHtml(draft.summary);
+    const safeContent = escapeHtml(draft.content);
+    const printWindow = window.open('', '_blank', 'width=920,height=720');
+    if (!printWindow) {
+      setMessage('浏览器拦截了 PDF 窗口，请允许弹窗后重试。');
+      return;
+    }
+    printWindow.document.write(`
+      <!doctype html>
+      <html>
+        <head>
+          <meta charset="utf-8">
+          <title>${safeTitle}</title>
+          <style>
+            body{margin:0;padding:40px;font-family:"Microsoft YaHei",serif;color:#1f2933;background:#fbf7ef;}
+            h1{font-size:32px;line-height:1.2;margin:0 0 12px;}
+            .meta{color:#7a6a54;margin-bottom:24px;}
+            .gallery{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:24px;}
+            img{width:100%;height:220px;object-fit:cover;border-radius:10px;}
+            pre{white-space:pre-wrap;font:16px/1.8 "Microsoft YaHei",serif;margin:0;}
+          </style>
+        </head>
+        <body>
+          <h1>${safeTitle}</h1>
+          <div class="meta">${safeSummary}</div>
+          <div class="gallery">${imageHtml}</div>
+          <pre>${safeContent}</pre>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.focus();
+    setTimeout(() => printWindow.print(), 300);
+    setMessage('已打开 PDF 打印窗口，可选择“另存为 PDF”。');
+  }
+
+  async function uploadImagesForSquare() {
+    const body = new FormData();
+    files.forEach((item) => body.append('files', item.file));
+    const response = await fetch('/api/community/square/uploads?type=image', { method: 'POST', body });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '图片上传失败' }));
+      throw new Error(error.message || '图片上传失败');
+    }
+    const data = await response.json();
+    return data.urls || [];
+  }
+
+  async function publishToSquare() {
+    if (!draft) return;
+    if (!account?.user?.loggedIn) {
+      navigateTo('/login');
+      return;
+    }
+    setBusy('publish');
+    setMessage('');
+    try {
+      const imageUrls = await uploadImagesForSquare();
+      writeStorageJson(squareDraftKey, {
+        postType: draft.postType || 'NOTE',
+        category: draft.category || '景点影像',
+        title: draft.title,
+        content: draft.content,
+        locationName: form.locationName,
+        tripDate: form.tripDate,
+        imageUrls,
+        tags: String(draft.tags || '')
+          .split(/[,，、\n]/)
+          .map((item) => item.trim())
+          .filter(Boolean)
+      });
+      setMessage('已带入旅行广场发布窗口。');
+      navigateTo('/square');
+    } catch (error) {
+      setMessage(error.message);
+    } finally {
+      setBusy('');
+    }
+  }
+
+  return (
+    <main className="container writer-page" ref={studioRef}>
+      <section className="writer-hero">
+        <div>
+          <span className="section-kicker">AI TRAVEL WRITER</span>
+          <h1>图生游记</h1>
+          <p>上传本地旅行图片，选择风格后生成可编辑文案。生成结果可以发布到旅行广场，也可以导出 PDF 或文字发到其他应用。</p>
+        </div>
+        <div className="writer-hero-image" aria-hidden="true">
+          <img src="/app/login-shanshui-map.png" alt="" />
+          <span>把走过的风景写成游记</span>
+        </div>
+      </section>
+
+      {message && <div className="message writer-message">{message}</div>}
+
+      <div className="writer-shell">
+        <section className="panel writer-control-panel">
+          <PanelTitle icon={ImagePlus} title="上传与生成设置" meta={`${files.length}/12 张`} />
+          <label className="writer-dropzone">
+            <input type="file" accept="image/*" multiple onChange={(event) => {
+              pickFiles(event.target.files);
+              event.target.value = '';
+            }} />
+            <UploadCloud size={26} />
+            <strong>选择本地旅行图片</strong>
+            <span>支持 JPG、PNG、WebP、GIF，建议上传 3-9 张更容易生成完整游记。</span>
+          </label>
+          {!!files.length && (
+            <div className="writer-preview-grid">
+              {files.map((item) => (
+                <div className="writer-preview" key={item.id}>
+                  <img src={item.preview} alt={item.file.name} />
+                  <button type="button" onClick={() => removeFile(item.id)} aria-label="移除图片"><X size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="writer-field-grid">
+            <label>关联地点
+              <input value={form.locationName} onChange={(event) => update('locationName', event.target.value)} placeholder="如 蜀南竹海" />
+            </label>
+            <DatePickerField
+              label="出行日期"
+              value={form.tripDate}
+              onChange={(value) => update('tripDate', value)}
+            />
+            <label>同行人
+              <input value={form.companions} onChange={(event) => update('companions', event.target.value)} placeholder="如 亲子、朋友、一个人" />
+            </label>
+            <div className="writer-length-field">
+              <span>生成长度</span>
+              <div className="writer-length-row" role="group" aria-label="生成长度">
+                {writerLengthOptions.map((item) => (
+                  <button key={item.key} type="button" className={form.length === item.key ? 'active' : ''} onClick={() => update('length', item.key)}>
+                    {item.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="writer-option-block">
+            <strong>文案风格</strong>
+            <div className="writer-style-grid">
+              {writerStyles.map((item) => (
+                <button key={item.key} type="button" className={form.style === item.key ? 'active' : ''} aria-pressed={form.style === item.key} onClick={() => update('style', item.key)}>
+                  <item.icon size={26} strokeWidth={2.2} />
+                  <span>{item.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <label>补充要求
+            <textarea value={form.notes} onChange={(event) => update('notes', event.target.value)} placeholder="例如：不要太营销，强调亲子友好和避暑感；或者补充真实费用、路线、避坑点。" rows={4} />
+          </label>
+
+          <button type="button" className="writer-generate" onClick={generateDraft} disabled={busy === 'generate'}>
+            <Wand2 size={17} /> {busy === 'generate' ? '分析图片中' : '生成可发布文案'}
+          </button>
+        </section>
+
+        <section className="panel writer-result-panel">
+          <PanelTitle icon={FileText} title="生成结果" meta={draft ? draft.summary : '等待生成'} />
+          {draft ? (
+            <>
+              <label>标题
+                <input value={draft.title} onChange={(event) => applyDraft('title', event.target.value)} />
+              </label>
+              <label>正文
+                <textarea className="writer-content-editor" value={draft.content} onChange={(event) => applyDraft('content', event.target.value)} />
+              </label>
+              <label>标签
+                <input value={draft.tags} onChange={(event) => applyDraft('tags', event.target.value)} />
+              </label>
+              <div className="writer-result-actions">
+                <button type="button" onClick={publishToSquare} disabled={busy === 'publish'}>
+                  <Send size={16} /> {busy === 'publish' ? '发布中' : '发布到旅行广场'}
+                </button>
+                <button type="button" className="secondary" onClick={exportPdf}><Download size={16} /> 导出 PDF</button>
+                <button type="button" className="secondary" onClick={downloadText}><FileText size={16} /> 导出文字</button>
+                <button type="button" className="secondary" onClick={copyText}><Copy size={16} /> 复制</button>
+              </div>
+              <p className="writer-safety-note">正文已经整理成自然分段，发布前可以按你的真实行程再微调路线、价格和营业时间等细节。</p>
+            </>
+          ) : (
+            <div className="writer-empty">
+              <Sparkles size={34} />
+              <strong>上传图片并选择风格后，文案会出现在这里</strong>
+              <p>生成后可继续编辑标题和正文，再导出或发布。</p>
+            </div>
+          )}
+        </section>
+      </div>
+    </main>
+  );
+}
+
 function DatePickerField({ label, value, onChange }) {
   const [open, setOpen] = useState(false);
+  const [placement, setPlacement] = useState('top');
   const [viewDate, setViewDate] = useState(() => value ? new Date(`${value}T00:00:00`) : new Date());
   const pickerRef = useRef(null);
   const today = new Date();
@@ -2691,6 +3320,25 @@ function DatePickerField({ label, value, onChange }) {
   useEffect(() => {
     if (value) setViewDate(new Date(`${value}T00:00:00`));
   }, [value]);
+
+  useEffect(() => {
+    if (!open || !pickerRef.current) return undefined;
+    const updatePlacement = () => {
+      const rect = pickerRef.current.getBoundingClientRect();
+      const popoverHeight = 520;
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const headerBottom = document.querySelector('.site-header')?.getBoundingClientRect().bottom || 0;
+      const wouldOverlapHeader = rect.top - popoverHeight - 8 < headerBottom + 8;
+      setPlacement(wouldOverlapHeader && spaceBelow > 260 ? 'bottom' : 'top');
+    };
+    updatePlacement();
+    window.addEventListener('resize', updatePlacement);
+    window.addEventListener('scroll', updatePlacement, true);
+    return () => {
+      window.removeEventListener('resize', updatePlacement);
+      window.removeEventListener('scroll', updatePlacement, true);
+    };
+  }, [open]);
 
   const year = viewDate.getFullYear();
   const month = viewDate.getMonth();
@@ -2731,7 +3379,7 @@ function DatePickerField({ label, value, onChange }) {
         <CalendarDays size={18} />
       </button>
       {open && (
-        <div className="date-picker-popover" role="dialog" aria-label="选择出行日期">
+        <div className={cx('date-picker-popover', placement === 'bottom' && 'below')} role="dialog" aria-label="选择出行日期">
           <div className="date-picker-head">
             <button type="button" onClick={() => changeMonth(-1)} aria-label="上个月">‹</button>
             <strong>{year}年{String(month + 1).padStart(2, '0')}月</strong>
@@ -4260,6 +4908,7 @@ function App() {
   if (path === '/guide/nearby') page = <Guide {...props} useSavedLocation />;
   if (path === '/route') page = <RoutePage {...props} />;
   if (path === '/square') page = <Square account={account} />;
+  if (path === '/ai-writer') page = <TravelWritingStudio account={account} />;
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
   if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} />;
   if (path === '/me') page = <Profile />;
