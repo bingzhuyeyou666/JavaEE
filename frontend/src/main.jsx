@@ -236,11 +236,7 @@ body[data-theme="day"] .footprint-badge-card.unlocked .badge-copy span {
 }
 `;
 const squareCategories = ['全部', '景点影像', '旅游拼团', '旅游心得', '注意事项', '提问求助'];
-const squarePostTypes = [
-  ['NOTE', '图文笔记', '像小红书一样展示图片、标签和旅行灵感'],
-  ['DISCUSSION', '讨论帖', '像贴吧一样开帖交流，评论按楼层展开'],
-  ['QUESTION', '问答帖', '像知乎一样提出问题，沉淀高质量回答']
-];
+const squarePostTypes = squareCategories.filter((item) => item !== '全部');
 const footprintBadgeCatalog = [
   { key: 'first', title: '初遇', subtitle: '完成第 1 个景点打卡', required: 1, image: '/app/badges/badge-first-step.png' },
   { key: 'explorer', title: '初探', subtitle: '累计打卡 3 个景点', required: 3, image: '/app/badges/badge-explorer.png' },
@@ -2442,7 +2438,9 @@ function splitMediaUrls(value) {
 }
 
 function postTypeLabel(type) {
-  return squarePostTypes.find(([value]) => value === type)?.[1] || '图文笔记';
+  if (type === 'QUESTION') return '提问求助';
+  if (type === 'DISCUSSION') return '旅游心得';
+  return '旅行分享';
 }
 
 function normalizeDateInput(value) {
@@ -2587,10 +2585,12 @@ function Square({ account }) {
   async function submitPost(event) {
     event.preventDefault();
     try {
+      const nextPostType = form.category === '提问求助' ? 'QUESTION' : form.category === '旅游心得' ? 'DISCUSSION' : 'NOTE';
       const post = await api(`/api/community/square/posts?userId=${currentUserId()}`, {
         method: 'POST',
         body: JSON.stringify({
           ...form,
+          postType: nextPostType,
           imageUrls: splitMediaUrls(form.imageUrls),
           videoUrls: splitMediaUrls(form.videoUrls),
           tags: splitMediaUrls(form.tags)
@@ -2687,7 +2687,7 @@ function Square({ account }) {
               <div>
                 <span className="section-kicker">NEW POST</span>
                 <h2>发布帖子</h2>
-                <p>{postTypeLabel(form.postType)} · 把旅行现场整理成一条清楚的内容。</p>
+                <p>{form.category} · 把旅行现场整理成一条清楚的内容。</p>
               </div>
               <button type="button" className="icon-button ghost" onClick={() => setComposerOpen(false)} aria-label="关闭发布窗口">
                 <X size={18} />
@@ -2696,24 +2696,17 @@ function Square({ account }) {
             {message && <div className="message">{message}</div>}
             <form className="form square-post-form" onSubmit={submitPost} style={{ gap: 14, padding: '16px 20px 20px' }}>
               <div className="square-type-switch wide" style={{ gap: 8 }}>
-                {squarePostTypes.map(([value, label, desc]) => (
+                {squarePostTypes.map((label) => (
                   <button
-                    key={value}
+                    key={label}
                     type="button"
-                    className={form.postType === value ? 'active' : ''}
-                    onClick={() => update('postType', value)}
-                    style={{ minHeight: 54, padding: '10px 12px' }}
+                    className={form.category === label ? 'active' : ''}
+                    onClick={() => update('category', label)}
                   >
                     <strong>{label}</strong>
-                    <small>{desc}</small>
                   </button>
                 ))}
               </div>
-              <label>类型
-                <select value={form.category} onChange={(e) => update('category', e.target.value)}>
-                  {squareCategories.filter((item) => item !== '全部').map((item) => <option key={item}>{item}</option>)}
-                </select>
-              </label>
               <label>关联地点
                 <input value={form.locationName} onChange={(e) => update('locationName', e.target.value)} placeholder="如 蜀南竹海" />
               </label>
@@ -3534,17 +3527,10 @@ function SquarePostCard({ post, onSelect }) {
       className={cx('square-post', post.postType?.toLowerCase())}
       data-type={post.postType}
       onClick={onSelect}
-      style={{
-        display: 'grid',
-        gridTemplateColumns: cover ? 'minmax(132px, 38%) minmax(0, 1fr)' : '1fr',
-        gap: '10px 16px',
-        padding: 14,
-        minHeight: cover ? 156 : 'auto'
-      }}
     >
       {cover && (
-        <div className="square-cover" style={{ gridRow: '1 / span 7', width: '100%', minHeight: 128, maxHeight: 156, margin: 0, borderRadius: 10 }}>
-          <img src={cover} alt={post.title} style={{ width: '100%', height: '100%', minHeight: 128, objectFit: 'cover' }} />
+        <div className="square-cover">
+          <img src={cover} alt={post.title} />
           {imageCount > 1 && <span>{imageCount} 图</span>}
         </div>
       )}
@@ -3554,10 +3540,10 @@ function SquarePostCard({ post, onSelect }) {
           <strong>{post.authorName || `游客${post.userId || ''}`}</strong>
           <span>{time}</span>
         </div>
-        <span className="pill gold">{postTypeLabel(post.postType)}</span>
+        <span className="pill gold">{post.category || postTypeLabel(post.postType)}</span>
       </div>
-      <h2 style={{ margin: 0, fontSize: '1.25rem', lineHeight: 1.22 }}>{isQuestion ? `问：${post.title}` : post.title}</h2>
-      <p style={{ margin: 0, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{post.content}</p>
+      <h2>{isQuestion ? `问：${post.title}` : post.title}</h2>
+      <p>{post.content}</p>
       {!!post.tags?.length && <div className="square-tag-row">{post.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
       {(post.locationName || post.tripDate) && (
         <div className="square-meta">
@@ -3906,7 +3892,6 @@ function WeatherSymbol({ icon }) {
 function Profile() {
   const footprints = useAsync(() => api(`/api/users/${currentUserId()}/footprints`), []);
   const reservations = useAsync(() => api(`/api/reservations/mine?userId=${currentUserId()}`), []);
-  const culturalOrders = useAsync(() => api(`/api/cultural-orders/mine?userId=${currentUserId()}`), []);
   const friendlyPoints = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), []);
   const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${currentUserId()}`), []);
   const checkedTotal = footprints.data?.total || 0;
@@ -3917,7 +3902,6 @@ function Profile() {
         <Metric value={checkedTotal || '--'} label="已打卡" />
         <Metric value={footprintBadgeCatalog.filter((badge) => checkedTotal >= badge.required).length} label="勋章" />
         <Metric value={reservations.data?.length ?? '--'} label="预约" />
-        <Metric value={culturalOrders.data?.length ?? '--'} label="文创订单" />
         <Metric value={friendlyPoints.data?.balance ?? '--'} label="友好积分" />
       </div>
       <FriendlyPointPanel data={friendlyPoints.data} />
@@ -3944,16 +3928,6 @@ function Profile() {
         />
         <ListPanel title="我的预约" icon={CalendarDays} className="profile-list-panel" items={(reservations.data || []).map((item) => ({ title: `景点 ID ${item.spotId}`, body: `${item.visitDate} ${item.timeSlot} · ${item.status}` }))} empty="暂无预约" />
       </div>
-      <ListPanel
-        title="我的文创订单"
-        icon={ShoppingBag}
-        className="profile-list-panel profile-wide-panel"
-        items={(culturalOrders.data || []).map((item) => ({
-          title: item.productName,
-          body: `${item.orderNo} · ${item.status} · ${item.quantity} 件 · ¥${Number(item.totalAmount || 0).toFixed(2)} · ${item.shippingAddress}`
-        }))}
-        empty={culturalOrders.error || '暂无文创订单'}
-      />
       <ListPanel
         title="我的申报"
         icon={Plus}
