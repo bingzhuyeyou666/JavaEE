@@ -4,7 +4,6 @@
 
 /* === 核心容器 === */
 
-.brand-row,
 .container,
 .footer {
   width: min(1180px, calc(100% - 36px));

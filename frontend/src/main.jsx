@@ -257,6 +257,14 @@ const navItems = [
   ['/me', '个人中心', UserRound],
   ['/submit-spot', '景点申报', Plus]
 ];
+const travelQuotes = [
+  '世界是一本书，不旅行的人只读了其中一页。——圣奥古斯丁',
+  '重要的不是目的地，而是沿途的风景与心境。——T.S.艾略特',
+  '旅行先让你语塞，然后让你成为讲故事的人。——伊本·白图泰',
+  '去看看世界，它比任何梦境都奇妙。——雷·布拉德伯里',
+  '无论你去哪里，都会成为你的一部分。——阿妮塔·德赛',
+  '生命不长不短，刚好够用来好好看看这个世界。——郭子鹰'
+];
 
 async function api(url, options = {}) {
   const controller = new AbortController();
@@ -425,6 +433,14 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
   const hint = isAdmin ? '运营后台已登录' : isUser ? '足迹与预约已同步' : '免登录浏览景点';
   const actionHref = isAdmin ? '/admin' : isUser ? '/me' : '/login';
   const isActive = (href) => href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
+  const [quoteIndex, setQuoteIndex] = useState(0);
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setQuoteIndex((index) => (index + 1) % travelQuotes.length);
+    }, 5200);
+    return () => window.clearInterval(timer);
+  }, []);
 
   return (
     <header className="site-header">
@@ -436,8 +452,8 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
             <small>Molu Xunjing</small>
           </span>
         </Link>
+        <p className="header-quote" key={quoteIndex}>{travelQuotes[quoteIndex]}</p>
         <div className="header-right">
-          <p>让风景、路线、服务和故事在一张图上相遇。</p>
           <div className="theme-switch" role="group" aria-label="切换主题">
             <button className={theme === 'night' ? 'active' : ''} type="button" onClick={() => setTheme('night')} title="星夜黑">
               <Moon size={15} /> 星夜黑
