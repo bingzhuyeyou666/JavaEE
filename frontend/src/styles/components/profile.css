@@ -209,16 +209,52 @@
   gap: var(--space-4);
 }
 
+.travel-gallery-title {
+  display: grid;
+  grid-template-columns: 28px minmax(0, 1fr);
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.travel-gallery-title svg {
+  align-self: start;
+  margin-top: 2px;
+}
+
+.travel-gallery-title strong,
+.travel-gallery-title span {
+  display: block;
+  min-width: 0;
+  line-height: 1.25;
+}
+
+.travel-gallery-title strong {
+  overflow-wrap: anywhere;
+  font-size: var(--text-xl);
+}
+
+.travel-gallery-title span {
+  margin-top: 4px;
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
 .gallery-add-button {
   position: relative;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--space-2);
-  min-height: 42px;
-  padding: 0 var(--space-4);
+  min-width: 132px;
+  min-height: 50px;
+  padding: 0 var(--space-5);
   border: var(--border-subtle);
   border-radius: var(--radius-md);
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  line-height: 1.2;
+  white-space: nowrap;
   cursor: pointer;
 }
 
@@ -251,7 +287,12 @@
 
 .travel-gallery-image-card button {
   width: calc(100% - var(--space-6));
+  min-height: 48px;
   margin: var(--space-3);
+  justify-content: center;
+  gap: var(--space-2);
+  font-size: var(--text-base);
+  line-height: 1.2;
 }
 
 .secondary.danger {
@@ -426,6 +467,10 @@
 
   .travel-gallery-head {
     flex-direction: column;
+  }
+
+  .gallery-add-button {
+    width: 100%;
   }
 
   .profile-list-item {

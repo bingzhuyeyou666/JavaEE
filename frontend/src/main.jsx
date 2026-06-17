@@ -1548,8 +1548,9 @@ function TripOptions({ origin, destination }) {
 
 function SpotDetail({ id, addRoute }) {
   const { data: spot, loading, error } = useAsync(() => api(`/api/spots/${id}`), [id]);
-  const weather = useAsync(() => api(`/api/spots/${id}/weather`), [id]);
-  const crowd = useAsync(() => api(`/api/spots/${id}/crowd-index`), [id]);
+  const [weatherTick, setWeatherTick] = useState(0);
+  const weather = useAsync(() => api(`/api/spots/${id}/weather`), [id, weatherTick]);
+  const crowd = useAsync(() => api(`/api/spots/${id}/crowd-index`), [id, weatherTick]);
   const facilities = useAsync(() => spot ? api(`/api/facilities?lat=${spot.latitude}&lng=${spot.longitude}&radiusKm=8`) : Promise.resolve([]), [spot?.id]);
   const [productTick, setProductTick] = useState(0);
   const products = useAsync(() => api(`/api/spots/${id}/products`), [id, productTick]);
@@ -1885,35 +1886,6 @@ function SpotDetail({ id, addRoute }) {
               </form>
             </>
           )}
-          <section id="cultural-shop" className="cultural-shop">
-            <PanelTitle icon={ShoppingBag} title="景点文创商城" meta="纪念品与伴手礼" />
-            <p className="muted">挑选当前景点的文创商品，订单为课程演示支付流程。</p>
-            <div className="cultural-product-grid">
-              {products.loading ? <div className="empty-state compact">文创商品加载中...</div> : (products.data || []).length ? (products.data || []).map((product) => (
-                <label className={cx('cultural-product', selectedProductId === product.id && 'active')} key={product.id}>
-                  <input
-                    type="radio"
-                    name="culturalProduct"
-                    checked={selectedProductId === product.id}
-                    onChange={() => setSelectedProductId(product.id)}
-                  />
-                  <img src={product.imageUrl} alt={product.name} />
-                  <span>
-                    <strong>{product.name}</strong>
-                    <small>{product.category} · 库存 {product.stock ?? 0}</small>
-                    <em>¥{Number(product.price || 0).toFixed(2)}</em>
-                    <p>{product.description}</p>
-                  </span>
-                </label>
-              )) : <div className="empty-state compact">暂无文创商品。</div>}
-            </div>
-            <form className="shop-order-form" onSubmit={submitCulturalOrder}>
-              <input value={orderForm.receiverName} onChange={(e) => setOrderForm({ ...orderForm, receiverName: e.target.value })} placeholder="收货人姓名" required />
-              <input value={orderForm.receiverPhone} onChange={(e) => setOrderForm({ ...orderForm, receiverPhone: e.target.value })} placeholder="联系电话" required />
-              <textarea value={orderForm.shippingAddress} onChange={(e) => setOrderForm({ ...orderForm, shippingAddress: e.target.value })} placeholder="收货地址" required />
-              <button><ShoppingBag size={16} /> 提交文创订单</button>
-            </form>
-          </section>
           <section className="comment-section">
             <PanelTitle icon={MessageCircle} title="游客评论" meta={`${rootReviews.length} 条讨论`} />
             <form className="review-composer" onSubmit={submitReview}>
@@ -1954,7 +1926,12 @@ function SpotDetail({ id, addRoute }) {
           </section>
         </section>
         <aside className="panel sticky">
-          <PanelTitle icon={Sparkles} title="天气与拥挤" />
+          <div className="weather-panel-head">
+            <PanelTitle icon={Sparkles} title="天气与拥挤" />
+            <button type="button" className="secondary weather-refresh" onClick={() => setWeatherTick((value) => value + 1)} disabled={weather.loading || crowd.loading}>
+              <RefreshCw size={16} /> {weather.loading || crowd.loading ? '刷新中' : '刷新'}
+            </button>
+          </div>
           <div className="weather-snapshot">
             <div className="weather-core">
               <div>
@@ -4046,7 +4023,13 @@ function TravelGalleryDetail({ spotId }) {
       <button type="button" className="back-nav" onClick={() => navigateTo('/me')}><ArrowLeft size={16} /> 返回个人中心</button>
       <section className="panel travel-gallery-detail">
         <div className="travel-gallery-head">
-          <PanelTitle icon={Image} title={data.spotName || '个人游记图库'} meta={`${images.length} 张`} />
+          <div className="travel-gallery-title">
+            <Image size={24} />
+            <div>
+              <strong>{data.spotName || '个人游记图库'}</strong>
+              <span>{images.length} 张</span>
+            </div>
+          </div>
           <label className="secondary gallery-add-button">
             <ImagePlus size={16} /> {uploading ? '上传中...' : '添加图片'}
             <input type="file" accept="image/*" multiple disabled={uploading} onChange={(event) => uploadGalleryImages(event.target.files)} />
