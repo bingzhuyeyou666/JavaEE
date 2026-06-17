@@ -28,21 +28,27 @@ public class CheckInService {
     private final FriendlyPointService friendlyPointService;
 
     @Transactional
-    public CheckInResponse checkIn(Long userId, Long spotId, BigDecimal latitude, BigDecimal longitude) {
+    public CheckInResponse checkIn(Long userId, Long spotId, BigDecimal latitude, BigDecimal longitude, String imageUrl) {
         ScenicSpot spot = spotRepository.findById(spotId)
                 .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            throw new IllegalArgumentException("请先上传打卡图片");
+        }
         double distance = GeoUtils.distanceKm(latitude, longitude, spot.getLatitude(), spot.getLongitude());
         if (distance > CHECK_IN_RADIUS_KM) {
             throw new IllegalArgumentException("当前位置距离景点超过500米，暂不能打卡");
         }
         boolean firstCheckIn = !checkInRecordRepository.findByUserIdAndSpotId(userId, spotId).isPresent();
-        checkInRecordRepository.findByUserIdAndSpotId(userId, spotId).orElseGet(() -> {
-            CheckInRecord record = new CheckInRecord();
-            record.setUserId(userId);
-            record.setSpotId(spotId);
-            record.setCheckedInAt(LocalDateTime.now());
-            return checkInRecordRepository.save(record);
+        CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId).orElseGet(() -> {
+            CheckInRecord nextRecord = new CheckInRecord();
+            nextRecord.setUserId(userId);
+            nextRecord.setSpotId(spotId);
+            nextRecord.setCheckedInAt(LocalDateTime.now());
+            return checkInRecordRepository.save(nextRecord);
         });
+        addImageToRecord(record, imageUrl.trim());
+        record.setCheckedInAt(LocalDateTime.now());
+        checkInRecordRepository.save(record);
         if (firstCheckIn) {
             friendlyPointService.award(userId, 10, "CHECK_IN", "完成景点打卡", "用真实足迹点亮城市探索", spotId);
             if ("green".equals(crowdIndexService.getCrowdIndex(spotId).getColor())) {
@@ -61,6 +67,77 @@ public class CheckInService {
         return checkInRecordRepository.findByUserIdOrderByCheckedInAtDesc(userId).stream()
                 .map(CheckInRecord::getSpotId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
+    }
+
+    public List<CheckInRecord> records(Long userId) {
+        return checkInRecordRepository.findByUserIdOrderByCheckedInAtDesc(userId);
+    }
+
+    @Transactional
+    public CheckInRecord addGalleryImages(Long userId, Long spotId, List<String> imageUrls) {
+        CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
+                .orElseThrow(() -> new IllegalArgumentException("请先完成该景点打卡，再维护游记图库"));
+        if (imageUrls == null || imageUrls.isEmpty()) {
+            throw new IllegalArgumentException("请选择要添加的图片");
+        }
+        for (String imageUrl : imageUrls) {
+            addImageToRecord(record, imageUrl);
+        }
+        return checkInRecordRepository.save(record);
+    }
+
+    @Transactional
+    public CheckInRecord deleteGalleryImage(Long userId, Long spotId, String imageUrl) {
+        CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
+                .orElseThrow(() -> new IllegalArgumentException("图库不存在"));
+        String target = imageUrl == null ? "" : imageUrl.trim();
+        if (target.isEmpty()) {
+            throw new IllegalArgumentException("请选择要删除的图片");
+        }
+        syncLegacyImage(record);
+        record.getImageUrls().removeIf(item -> target.equals(item));
+        record.setImageUrl(record.getImageUrls().isEmpty() ? "" : record.getImageUrls().get(0));
+        return checkInRecordRepository.save(record);
+    }
+
+    public CheckInRecord gallery(Long userId, Long spotId) {
+        CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
+                .orElseThrow(() -> new IllegalArgumentException("图库不存在"));
+        syncLegacyImage(record);
+        return record;
+    }
+
+    public List<String> images(CheckInRecord record) {
+        syncLegacyImage(record);
+        List<String> result = new ArrayList<>(record.getImageUrls());
+        if (result.isEmpty() && record.getImageUrl() != null && !record.getImageUrl().trim().isEmpty()) {
+            result.add(record.getImageUrl().trim());
+        }
+        return result;
+    }
+
+    private void addImageToRecord(CheckInRecord record, String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return;
+        }
+        syncLegacyImage(record);
+        String normalized = imageUrl.trim();
+        if (!record.getImageUrls().contains(normalized)) {
+            record.getImageUrls().add(normalized);
+        }
+        if (record.getImageUrl() == null || record.getImageUrl().trim().isEmpty()) {
+            record.setImageUrl(normalized);
+        }
+    }
+
+    private void syncLegacyImage(CheckInRecord record) {
+        if (record.getImageUrls() == null) {
+            record.setImageUrls(new ArrayList<>());
+        }
+        if (record.getImageUrl() != null && !record.getImageUrl().trim().isEmpty()
+                && !record.getImageUrls().contains(record.getImageUrl().trim())) {
+            record.getImageUrls().add(0, record.getImageUrl().trim());
+        }
     }
 
     public List<String> badges(int total) {

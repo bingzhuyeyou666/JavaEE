@@ -8,6 +8,8 @@ import com.zhuly.dto.SpotAssistantRequest;
 import com.zhuly.dto.SpotAssistantResponse;
 import com.zhuly.dto.TravelCopyResponse;
 import com.zhuly.dto.WeatherForecast;
+import com.zhuly.domain.CheckInRecord;
+import com.zhuly.domain.ScenicSpot;
 import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.service.CheckInService;
@@ -26,16 +28,25 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.util.StringUtils;
 
+import java.io.IOException;
 import java.math.BigDecimal;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.stream.Collectors;
 
 @RestController
@@ -75,14 +86,45 @@ public class TravelFeatureController {
     public CheckInResponse checkIn(@PathVariable Long spotId,
                                    @RequestParam(defaultValue = "1") Long userId,
                                    @RequestParam BigDecimal lat,
-                                   @RequestParam BigDecimal lng) {
-        return checkInService.checkIn(userId, spotId, lat, lng);
+                                   @RequestParam BigDecimal lng,
+                                   @RequestParam String imageUrl) {
+        return checkInService.checkIn(userId, spotId, lat, lng, imageUrl);
+    }
+
+    @PostMapping(value = "/check-ins/uploads", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public Map<String, Object> uploadCheckInImage(@RequestParam("files") MultipartFile[] files) throws IOException {
+        if (files == null || files.length == 0) {
+            throw new IllegalArgumentException("请选择要上传的打卡图片");
+        }
+        Path uploadRoot = Paths.get("data", "uploads", "check-ins", "image").toAbsolutePath().normalize();
+        Files.createDirectories(uploadRoot);
+        List<String> urls = new ArrayList<>();
+        for (MultipartFile file : files) {
+            if (file == null || file.isEmpty()) {
+                continue;
+            }
+            validateCheckInImage(file);
+            String extension = StringUtils.getFilenameExtension(file.getOriginalFilename());
+            String filename = UUID.randomUUID().toString().replace("-", "") + (extension == null ? "" : "." + extension.toLowerCase());
+            Path target = uploadRoot.resolve(filename).normalize();
+            if (!target.startsWith(uploadRoot)) {
+                throw new IllegalArgumentException("文件名不合法");
+            }
+            file.transferTo(target.toFile());
+            urls.add("/uploads/check-ins/image/" + filename);
+        }
+        return Collections.singletonMap("urls", urls);
     }
 
     @GetMapping("/users/{userId}/footprints")
     public Map<String, Object> footprints(@PathVariable Long userId) {
         CheckInResponse profile = checkInService.profile(userId, null);
-        List<Map<String, Object>> checkedInSpots = spotRepository.findAllById(checkInService.checkedInIds(userId)).stream()
+        List<CheckInRecord> records = checkInService.records(userId);
+        Map<Long, ScenicSpot> spotsById = spotRepository.findAllById(checkInService.checkedInIds(userId)).stream()
+                .collect(Collectors.toMap(ScenicSpot::getId, spot -> spot));
+        List<Map<String, Object>> checkedInSpots = records.stream()
+                .map(record -> spotsById.get(record.getSpotId()))
+                .filter(spot -> spot != null)
                 .map(spot -> {
                     Map<String, Object> item = new HashMap<>();
                     item.put("id", spot.getId());
@@ -95,12 +137,71 @@ public class TravelFeatureController {
                     return item;
                 })
                 .collect(Collectors.toList());
+        List<Map<String, Object>> travelPhotos = records.stream()
+                .map(record -> {
+                    ScenicSpot spot = spotsById.get(record.getSpotId());
+                    List<String> images = checkInService.images(record);
+                    if (spot == null || images.isEmpty()) {
+                        return null;
+                    }
+                    Map<String, Object> item = new HashMap<>();
+                    item.put("id", record.getId());
+                    item.put("spotId", record.getSpotId());
+                    item.put("spotName", spot.getName());
+                    item.put("spotType", spot.getType());
+                    item.put("address", spot.getAddress());
+                    item.put("imageUrl", images.get(0));
+                    item.put("imageUrls", images);
+                    item.put("photoCount", images.size());
+                    item.put("checkedInAt", record.getCheckedInAt());
+                    return item;
+                })
+                .filter(item -> item != null)
+                .collect(Collectors.toList());
         Map<String, Object> body = new HashMap<>();
         body.put("checkedInSpotIds", checkInService.checkedInIds(userId));
         body.put("checkedInSpots", checkedInSpots);
+        body.put("travelPhotos", travelPhotos);
         body.put("total", profile.getTotalCheckedIn());
         body.put("badges", profile.getBadges());
         return body;
+    }
+
+    @GetMapping("/users/{userId}/travel-galleries/{spotId}")
+    public Map<String, Object> travelGallery(@PathVariable Long userId, @PathVariable Long spotId) {
+        CheckInRecord record = checkInService.gallery(userId, spotId);
+        ScenicSpot spot = spotRepository.findById(spotId)
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        return galleryBody(record, spot);
+    }
+
+    @PostMapping("/users/{userId}/travel-galleries/{spotId}/images")
+    public Map<String, Object> addTravelGalleryImages(@PathVariable Long userId,
+                                                      @PathVariable Long spotId,
+                                                      @RequestBody Map<String, Object> body) {
+        Object value = body.get("imageUrls");
+        List<String> imageUrls = new ArrayList<>();
+        if (value instanceof List) {
+            for (Object item : (List<?>) value) {
+                if (item != null && StringUtils.hasText(item.toString())) {
+                    imageUrls.add(item.toString());
+                }
+            }
+        }
+        CheckInRecord record = checkInService.addGalleryImages(userId, spotId, imageUrls);
+        ScenicSpot spot = spotRepository.findById(spotId)
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        return galleryBody(record, spot);
+    }
+
+    @DeleteMapping("/users/{userId}/travel-galleries/{spotId}/images")
+    public Map<String, Object> deleteTravelGalleryImage(@PathVariable Long userId,
+                                                        @PathVariable Long spotId,
+                                                        @RequestParam String imageUrl) {
+        CheckInRecord record = checkInService.deleteGalleryImage(userId, spotId, imageUrl);
+        ScenicSpot spot = spotRepository.findById(spotId)
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
+        return galleryBody(record, spot);
     }
 
     @GetMapping("/facilities")
@@ -178,6 +279,31 @@ public class TravelFeatureController {
                                          @RequestParam(required = false) String notes,
                                          @RequestParam("images") MultipartFile[] images) throws java.io.IOException {
         return spotAssistantService.generateTravelCopy(locationName, tripDate, companions, style, length, notes, images);
+    }
+
+    private void validateCheckInImage(MultipartFile file) {
+        String contentType = file.getContentType();
+        if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
+            throw new IllegalArgumentException("打卡凭证只支持图片文件");
+        }
+        if (file.getSize() > 10 * 1024 * 1024) {
+            throw new IllegalArgumentException("单张打卡图片不能超过10MB");
+        }
+    }
+
+    private Map<String, Object> galleryBody(CheckInRecord record, ScenicSpot spot) {
+        List<String> images = checkInService.images(record);
+        Map<String, Object> body = new HashMap<>();
+        body.put("id", record.getId());
+        body.put("spotId", spot.getId());
+        body.put("spotName", spot.getName());
+        body.put("spotType", spot.getType());
+        body.put("address", spot.getAddress());
+        body.put("checkedInAt", record.getCheckedInAt());
+        body.put("imageUrl", images.isEmpty() ? "" : images.get(0));
+        body.put("imageUrls", images);
+        body.put("photoCount", images.size());
+        return body;
     }
 
     @GetMapping(value = "/audio/mock/{name}", produces = MediaType.TEXT_PLAIN_VALUE)

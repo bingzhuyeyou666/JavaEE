@@ -107,6 +107,80 @@ body[data-theme="day"] .detail-hero::before {
   border: var(--border-subtle);
 }
 
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: var(--space-6);
+  background: rgba(12, 10, 8, 0.52);
+  backdrop-filter: blur(8px);
+}
+
+.modal-content {
+  position: relative;
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow: auto;
+  padding: var(--space-6);
+  border: var(--border-thin);
+  border-radius: var(--radius-lg);
+  background: var(--color-bg-elevated);
+  box-shadow: var(--shadow-xl);
+}
+
+.modal-close {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-4);
+  width: 38px;
+  min-width: 38px;
+  min-height: 38px;
+  padding: 0;
+  border-radius: 50%;
+}
+
+.check-in-modal {
+  display: grid;
+  gap: var(--space-4);
+}
+
+.check-in-upload {
+  position: relative;
+  display: grid;
+  place-items: center;
+  min-height: 260px;
+  overflow: hidden;
+  border: 1px dashed color-mix(in srgb, var(--color-border) 72%, var(--color-accent));
+  border-radius: var(--radius-md);
+  background: color-mix(in srgb, var(--color-bg-card) 86%, transparent);
+  cursor: pointer;
+}
+
+.check-in-upload span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--color-text-secondary);
+  font-weight: var(--font-semibold);
+}
+
+.check-in-upload img {
+  width: 100%;
+  height: 100%;
+  max-height: 360px;
+  object-fit: cover;
+}
+
+.check-in-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
 /* 天气卡片 */
 .weather-core {
   display: flex;

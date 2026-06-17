@@ -47,6 +47,7 @@ public class SpotAssistantService {
     private final SpotKnowledgeBase knowledgeBase;
     private final CulturalShopService culturalShopService;
     private final WeatherService weatherService;
+    private final TravelCopyStyleRagService travelCopyStyleRagService;
     private final RestTemplateBuilder restTemplateBuilder;
     private final ObjectMapper objectMapper = new ObjectMapper();
 
@@ -126,6 +127,7 @@ public class SpotAssistantService {
                                          String notes) {
         String place = StringUtils.hasText(locationName) ? locationName.trim() : "这次旅行地";
         String styleText = safePromptText(style, "真实游记");
+        String styleRagBlock = travelCopyStyleRagService.buildPromptBlock(styleText, place, notes);
         return String.join("\n",
                 "任务：根据用户上传的旅行照片理解他去过的地方和现场景色，写一篇可以直接发布的中文旅行文案。",
                 "地点：" + place,
@@ -134,6 +136,8 @@ public class SpotAssistantService {
                 "文案风格：" + styleText,
                 "长度：" + safePromptText(length, "标准"),
                 "用户补充：" + safePromptText(notes, "无"),
+                "",
+                styleRagBlock,
                 "",
                 "必须遵守：",
                 "1. 照片只用于识别景色、环境、氛围和旅行现场，正文写的是这次旅行，不是写照片。",
@@ -148,7 +152,8 @@ public class SpotAssistantService {
                 "10. 如果风格是“小红书风格”：标题要更抓眼；正文必须使用短句、分段明显、至少4个自然融入的emoji；要有明显情绪种草感和轻互动语气；结尾必须带3到5个#话题标签；整体像可直接发布的小红书文案，不要写成长篇散文。",
                 "11. 如果风格是“朋友圈随笔”：口语化、私人感受、短段落，像随手发的动态，不要太营销，不要太工整。",
                 "12. 如果风格是“诗意文艺”：意象化、抒情、节奏舒缓，要有留白感和文学感，但不要堆砌生僻词。",
-                "13. 返回严格 JSON：{\"title\":\"标题\",\"content\":\"正文自然分段\",\"tags\":[\"标签1\",\"标签2\"],\"category\":\"景点影像\",\"postType\":\"NOTE\"}");
+                "13. 必须显式拉开不同风格的结构差异：真实游记像记录，朋友圈像随手动态，小红书像种草笔记，诗意文艺像短散文。",
+                "14. 返回严格 JSON：{\"title\":\"标题\",\"content\":\"正文自然分段\",\"tags\":[\"标签1\",\"标签2\"],\"category\":\"景点影像\",\"postType\":\"NOTE\"}");
     }
 
     private String askVisionModel(String userPrompt, MultipartFile[] images) throws java.io.IOException {
@@ -195,7 +200,7 @@ public class SpotAssistantService {
 
         Map<String, Object> body = new HashMap<String, Object>();
         body.put("model", StringUtils.hasText(visionModel) ? visionModel : model);
-        body.put("temperature", 0.55);
+        body.put("temperature", 0.78);
         body.put("max_tokens", 1200);
         body.put("messages", Arrays.asList(system, user));
 

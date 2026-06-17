@@ -144,6 +144,122 @@
   margin-bottom: var(--space-6);
 }
 
+.travel-photo-panel {
+  margin-bottom: var(--space-6);
+}
+
+.travel-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--space-4);
+}
+
+.travel-photo-card {
+  overflow: hidden;
+  display: block;
+  width: 100%;
+  padding: 0;
+  text-align: left;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+  box-shadow: none;
+  cursor: pointer;
+}
+
+.travel-photo-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--color-accent);
+}
+
+.travel-photo-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.travel-photo-card div {
+  display: grid;
+  gap: 4px;
+  padding: var(--space-4);
+}
+
+.travel-photo-card strong,
+.travel-photo-card span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.travel-photo-card span {
+  color: var(--color-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.travel-gallery-detail {
+  display: grid;
+  gap: var(--space-5);
+}
+
+.travel-gallery-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--space-4);
+}
+
+.gallery-add-button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-2);
+  min-height: 42px;
+  padding: 0 var(--space-4);
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+.gallery-add-button input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.travel-gallery-image-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+  gap: var(--space-4);
+}
+
+.travel-gallery-image-card {
+  overflow: hidden;
+  border: var(--border-subtle);
+  border-radius: var(--radius-md);
+  background: var(--color-bg-card);
+}
+
+.travel-gallery-image-card img {
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+
+.travel-gallery-image-card button {
+  width: calc(100% - var(--space-6));
+  margin: var(--space-3);
+}
+
+.secondary.danger {
+  color: #b42318;
+  border-color: rgba(180, 35, 24, 0.24);
+  background: rgba(180, 35, 24, 0.08);
+}
+
 .friendly-point-panel {
   display: grid;
   grid-template-columns: minmax(240px, 0.55fr) minmax(0, 1fr) auto;
@@ -306,6 +422,10 @@
 
   .profile-panel-grid {
     grid-template-columns: 1fr;
+  }
+
+  .travel-gallery-head {
+    flex-direction: column;
   }
 
   .profile-list-item {

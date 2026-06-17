@@ -1566,6 +1566,10 @@ function SpotDetail({ id, addRoute }) {
   const [assistantMeta, setAssistantMeta] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
+  const [checkInOpen, setCheckInOpen] = useState(false);
+  const [checkInFile, setCheckInFile] = useState(null);
+  const [checkInPreview, setCheckInPreview] = useState('');
+  const [checkInBusy, setCheckInBusy] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
     { role: 'assistant', content: '我在。你想问这个景点，还是准备直接出发？', meta: '菲比' }
   ]);
@@ -1576,6 +1580,9 @@ function SpotDetail({ id, addRoute }) {
   const assistantDraggedRef = useRef(false);
   const assistantDragClickTimerRef = useRef(null);
   const [message, setMessage] = useState('');
+  useEffect(() => () => {
+    if (checkInPreview) URL.revokeObjectURL(checkInPreview);
+  }, [checkInPreview]);
   useEffect(() => {
     const list = products.data || [];
     if (list.length && !list.some((product) => product.id === selectedProductId)) {
@@ -1590,9 +1597,56 @@ function SpotDetail({ id, addRoute }) {
   const nextWeather = weatherList.slice(1, 4);
   const weatherSummary = summarizeWeather(weatherList);
   const hasReservation = Number(spot.price) > 0;
-  async function checkIn() {
-    const result = await api(`/api/spots/${id}/check-ins?userId=${currentUserId()}&lat=${spot.latitude}&lng=${spot.longitude}`, { method: 'POST' });
-    setMessage(`打卡成功，累计 ${result.totalCheckedIn} 个景点。`);
+  function openCheckInDialog() {
+    setCheckInOpen(true);
+    setMessage('');
+  }
+  function closeCheckInDialog() {
+    if (checkInBusy) return;
+    setCheckInOpen(false);
+    setCheckInFile(null);
+    if (checkInPreview) URL.revokeObjectURL(checkInPreview);
+    setCheckInPreview('');
+  }
+  function pickCheckInImage(file) {
+    if (!file || !file.type.startsWith('image/')) {
+      setMessage('请选择 JPG、PNG、WebP 等图片作为打卡凭证。');
+      return;
+    }
+    if (checkInPreview) URL.revokeObjectURL(checkInPreview);
+    setCheckInFile(file);
+    setCheckInPreview(URL.createObjectURL(file));
+    setMessage('');
+  }
+  async function submitCheckIn(event) {
+    event.preventDefault();
+    if (!checkInFile) {
+      setMessage('请先上传一张到达现场的图片，再完成打卡。');
+      return;
+    }
+    setCheckInBusy(true);
+    try {
+      const body = new FormData();
+      body.append('files', checkInFile);
+      const uploadResponse = await fetch('/api/check-ins/uploads', { method: 'POST', body });
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json().catch(() => ({ message: '打卡图片上传失败' }));
+        throw new Error(error.message || '打卡图片上传失败');
+      }
+      const uploaded = await uploadResponse.json();
+      const imageUrl = uploaded.urls?.[0];
+      if (!imageUrl) throw new Error('打卡图片上传失败');
+      const result = await api(`/api/spots/${id}/check-ins?userId=${currentUserId()}&lat=${spot.latitude}&lng=${spot.longitude}&imageUrl=${encodeURIComponent(imageUrl)}`, { method: 'POST' });
+      setMessage(`打卡成功，图片已存入个人中心的个人游记图库。累计 ${result.totalCheckedIn} 个景点。`);
+      setCheckInOpen(false);
+      setCheckInFile(null);
+      if (checkInPreview) URL.revokeObjectURL(checkInPreview);
+      setCheckInPreview('');
+    } catch (error) {
+      setMessage(error.message || '打卡失败，请稍后重试。');
+    } finally {
+      setCheckInBusy(false);
+    }
   }
   async function reserveSpot(event) {
     event.preventDefault();
@@ -1781,10 +1835,33 @@ function SpotDetail({ id, addRoute }) {
           <p className="lead">{spot.description}</p>
           {message && <div className="message">{message}</div>}
           <div className="actions">
-            <button onClick={checkIn}><BadgeCheck size={16} /> 到达打卡</button>
+            <button onClick={openCheckInDialog}><BadgeCheck size={16} /> 到达打卡</button>
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
             <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('陌路寻景景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
+          {checkInOpen && (
+            <div className="modal-backdrop" onClick={closeCheckInDialog}>
+              <form className="modal-content check-in-modal" onClick={(event) => event.stopPropagation()} onSubmit={submitCheckIn}>
+                <button type="button" className="modal-close" onClick={closeCheckInDialog} disabled={checkInBusy}><X size={18} /></button>
+                <PanelTitle icon={BadgeCheck} title="上传图片后打卡" meta={spot.name} />
+                <label className={cx('check-in-upload', checkInPreview && 'has-image')} htmlFor="check-in-image">
+                  {checkInPreview ? <img src={checkInPreview} alt="打卡图片预览" /> : <span><UploadCloud size={26} /> 选择现场图片</span>}
+                  <input
+                    id="check-in-image"
+                    type="file"
+                    accept="image/*"
+                    disabled={checkInBusy}
+                    onChange={(event) => pickCheckInImage(event.target.files?.[0])}
+                  />
+                </label>
+                <p className="muted">这张图片会作为打卡凭证保存，并自动进入个人中心的个人游记图库。</p>
+                <div className="form-actions">
+                  <button type="button" className="secondary" onClick={closeCheckInDialog} disabled={checkInBusy}>取消</button>
+                  <button type="submit" disabled={checkInBusy || !checkInFile}><BadgeCheck size={16} /> {checkInBusy ? '打卡中...' : '确认打卡'}</button>
+                </div>
+              </form>
+            </div>
+          )}
           <div className="gallery detail-gallery">{(spot.gallery || []).slice(0, 4).map((image) => <img key={image} src={image} alt={spot.name} />)}</div>
           <InfoGrid items={[['开放时间', spot.openHours], ['门票', formatTicketPrice(spot.price)], ['最佳季节', spot.bestSeason], ['咨询电话', spot.phone]]} />
           <h3>导览与历史</h3>
@@ -3856,6 +3933,7 @@ function Profile() {
         <PanelTitle icon={Map} title="旅游足迹地图" />
         <BaiduMap center={defaultLocation} markers={footprints.data?.checkedInSpots || []} polyline className="footprint-map" />
       </section>
+      <TravelPhotoGallery photos={footprints.data?.travelPhotos || []} />
       <div className="profile-panel-grid">
         <ListPanel
           title="最近解锁"
@@ -3894,6 +3972,109 @@ function Profile() {
       />
     </main>
   );
+}
+
+function TravelPhotoGallery({ photos }) {
+  return (
+    <section className="panel travel-photo-panel">
+      <PanelTitle icon={Image} title="个人游记图库" meta={`${photos.reduce((total, item) => total + Number(item.photoCount || 0), 0)} 张`} />
+      {photos.length ? (
+        <div className="travel-photo-grid">
+          {photos.map((photo) => (
+            <button type="button" className="travel-photo-card" key={photo.id} onClick={() => navigateTo(`/me/travel-gallery/${photo.spotId}`)}>
+              <img src={photo.imageUrl} alt={`${photo.spotName}打卡图`} />
+              <div>
+                <strong>{photo.spotName}</strong>
+                <span>{photo.photoCount || photo.imageUrls?.length || 1} 张图片 · {formatDateTime(photo.checkedInAt)}</span>
+              </div>
+            </button>
+          ))}
+        </div>
+      ) : (
+        <div className="empty-state compact">还没有游记图片，去景点详情页上传图片完成打卡后会自动收进这里。</div>
+      )}
+    </section>
+  );
+}
+
+function TravelGalleryDetail({ spotId }) {
+  const [tick, setTick] = useState(0);
+  const gallery = useAsync(() => api(`/api/users/${currentUserId()}/travel-galleries/${spotId}`), [spotId, tick]);
+  const [uploading, setUploading] = useState(false);
+  const [message, setMessage] = useState('');
+  async function uploadGalleryImages(files) {
+    const selected = Array.from(files || []).filter((file) => file.type.startsWith('image/'));
+    if (!selected.length) {
+      setMessage('请选择图片文件。');
+      return;
+    }
+    setUploading(true);
+    setMessage('');
+    try {
+      const body = new FormData();
+      selected.forEach((file) => body.append('files', file));
+      const uploadResponse = await fetch('/api/check-ins/uploads', { method: 'POST', body });
+      if (!uploadResponse.ok) {
+        const error = await uploadResponse.json().catch(() => ({ message: '图片上传失败' }));
+        throw new Error(error.message || '图片上传失败');
+      }
+      const uploaded = await uploadResponse.json();
+      await api(`/api/users/${currentUserId()}/travel-galleries/${spotId}/images`, {
+        method: 'POST',
+        body: JSON.stringify({ imageUrls: uploaded.urls || [] })
+      });
+      setMessage('图片已添加到该景点图库。');
+      setTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message || '图片添加失败。');
+    } finally {
+      setUploading(false);
+    }
+  }
+  async function deleteGalleryImage(imageUrl) {
+    if (!window.confirm('确认删除这张图片？')) return;
+    await api(`/api/users/${currentUserId()}/travel-galleries/${spotId}/images?imageUrl=${encodeURIComponent(imageUrl)}`, { method: 'DELETE' });
+    setMessage('图片已删除。');
+    setTick((value) => value + 1);
+  }
+  if (gallery.loading) return <main className="container"><Loading /></main>;
+  if (gallery.error) return <main className="container"><div className="message error">{gallery.error}</div></main>;
+  const data = gallery.data || {};
+  const images = data.imageUrls || [];
+  return (
+    <main className="container">
+      <button type="button" className="back-nav" onClick={() => navigateTo('/me')}><ArrowLeft size={16} /> 返回个人中心</button>
+      <section className="panel travel-gallery-detail">
+        <div className="travel-gallery-head">
+          <PanelTitle icon={Image} title={data.spotName || '个人游记图库'} meta={`${images.length} 张`} />
+          <label className="secondary gallery-add-button">
+            <ImagePlus size={16} /> {uploading ? '上传中...' : '添加图片'}
+            <input type="file" accept="image/*" multiple disabled={uploading} onChange={(event) => uploadGalleryImages(event.target.files)} />
+          </label>
+        </div>
+        <p className="muted">{data.address || '打卡图片会保存在当前景点图库中。'}</p>
+        {message && <div className="message">{message}</div>}
+        {images.length ? (
+          <div className="travel-gallery-image-grid">
+            {images.map((imageUrl) => (
+              <article className="travel-gallery-image-card" key={imageUrl}>
+                <img src={imageUrl} alt={`${data.spotName || '景点'}游记图片`} />
+                <button type="button" className="secondary danger" onClick={() => deleteGalleryImage(imageUrl)}><Trash2 size={15} /> 删除</button>
+              </article>
+            ))}
+          </div>
+        ) : (
+          <div className="empty-state compact">这个景点图库暂时没有图片，可以点击右上角添加。</div>
+        )}
+      </section>
+    </main>
+  );
+}
+
+function formatDateTime(value) {
+  if (!value) return '刚刚打卡';
+  const text = String(value).replace('T', ' ');
+  return text.length > 16 ? text.slice(0, 16) : text;
 }
 
 function FriendlyPointPanel({ data }) {
@@ -4912,6 +5093,8 @@ function App() {
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
   if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} />;
   if (path === '/me') page = <Profile />;
+  const travelGalleryMatch = path.match(/^\/me\/travel-gallery\/(\d+)$/);
+  if (travelGalleryMatch) page = <TravelGalleryDetail spotId={travelGalleryMatch[1]} />;
   if (path === '/submit-spot') page = <SubmitSpot />;
   if (path === '/login') page = <Login refreshAccount={refreshAccount} />;
   if (path === '/admin') page = <Admin />;
