@@ -1,8 +1,5 @@
 package com.zhuly.controller;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.zhuly.domain.CulturalProduct;
 import com.zhuly.domain.Facility;
 import com.zhuly.domain.HeroSlide;
 import com.zhuly.domain.ScenicSpot;
@@ -10,7 +7,6 @@ import com.zhuly.domain.SpotSubmission;
 import com.zhuly.repository.FacilityRepository;
 import com.zhuly.repository.HeroSlideRepository;
 import com.zhuly.repository.ReviewRepository;
-import com.zhuly.repository.CulturalProductRepository;
 import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.repository.SpotSubmissionRepository;
 import lombok.RequiredArgsConstructor;
@@ -24,7 +20,6 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -39,8 +34,6 @@ public class AdminController {
     private final ReviewRepository reviewRepository;
     private final SpotSubmissionRepository submissionRepository;
     private final HeroSlideRepository heroSlideRepository;
-    private final CulturalProductRepository culturalProductRepository;
-    private final ObjectMapper objectMapper;
 
     @GetMapping("/spots")
     public List<ScenicSpot> spots() {
@@ -140,8 +133,7 @@ public class AdminController {
             spot.setRating(4.5);
             spot.setMaxCapacity(1000);
             spot.setApproved(true);
-            ScenicSpot savedSpot = spotRepository.save(spot);
-            saveSubmittedProducts(savedSpot.getId(), submission.getCulturalProductsJson());
+            spotRepository.save(spot);
         }
         submission.setStatus("APPROVED");
         if (body != null) {
@@ -168,67 +160,7 @@ public class AdminController {
         });
     }
 
-    private void saveSubmittedProducts(Long spotId, String productsJson) {
-        if (!hasText(productsJson)) {
-            return;
-        }
-        try {
-            List<Map<String, Object>> products = objectMapper.readValue(productsJson, new TypeReference<List<Map<String, Object>>>() {});
-            for (Map<String, Object> item : products) {
-                String name = stringValue(item.get("name"));
-                if (!hasText(name)) {
-                    continue;
-                }
-                CulturalProduct product = new CulturalProduct();
-                product.setSpotId(spotId);
-                product.setName(name.trim());
-                product.setCategory(defaultText(stringValue(item.get("category")), "文创"));
-                product.setDescription(stringValue(item.get("description")));
-                product.setTags(stringValue(item.get("tags")));
-                product.setImageUrl(stringValue(item.get("imageUrl")));
-                product.setPrice(decimalValue(item.get("price")));
-                product.setStock(intValue(item.get("stock")));
-                product.setCreatedAt(LocalDateTime.now());
-                culturalProductRepository.save(product);
-            }
-        } catch (Exception ignored) {
-            // Invalid optional product data should not block approval of the spot itself.
-        }
-    }
-
     private boolean hasText(String value) {
         return value != null && !value.trim().isEmpty();
-    }
-
-    private String stringValue(Object value) {
-        return value == null ? null : String.valueOf(value).trim();
-    }
-
-    private String defaultText(String value, String fallback) {
-        return hasText(value) ? value.trim() : fallback;
-    }
-
-    private BigDecimal decimalValue(Object value) {
-        String text = stringValue(value);
-        if (!hasText(text)) {
-            return BigDecimal.ZERO;
-        }
-        try {
-            return new BigDecimal(text);
-        } catch (NumberFormatException ignored) {
-            return BigDecimal.ZERO;
-        }
-    }
-
-    private Integer intValue(Object value) {
-        String text = stringValue(value);
-        if (!hasText(text)) {
-            return 0;
-        }
-        try {
-            return Integer.valueOf(text);
-        } catch (NumberFormatException ignored) {
-            return 0;
-        }
     }
 }

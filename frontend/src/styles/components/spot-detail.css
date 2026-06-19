@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 Spot Detail — 景点详情页
+   陌路寻阡 Spot Detail — 景点详情页
    ======================================== */
 
 /* 详情 Hero */
@@ -331,55 +331,6 @@ body[data-theme="day"] .detail-hero::before {
   background: var(--color-bg-card);
 }
 
-/* 文创商店 */
-.cultural-shop {
-  padding: var(--space-6);
-  border: var(--border-subtle);
-  border-radius: var(--radius-lg);
-  background: var(--color-surface-card);
-  margin-top: var(--space-8);
-}
-
-.cultural-product-grid,
-.shop-order-form {
-  display: grid;
-  gap: var(--space-4);
-}
-
-.shop-order-form {
-  margin-top: var(--space-5);
-}
-
-.cultural-product {
-  display: grid;
-  grid-template-columns: 22px 92px minmax(0, 1fr);
-  gap: var(--space-4);
-  align-items: center;
-  padding: var(--space-5);
-  border: var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-}
-
-.cultural-product img {
-  width: 92px;
-  height: 92px;
-  object-fit: cover;
-  border-radius: var(--radius-md);
-}
-
-.cultural-product strong {
-  display: block;
-  font-size: var(--text-lg);
-  margin-bottom: var(--space-1);
-}
-
-.cultural-product em {
-  font-style: normal;
-  font-weight: var(--font-bold);
-  color: var(--color-accent-warm);
-}
-
 /* 设施列表 */
 .facility-list {
   display: grid;
@@ -435,5 +386,37 @@ body[data-theme="day"] .detail-hero::before {
 @keyframes weatherRefreshSpin {
   to {
     transform: rotate(360deg);
+  }
+}
+.recommendation-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+  margin: 14px 0 28px;
+}
+
+.recommendation-grid .card {
+  overflow: hidden;
+}
+
+.recommendation-grid .card > img {
+  width: 100%;
+  height: 150px;
+  object-fit: cover;
+}
+
+.recommendation-grid .card > div {
+  padding: 14px;
+}
+
+@media (max-width: 900px) {
+  .recommendation-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 560px) {
+  .recommendation-grid {
+    grid-template-columns: 1fr;
   }
 }

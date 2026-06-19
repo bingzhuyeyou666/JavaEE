@@ -1,6 +1,5 @@
 package com.zhuly.controller;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.zhuly.config.UserAuthInterceptor;
 import com.zhuly.domain.Review;
@@ -68,11 +67,13 @@ public class CommunityController {
 
     @PostMapping("/reviews")
     public Review review(@RequestParam(defaultValue = "1") Long userId,
+                         HttpSession session,
                          @Valid @RequestBody ReviewRequest request) {
+        Long currentUserId = requireUserId(session);
         spotRepository.findById(request.getSpotId())
                 .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
         Review review = new Review();
-        review.setUserId(userId);
+        review.setUserId(currentUserId);
         review.setSpotId(request.getSpotId());
         review.setScore(request.getScore());
         review.setContent(request.getContent().trim());
@@ -92,14 +93,15 @@ public class CommunityController {
     }
 
     @PostMapping("/reviews/{id}/like")
-    public Review like(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId) {
+    public Review like(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId, HttpSession session) {
+        Long currentUserId = requireUserId(session);
         Review review = reviewRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("评论不存在"));
-        if (review.getLikedUserIds().contains(userId)) {
-            review.getLikedUserIds().remove(userId);
+        if (review.getLikedUserIds().contains(currentUserId)) {
+            review.getLikedUserIds().remove(currentUserId);
             review.setLikes(Math.max(0, review.getLikes() - 1));
         } else {
-            review.getLikedUserIds().add(userId);
+            review.getLikedUserIds().add(currentUserId);
             review.setLikes(review.getLikes() + 1);
         }
         return reviewRepository.save(review);
@@ -193,7 +195,9 @@ public class CommunityController {
 
     @PostMapping("/submissions/uploads")
     public Map<String, Object> uploadSubmissionMedia(@RequestParam(defaultValue = "image") String type,
+                                                     HttpSession session,
                                                      @RequestParam("files") MultipartFile[] files) throws IOException {
+        requireUserId(session);
         if (files == null || files.length == 0) {
             throw new IllegalArgumentException("No files selected");
         }
@@ -220,14 +224,15 @@ public class CommunityController {
 
     @PostMapping("/square/posts/{id}/like")
     @Transactional
-    public Map<String, Object> likeSquarePost(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId) {
+    public Map<String, Object> likeSquarePost(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId, HttpSession session) {
+        Long currentUserId = requireUserId(session);
         SquarePost post = squarePostRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("帖子不存在"));
-        if (post.getLikedUserIds().contains(userId)) {
-            post.getLikedUserIds().remove(userId);
+        if (post.getLikedUserIds().contains(currentUserId)) {
+            post.getLikedUserIds().remove(currentUserId);
             post.setLikes(Math.max(0, post.getLikes() - 1));
         } else {
-            post.getLikedUserIds().add(userId);
+            post.getLikedUserIds().add(currentUserId);
             post.setLikes(post.getLikes() + 1);
         }
         return squarePostBody(squarePostRepository.save(post));
@@ -242,14 +247,16 @@ public class CommunityController {
     @Transactional
     public SquareComment squareComment(@PathVariable Long id,
                                        @RequestParam(defaultValue = "1") Long userId,
+                                       HttpSession session,
                                        @Valid @RequestBody SquareCommentRequest request) {
+        Long currentUserId = requireUserId(session);
         SquarePost post = squarePostRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("帖子不存在"));
         SquareComment comment = new SquareComment();
         comment.setPostId(id);
         comment.setParentId(request.getParentId());
-        comment.setUserId(userId);
-        comment.setAuthorName("游客" + userId);
+        comment.setUserId(currentUserId);
+        comment.setAuthorName(currentUserName(session, currentUserId));
         comment.setContent(request.getContent().trim());
         comment.setCreatedAt(LocalDateTime.now());
         if (request.getParentId() != null) {
@@ -269,14 +276,15 @@ public class CommunityController {
 
     @PostMapping("/square/comments/{id}/like")
     @Transactional
-    public SquareComment likeSquareComment(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId) {
+    public SquareComment likeSquareComment(@PathVariable Long id, @RequestParam(defaultValue = "1") Long userId, HttpSession session) {
+        Long currentUserId = requireUserId(session);
         SquareComment comment = squareCommentRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("评论不存在"));
-        if (comment.getLikedUserIds().contains(userId)) {
-            comment.getLikedUserIds().remove(userId);
+        if (comment.getLikedUserIds().contains(currentUserId)) {
+            comment.getLikedUserIds().remove(currentUserId);
             comment.setLikes(Math.max(0, safeInt(comment.getLikes()) - 1));
         } else {
-            comment.getLikedUserIds().add(userId);
+            comment.getLikedUserIds().add(currentUserId);
             comment.setLikes(safeInt(comment.getLikes()) + 1);
         }
         return squareCommentRepository.save(comment);
@@ -284,9 +292,11 @@ public class CommunityController {
 
     @PostMapping("/submissions")
     public SpotSubmission submit(@RequestParam(defaultValue = "1") Long userId,
+                                 HttpSession session,
                                  @Valid @RequestBody SpotSubmissionRequest request) {
+        Long currentUserId = requireUserId(session);
         SpotSubmission submission = new SpotSubmission();
-        submission.setUserId(userId);
+        submission.setUserId(currentUserId);
         submission.setName(request.getName());
         submission.setType(request.getType());
         submission.setAddress(request.getAddress());
@@ -304,21 +314,14 @@ public class CommunityController {
         if (request.getVideoUrls() != null) {
             submission.setVideoUrls(request.getVideoUrls());
         }
-        if (request.getCulturalProducts() != null && !request.getCulturalProducts().isEmpty()) {
-            try {
-                submission.setCulturalProductsJson(objectMapper.writeValueAsString(request.getCulturalProducts()));
-            } catch (JsonProcessingException e) {
-                throw new IllegalArgumentException("Invalid cultural product data");
-            }
-        }
         submission.setStatus("PENDING");
         submission.setCreatedAt(LocalDateTime.now());
         return submissionRepository.save(submission);
     }
 
     @GetMapping("/submissions/mine")
-    public List<SpotSubmission> mine(@RequestParam(defaultValue = "1") Long userId) {
-        return submissionRepository.findByUserIdOrderByCreatedAtDesc(userId);
+    public List<SpotSubmission> mine(@RequestParam(defaultValue = "1") Long userId, HttpSession session) {
+        return submissionRepository.findByUserIdOrderByCreatedAtDesc(requireUserId(session));
     }
 
     private List<String> cleanUrls(List<String> urls) {

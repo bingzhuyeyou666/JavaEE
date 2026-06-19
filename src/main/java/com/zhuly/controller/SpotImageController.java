@@ -34,11 +34,27 @@ public class SpotImageController {
     public ResponseEntity<?> spotImage(@PathVariable String name) {
         String imageUrl = cache.computeIfAbsent(name, this::resolveWikiImage);
         if (imageUrl != null && !imageUrl.isEmpty()) {
+            persistResolvedImage(name, imageUrl);
             HttpHeaders headers = new HttpHeaders();
             headers.add(HttpHeaders.LOCATION, imageUrl);
             return new ResponseEntity<>(headers, HttpStatus.FOUND);
         }
         return fallbackSvg(name);
+    }
+
+    private void persistResolvedImage(String name, String imageUrl) {
+        spotRepository.findFirstByName(name).ifPresent(spot -> {
+            if (spot.getCoverImage() == null || spot.getCoverImage().startsWith("/api/images/spots/")) {
+                spot.setCoverImage(imageUrl);
+            }
+            if (spot.getGallery() == null) {
+                spot.setGallery(new java.util.ArrayList<>());
+            }
+            if (!spot.getGallery().contains(imageUrl)) {
+                spot.getGallery().add(imageUrl);
+            }
+            spotRepository.save(spot);
+        });
     }
 
     private String resolveWikiImage(String name) {
@@ -54,7 +70,7 @@ public class SpotImageController {
     }
 
     private String bingThumbnailImage(String name) {
-        String query = UriUtils.encodeQueryParam(name + " 景点图片", StandardCharsets.UTF_8);
+        String query = UriUtils.encodeQueryParam(name + " 四川 景区 实景", StandardCharsets.UTF_8);
         return "https://tse1.mm.bing.net/th?q=" + query + "&w=1200&h=675&c=7&rs=1&p=0&o=5&pid=1.7";
     }
 
@@ -156,7 +172,7 @@ public class SpotImageController {
                 + "<text x=\"72\" y=\"284\" font-family=\"Microsoft YaHei, Arial\" font-size=\"" + titleSize + "\" font-weight=\"900\" fill=\"" + color + "\">" + safeName + "</text>"
                 + "<text x=\"76\" y=\"356\" font-family=\"Microsoft YaHei, Arial\" font-size=\"30\" fill=\"#18364f\">" + safeAddress + "</text>"
                 + "<text x=\"76\" y=\"412\" font-family=\"Microsoft YaHei, Arial\" font-size=\"28\" fill=\"#34516a\">" + safeHighlight + "</text>"
-                + "<text x=\"76\" y=\"588\" font-family=\"Microsoft YaHei, Arial\" font-size=\"24\" fill=\"#526b81\">陌路寻景景点图库 · 与当前景点绑定</text>"
+                + "<text x=\"76\" y=\"588\" font-family=\"Microsoft YaHei, Arial\" font-size=\"24\" fill=\"#526b81\">陌路寻阡景点图库 · 与当前景点绑定</text>"
                 + "</svg>";
         return ResponseEntity.ok()
                 .contentType(MediaType.valueOf("image/svg+xml;charset=UTF-8"))

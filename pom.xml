@@ -8,7 +8,7 @@
     <artifactId>travel-cloud-map</artifactId>
     <version>0.0.1-SNAPSHOT</version>
     <name>travel-cloud-map</name>
-    <description>陌路寻景智慧文旅综合服务平台</description>
+    <description>陌路寻阡智慧文旅综合服务平台</description>
 
     <parent>
         <groupId>org.springframework.boot</groupId>

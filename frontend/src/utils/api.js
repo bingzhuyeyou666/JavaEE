@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 API 工具
+   陌路寻阡 API 工具
    ======================================== */
 
 export const defaultUserId = 1;
@@ -70,9 +70,10 @@ export function writeSessionFlag(key, value) {
 }
 
 export function fetchNearbySpots(location) {
-  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}&userId=${currentUserId()}`);
+  const userId = currentUserId();
+  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}${userId ? `&userId=${userId}` : ''}`);
 }
 
 function currentUserId() {
-  return window.travelCloudCurrentUserId || 1;
+  return window.travelCloudCurrentUserId || null;
 }

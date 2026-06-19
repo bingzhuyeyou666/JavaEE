@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 常量
+   陌路寻阡 常量
    ======================================== */
 
 import { House, Compass, Navigation, Users, UserRound, Plus } from 'lucide-react';

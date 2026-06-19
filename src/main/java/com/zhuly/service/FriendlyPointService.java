@@ -78,7 +78,7 @@ public class FriendlyPointService {
 
     public List<Map<String, Object>> rewards() {
         return Arrays.asList(
-                reward("coupon-cultural-5", "文创 5 元券", 80, "可用于线下文创消费演示兑换"),
+                reward("route-priority-pass", "绿色路线优先卡", 80, "用于兑换低碳路线规划权益"),
                 reward("badge-green-walker", "低碳漫游徽章", 120, "展示在个人主页的绿色出行荣誉")
         );
     }

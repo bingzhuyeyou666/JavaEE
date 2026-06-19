@@ -5,6 +5,7 @@ import com.zhuly.repository.ScenicSpotRepository;
 import com.zhuly.service.BaiduPlaceService;
 import com.zhuly.service.CheckInService;
 import com.zhuly.service.GeoUtils;
+import com.zhuly.service.SpotRecommendationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -14,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -30,18 +32,19 @@ public class ScenicSpotController {
     private final ScenicSpotRepository spotRepository;
     private final CheckInService checkInService;
     private final BaiduPlaceService baiduPlaceService;
+    private final SpotRecommendationService recommendationService;
 
     @GetMapping
     public List<Map<String, Object>> list(@RequestParam(required = false) String keyword,
                                           @RequestParam(required = false) String type,
                                           @RequestParam(required = false) BigDecimal lat,
                                           @RequestParam(required = false) BigDecimal lng,
-                                          @RequestParam(defaultValue = "1") Long userId) {
+                                          @RequestParam(required = false) Long userId) {
         String normalizedKeyword = keyword == null ? "" : keyword.trim();
         List<ScenicSpot> spots = normalizedKeyword.isEmpty()
                 ? spotRepository.findByApprovedTrue()
                 : spotRepository.searchApproved(normalizedKeyword);
-        Set<Long> checked = checkInService.checkedInIds(userId);
+        Set<Long> checked = userId == null ? Collections.emptySet() : checkInService.checkedInIds(userId);
 
         boolean searching = !normalizedKeyword.isEmpty();
         return spots.stream()
@@ -70,6 +73,17 @@ public class ScenicSpotController {
         }
         spot.setPhone(baiduPlaceService.phoneFor(spot));
         return spot;
+    }
+
+    @GetMapping("/{id}/recommendations")
+    @Transactional(readOnly = true)
+    public List<Map<String, Object>> recommendations(@PathVariable Long id,
+                                                     @RequestParam(defaultValue = "6") int limit) {
+        ScenicSpot target = spotRepository.findById(id)
+                .orElseThrow(() -> new IllegalArgumentException("Scenic spot not found"));
+        return recommendationService.recommend(target, limit).stream()
+                .map(spot -> toListItem(spot, target.getLatitude(), target.getLongitude(), false, ""))
+                .collect(Collectors.toList());
     }
 
     private boolean matchesSearchIntent(ScenicSpot spot, String keyword) {

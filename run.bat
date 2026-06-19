@@ -2,18 +2,24 @@
 setlocal EnableExtensions
 
 set "ROOT=%~dp0"
-if exist "D:\JDK\bin\java.exe" (
-  set "JAVA_HOME=D:\JDK"
+if exist "C:\Program Files\BellSoft\LibericaJDK-17\bin\java.exe" (
+  set "JAVA_HOME=C:\Program Files\BellSoft\LibericaJDK-17"
+) else if exist "D:\JDK17\bin\java.exe" (
+  set "JAVA_HOME=D:\JDK17"
 ) else if exist "D:\JDK18\bin\java.exe" (
   set "JAVA_HOME=D:\JDK18"
+) else if exist "D:\JDK\bin\java.exe" (
+  set "JAVA_HOME=D:\JDK"
 ) else (
   set "JAVA_HOME="
 )
 if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
 set "APP_URL=http://localhost:8080/app/"
 set "JAR=%ROOT%target\travel-cloud-map-0.0.1-SNAPSHOT.jar"
+set "LOG=%ROOT%target\server.log"
+set "ERR_LOG=%ROOT%target\server-error.log"
 
-title Xingchan - one click restart
+title Molu Xunqian - one click restart
 
 echo.
 echo [1/6] Using JAVA_HOME=%JAVA_HOME%
@@ -108,11 +114,12 @@ if defined JAVA_HOME (
 ) else (
   set "JAVA_EXE=java"
 )
-start "Xingchan Server" /D "%ROOT%" "%JAVA_EXE%" -jar "%JAR%"
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$p = Start-Process -FilePath '%JAVA_EXE%' -ArgumentList '-jar','%JAR%' -WorkingDirectory '%ROOT%' -WindowStyle Hidden -RedirectStandardOutput '%LOG%' -RedirectStandardError '%ERR_LOG%' -PassThru; Set-Content -Path '%ROOT%target\server.pid' -Value $p.Id"
 
 echo Waiting for %APP_URL% ...
 set "READY="
-for /L %%i in (1,1,60) do (
+for /L %%i in (1,1,45) do (
   powershell -NoProfile -ExecutionPolicy Bypass -Command "try { $r = Invoke-WebRequest -UseBasicParsing '%APP_URL%' -TimeoutSec 2; if ($r.StatusCode -ge 200 -and $r.StatusCode -lt 500) { exit 0 } else { exit 1 } } catch { exit 1 }" >nul 2>nul
   if not errorlevel 1 (
     set "READY=1"
@@ -126,7 +133,14 @@ echo.
 if "%READY%"=="1" (
   echo [6/6] App is ready. Opening browser...
 ) else (
-  echo [6/6] Server is still starting. Opening browser anyway...
+  echo [6/6] ERROR: Server failed to become ready.
+  echo.
+  echo Last server log:
+  powershell -NoProfile -ExecutionPolicy Bypass -Command "if (Test-Path '%LOG%') { Get-Content '%LOG%' -Tail 25 }; if (Test-Path '%ERR_LOG%') { Get-Content '%ERR_LOG%' -Tail 25 }"
+  echo.
+  echo Logs: %LOG%
+  pause
+  exit /b 1
 )
 start "" "%APP_URL%"
 

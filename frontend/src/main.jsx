@@ -33,7 +33,6 @@ import {
   Search,
   Send,
   ShieldCheck,
-  ShoppingBag,
   SlidersHorizontal,
   Sparkles,
   Star,
@@ -55,6 +54,10 @@ const themeKey = 'travelCloudTheme';
 const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const squareDraftKey = 'travelCloudSquareDraft';
+
+function userSquareDraftKey(userId) {
+  return userId ? `${squareDraftKey}:${userId}` : '';
+}
 const defaultLocation = { lat: 28.77, lng: 104.64, label: '默认中心' };
 const blockedPresetLocations = [
   { lat: 28.77, lng: 104.64, label: '' },
@@ -82,8 +85,8 @@ body[data-theme="day"] .portal-nav a.active,
 body[data-theme="day"] .portal-nav a:hover {
   color: #0f172a !important;
 }
-html[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like,.cultural-shop),
-body[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like,.cultural-shop) {
+html[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like),
+body[data-theme="day"] .container :where(.panel,.card,.feature-entry,.product-story,.story-grid article,.trip-card,.metric,.list-item,.comment-section,.weather-day,.weather-advice,.info-grid div,.toolbar,.location-strip,.selected-item,.choice,.segment,.empty-state,.message,.review-composer,.comment-item.reply,.square-command-bar,.square-post,.media-uploader,.detail-like) {
   color: #172033 !important;
   background: rgba(255,255,255,.92) !important;
   border-color: rgba(31,60,96,.18) !important;
@@ -124,18 +127,6 @@ html[data-theme="day"] .weather-core .weather-tag,
 body[data-theme="day"] .weather-core .weather-tag {
   color: #17365f !important;
   background: rgba(255,255,255,.92) !important;
-}
-html[data-theme="day"] .cultural-shop :where(.panel-title,.panel-title span,h2,h3,.cultural-product strong),
-body[data-theme="day"] .cultural-shop :where(.panel-title,.panel-title span,h2,h3,.cultural-product strong) {
-  color: #0f172a !important;
-}
-html[data-theme="day"] .cultural-shop :where(.muted,.cultural-product small,.cultural-product p),
-body[data-theme="day"] .cultural-shop :where(.muted,.cultural-product small,.cultural-product p) {
-  color: #526579 !important;
-}
-html[data-theme="day"] .cultural-product em,
-body[data-theme="day"] .cultural-product em {
-  color: #b45309 !important;
 }
 html[data-theme="day"] .signature-stage,
 body[data-theme="day"] .signature-stage {
@@ -355,8 +346,23 @@ function cx(...names) {
   return names.filter(Boolean).join(' ');
 }
 
+function spotImageUrl(spot) {
+  return spot?.coverImage || '';
+}
+
 function currentUserId() {
-  return window.travelCloudCurrentUserId || defaultUserId;
+  return window.travelCloudCurrentUserId || null;
+}
+
+function optionalUserIdQuery() {
+  const userId = currentUserId();
+  return userId ? `&userId=${userId}` : '';
+}
+
+function requireUserLogin(account) {
+  if (account?.user?.loggedIn) return true;
+  navigateTo('/login');
+  return false;
 }
 
 function ensureDaylightContrastStyle() {
@@ -444,8 +450,8 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
         <Link href="/" className="brand">
           <span className="brand-mark">星</span>
           <span>
-            <strong>陌路寻景</strong>
-            <small>Molu Xunjing</small>
+            <strong>陌路寻阡</strong>
+            <small>Molu Xunqian</small>
           </span>
         </Link>
         <p className="header-quote" key={quoteIndex}>{travelQuotes[quoteIndex]}</p>
@@ -485,7 +491,7 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '陌路寻景', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '陌路寻阡', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
   { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
@@ -551,7 +557,7 @@ function SpotCard({ spot, addRoute }) {
       }}
     >
       <div className="card-media">
-        <img src={spot.coverImage} alt={spot.name} />
+        <img src={spotImageUrl(spot)} alt={spot.name} />
         <span className="rating-badge"><Star size={14} fill="currentColor" /> {spot.rating}</span>
       </div>
       <div className="card-body">
@@ -573,13 +579,13 @@ function SpotCard({ spot, addRoute }) {
 
 function Home({ addRoute }) {
   const { data: slides = [] } = useAsync(() => api('/api/home/hero'), []);
-  const { data: featured = [], loading } = useAsync(() => api(`/api/home/featured-spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${currentUserId()}`), []);
+  const { data: featured = [], loading } = useAsync(() => api(`/api/home/featured-spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}${optionalUserIdQuery()}`), []);
   const featuredSpots = Array.isArray(featured) ? featured : [];
   return (
     <>
       <Hero spots={featuredSpots} slides={slides} />
       <main className="container">
-        <section className="signature-stage" aria-label="陌路寻景核心亮点">
+        <section className="signature-stage" aria-label="陌路寻阡核心亮点">
           <div className="signature-copy">
             <span className="section-kicker">核心竞争力</span>
             <h2>不是景点列表，而是一张会行动的旅行星图</h2>
@@ -612,7 +618,7 @@ function Home({ addRoute }) {
             </Link>
           ))}
         </section>
-        <section className="product-story" aria-label="陌路寻景产品能力">
+        <section className="product-story" aria-label="陌路寻阡产品能力">
           <div>
             <span className="section-kicker">从灵感到抵达</span>
             <h2>一个面向真实出行的文旅工作台</h2>
@@ -770,7 +776,7 @@ function useBaiduMap() {
 }
 
 function fetchNearbySpots(location) {
-  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}&userId=${currentUserId()}`);
+  return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}${optionalUserIdQuery()}`);
 }
 
 function formatDistanceKm(distanceKm) {
@@ -1062,7 +1068,7 @@ function GuideLanding() {
         onWheel={zoomStarMap}
       >
         <div className="locate-ui-header">
-          <span>陌路寻景定位</span>
+          <span>陌路寻阡定位</span>
           <strong>附近景点雷达</strong>
         </div>
         <div className="explore-range-panel">
@@ -1168,7 +1174,7 @@ function GuideLanding() {
                       {(isNearest || isFarthest) && <span className="signal-extreme">{isNearest ? '最近' : '最远'}</span>}
                       <span className="signal-name">{spot.name}</span>
                       <span className="signal-preview">
-                        <img src={spot.coverImage} alt={spot.name} />
+                        <img src={spotImageUrl(spot)} alt={spot.name} />
                         <strong>{spot.name}</strong>
                         <small>{spot.type} · {formatDistanceKm(spot.distanceKm)}</small>
                       </span>
@@ -1206,7 +1212,7 @@ function GuideLanding() {
         )}
         <div className={cx('locate-status-bar', hasLocated && 'ready')}>
           <span>{loading ? '坐标校准中' : hasLocated ? '已锁定当前位置' : '等待定位授权'}</span>
-          <strong>{loading ? '陌路寻景雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
+          <strong>{loading ? '陌路寻阡雷达全频扫描' : hasLocated ? `${nearbySignals.length || 0} 个景点信号` : '未开始扫描'}</strong>
         </div>
       </section>
       <button
@@ -1246,7 +1252,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
   const [sort, setSort] = useState('distance');
   const [location, setLocation] = useState(nearbyLocation);
   const [locationMessage, setLocationMessage] = useState('');
-  const query = location ? `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}&userId=${currentUserId()}` : '';
+  const query = location ? `keyword=${encodeURIComponent(keyword)}&type=${encodeURIComponent(type)}&lat=${location.lat}&lng=${location.lng}${optionalUserIdQuery()}` : '';
   const { data, loading, error } = useAsync(
     () => (location ? api(`/api/spots?${query}`) : Promise.resolve([])),
     [keyword, type, location?.lat, location?.lng]
@@ -1363,7 +1369,7 @@ function SelectedRoute({ route, removeRoute }) {
 }
 
 function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
-  const { data: spots = [] } = useAsync(() => api(`/api/spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}&userId=${currentUserId()}`), []);
+  const { data: spots = [] } = useAsync(() => api(`/api/spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}${optionalUserIdQuery()}`), []);
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState('');
   const [origin, setOrigin] = useState(defaultLocation);
@@ -1425,7 +1431,7 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
           <div className="choice-list">
             {(spots || []).slice(0, 12).map((spot) => (
               <button className="choice" key={spot.id} onClick={() => addRoute(spot)}>
-                <img src={spot.coverImage} alt={spot.name} />
+                <img src={spotImageUrl(spot)} alt={spot.name} />
                 <span>
                   <strong>{spot.name}</strong>
                   <small>{spot.type} · {spot.rating} 分</small>
@@ -1558,24 +1564,20 @@ function TripOptions({ origin, destination }) {
   );
 }
 
-function SpotDetail({ id, addRoute }) {
+function SpotDetail({ id, addRoute, account }) {
   const { data: spot, loading, error } = useAsync(() => api(`/api/spots/${id}`), [id]);
   const [weatherTick, setWeatherTick] = useState(0);
   const weather = useAsync(() => api(`/api/spots/${id}/weather`), [id, weatherTick]);
   const crowd = useAsync(() => api(`/api/spots/${id}/crowd-index`), [id, weatherTick]);
   const facilities = useAsync(() => spot ? api(`/api/facilities?lat=${spot.latitude}&lng=${spot.longitude}&radiusKm=8`) : Promise.resolve([]), [spot?.id]);
-  const [productTick, setProductTick] = useState(0);
-  const products = useAsync(() => api(`/api/spots/${id}/products`), [id, productTick]);
+  const recommendations = useAsync(() => api(`/api/spots/${id}/recommendations?limit=6`), [id]);
   const [reviewTick, setReviewTick] = useState(0);
   const reviews = useAsync(() => api(`/api/community/spots/${id}/reviews`), [id, reviewTick]);
   const [reservation, setReservation] = useState({ visitDate: new Date().toISOString().slice(0, 10), timeSlot: '09:00-12:00', people: 1 });
-  const [selectedProductId, setSelectedProductId] = useState(null);
-  const [orderForm, setOrderForm] = useState({ receiverName: '', receiverPhone: '', shippingAddress: '' });
   const [reviewForm, setReviewForm] = useState({ score: 5, content: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [question, setQuestion] = useState('');
   const [answer, setAnswer] = useState('');
-  const [assistantProducts, setAssistantProducts] = useState([]);
   const [assistantMeta, setAssistantMeta] = useState('');
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
@@ -1596,12 +1598,6 @@ function SpotDetail({ id, addRoute }) {
   useEffect(() => () => {
     if (checkInPreview) URL.revokeObjectURL(checkInPreview);
   }, [checkInPreview]);
-  useEffect(() => {
-    const list = products.data || [];
-    if (list.length && !list.some((product) => product.id === selectedProductId)) {
-      setSelectedProductId(list[0].id);
-    }
-  }, [products.data, selectedProductId]);
   if (loading) return <main className="container"><Loading /></main>;
   if (error) return <main className="container"><div className="message error">{error}</div></main>;
   const spotMarker = { ...spot, lat: Number(spot.latitude), lng: Number(spot.longitude) };
@@ -1611,6 +1607,7 @@ function SpotDetail({ id, addRoute }) {
   const weatherSummary = summarizeWeather(weatherList);
   const hasReservation = Number(spot.price) > 0;
   function openCheckInDialog() {
+    if (!requireUserLogin(account)) return;
     setCheckInOpen(true);
     setMessage('');
   }
@@ -1633,6 +1630,10 @@ function SpotDetail({ id, addRoute }) {
   }
   async function submitCheckIn(event) {
     event.preventDefault();
+    if (!requireUserLogin(account)) {
+      setCheckInOpen(false);
+      return;
+    }
     if (!checkInFile) {
       setMessage('请先上传一张到达现场的图片，再完成打卡。');
       return;
@@ -1651,6 +1652,7 @@ function SpotDetail({ id, addRoute }) {
       if (!imageUrl) throw new Error('打卡图片上传失败');
       const result = await api(`/api/spots/${id}/check-ins?userId=${currentUserId()}&lat=${spot.latitude}&lng=${spot.longitude}&imageUrl=${encodeURIComponent(imageUrl)}`, { method: 'POST' });
       setMessage(`打卡成功，图片已存入个人中心的个人游记图库。累计 ${result.totalCheckedIn} 个景点。`);
+      setCheckInBusy(false);
       setCheckInOpen(false);
       setCheckInFile(null);
       if (checkInPreview) URL.revokeObjectURL(checkInPreview);
@@ -1673,30 +1675,6 @@ function SpotDetail({ id, addRoute }) {
     const result = await api(`/api/spots/${id}/tts`);
     setMessage(`语音导览地址：${result.audioUrl}`);
   }
-  async function submitCulturalOrder(event) {
-    event.preventDefault();
-    if (!selectedProductId) {
-      setMessage('请先选择一件文创商品。');
-      return;
-    }
-    const session = await api('/api/auth/status').catch(() => ({ loggedIn: false }));
-    if (!session.loggedIn) {
-      setMessage('请先登录后再购买文创商品。');
-      window.setTimeout(() => navigateTo('/login'), 650);
-      return;
-    }
-    const result = await api(`/api/cultural-orders?userId=${currentUserId()}`, {
-      method: 'POST',
-      body: JSON.stringify({
-        productId: selectedProductId,
-        quantity: 1,
-        ...orderForm
-      })
-    });
-    setMessage(`文创订单提交成功：${result.orderNo}，合计 ¥${Number(result.totalAmount || 0).toFixed(2)}。`);
-    setOrderForm({ receiverName: '', receiverPhone: '', shippingAddress: '' });
-    setProductTick((value) => value + 1);
-  }
   async function askAssistant(nextQuestion = question) {
     const normalized = nextQuestion.trim();
     if (!normalized || assistantLoading) return;
@@ -1712,14 +1690,12 @@ function SpotDetail({ id, addRoute }) {
       const reply = buildAssistantReply(data.answer);
       openAssistantMapAction(reply);
       setAnswer(data.answer);
-      setAssistantProducts(data.productRecommendations || []);
       setAssistantMeta(meta);
       setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       setQuestion('');
     } catch (error) {
       const fallbackAnswer = error.message || '我这边刚刚没连上服务，先别急。你可以稍后再问我一次，或者换个更具体的问题试试。';
       setAnswer(fallbackAnswer);
-      setAssistantProducts([]);
       setAssistantMeta('请求失败');
       setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
     } finally {
@@ -1834,7 +1810,7 @@ function SpotDetail({ id, addRoute }) {
   }, {});
   return (
     <main className="container">
-      <section className="detail-hero" style={{ backgroundImage: `url(${spot.coverImage})` }}>
+      <section className="detail-hero" style={{ backgroundImage: `url(${spotImageUrl(spot)})` }}>
         <div>
           <span className="pill gold">{spot.type}</span>
           <h1>{spot.name}</h1>
@@ -1850,7 +1826,7 @@ function SpotDetail({ id, addRoute }) {
           <div className="actions">
             <button onClick={openCheckInDialog}><BadgeCheck size={16} /> 到达打卡</button>
             <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
-            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('陌路寻景景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
+            <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('陌路寻阡景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
           {checkInOpen && (
             <div className="modal-backdrop" onClick={closeCheckInDialog}>
@@ -1883,6 +1859,21 @@ function SpotDetail({ id, addRoute }) {
           <h3>附近设施地图</h3>
           <BaiduMap center={spotMarker} markers={[spotMarker, ...(facilities.data || [])]} className="detail-map" />
           <div className="list facility-list">{(facilities.data || []).map((item) => <div className="list-item" key={item.id}><strong>{item.name}</strong><p>{item.type} · {item.distanceKm ?? '-'} km · {item.rating} 分</p></div>)}</div>
+          <h3>相似景点推荐</h3>
+          <p className="muted">根据景点类型、文化主题与自然特征匹配。</p>
+          <div className="cards recommendation-grid">
+            {(recommendations.data || []).map((item) => (
+              <article className="card" key={item.id}>
+                <img src={spotImageUrl(item)} alt={item.name} />
+                <div>
+                  <span className="pill">{item.type}</span>
+                  <h4>{item.name}</h4>
+                  <p>{item.address}</p>
+                  <Link className="button-like" href={`/spots/${item.id}`}>查看详情</Link>
+                </div>
+              </article>
+            ))}
+          </div>
           {hasReservation && (
             <>
               <h3>预约票务</h3>
@@ -1990,9 +1981,8 @@ function TravelPetAssistant({ path }) {
     '/submit-spot': '景点申报',
     '/login': '登录页'
   };
-  const contextName = spot?.name || pageNames[path] || '陌路寻景';
+  const contextName = spot?.name || pageNames[path] || '陌路寻阡';
   const [question, setQuestion] = useState('');
-  const [assistantProducts, setAssistantProducts] = useState([]);
   const [assistantLoading, setAssistantLoading] = useState(false);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [assistantMessages, setAssistantMessages] = useState([
@@ -2009,7 +1999,6 @@ function TravelPetAssistant({ path }) {
   const assistantStickToBottomRef = useRef(true);
 
   useEffect(() => {
-    setAssistantProducts([]);
     setQuestion('');
     assistantStickToBottomRef.current = true;
     setAssistantMessages([
@@ -2027,7 +2016,7 @@ function TravelPetAssistant({ path }) {
     requestAnimationFrame(() => {
       scrollBox.scrollTop = scrollBox.scrollHeight;
     });
-  }, [assistantMessages, assistantLoading, assistantProducts, assistantOpen]);
+  }, [assistantMessages, assistantLoading, assistantOpen]);
 
   function handlePetScroll(event) {
     const scrollBox = event.currentTarget;
@@ -2056,7 +2045,6 @@ function TravelPetAssistant({ path }) {
         const meta = '菲比';
         const reply = buildAssistantReply(data.answer);
         openAssistantMapAction(reply);
-        setAssistantProducts(data.productRecommendations || []);
         setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       } else {
         const data = await api('/api/assistant', {
@@ -2067,13 +2055,11 @@ function TravelPetAssistant({ path }) {
         const meta = '菲比';
         const reply = buildAssistantReply(data.answer);
         openAssistantMapAction(reply);
-        setAssistantProducts([]);
         setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, reply]);
       }
       setQuestion('');
     } catch (error) {
       const fallbackAnswer = error.message || '我这边刚刚没连上服务。你先把位置或目的地留给我，稍后我再帮你继续查。';
-      setAssistantProducts([]);
       setAssistantMessages((messages) => [...messages, { role: 'user', content: normalized }, { role: 'assistant', content: fallbackAnswer, meta: '请求失败' }]);
     } finally {
       setAssistantLoading(false);
@@ -2114,7 +2100,6 @@ function TravelPetAssistant({ path }) {
         timeoutMs: 30000,
         body: JSON.stringify({ question: payloadQuestion })
       });
-      setAssistantProducts([]);
       const reply = buildAssistantReply(data.answer);
       openAssistantMapAction(reply);
       setAssistantMessages((messages) => [...messages, reply]);
@@ -2246,24 +2231,6 @@ function TravelPetAssistant({ path }) {
               ))}
               {assistantLoading && <div className="pet-message assistant"><small>菲比在看</small><p>我正在结合你刚才说的内容整理回答...</p></div>}
             </div>
-            {!!assistantProducts.length && (
-              <div className="pet-product-list compact">
-                <strong>菲比推荐文创</strong>
-                {assistantProducts.map((product) => (
-                  <button
-                    className="pet-product-button"
-                    type="button"
-                    key={product.id}
-                    onClick={() => {
-                      setAssistantOpen(false);
-                      if (spotId) document.getElementById('cultural-shop')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    }}
-                  >
-                    <ShoppingBag size={15} /> {product.name} · ¥{Number(product.price || 0).toFixed(2)}
-                  </button>
-                ))}
-              </div>
-            )}
           </div>
           <form className="pet-input" onSubmit={(event) => { event.preventDefault(); askAssistant(); }}>
             <input ref={petInputRef} value={question} onChange={(event) => setQuestion(event.target.value)} placeholder={`直接问菲比`} disabled={assistantLoading} />
@@ -2451,6 +2418,7 @@ function normalizeDateInput(value) {
 }
 
 function Square({ account }) {
+  const currentSquareDraftKey = userSquareDraftKey(account?.user?.userId);
   const squareRootRef = useRef(null);
   const feedRef = useRef(null);
   const composerRef = useRef(null);
@@ -2471,14 +2439,19 @@ function Square({ account }) {
     videoUrls: '',
     tags: ''
   });
-  const friendlyState = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), [shopTick]);
+  const friendlyState = useAsync(
+    () => account?.user?.loggedIn
+      ? api(`/api/friendly-points/profile?userId=${currentUserId()}`)
+      : Promise.resolve(null),
+    [shopTick, account?.user?.loggedIn]
+  );
   const postsState = useAsync(() => api(category === '全部' ? '/api/community/square/posts' : `/api/community/square/posts?category=${encodeURIComponent(category)}`), [category, tick]);
   const posts = postsState.data || [];
   const postsWithMedia = posts.filter((post) => post.imageUrls?.length || post.videoUrls?.length).length;
   const discussionCount = posts.filter((post) => post.postType === 'DISCUSSION' || post.postType === 'QUESTION').length;
 
   useEffect(() => {
-    const draft = readStorageJson(squareDraftKey, null);
+    const draft = currentSquareDraftKey ? readStorageJson(currentSquareDraftKey, null) : null;
     if (!draft) return;
     if (!account?.user?.loggedIn) return;
     setForm((current) => ({
@@ -2496,11 +2469,11 @@ function Square({ account }) {
     setComposerOpen(true);
     setMessage('已从图生游记带入标题、正文和图片，确认后即可发布。');
     try {
-      window.localStorage?.removeItem(squareDraftKey);
+      window.localStorage?.removeItem(currentSquareDraftKey);
     } catch (error) {
       // Ignore unavailable storage.
     }
-  }, [account?.user?.loggedIn]);
+  }, [account?.user?.loggedIn, currentSquareDraftKey]);
 
   useEffect(() => {
     if (!squareRootRef.current) return undefined;
@@ -3000,6 +2973,7 @@ function escapeHtml(value) {
 }
 
 function TravelWritingStudio({ account }) {
+  const writerStorageKey = account?.user?.userId ? `travelCloudWriterDraft:${account.user.userId}` : '';
   const [form, setForm] = useState({
     style: 'real',
     length: 'standard',
@@ -3018,6 +2992,17 @@ function TravelWritingStudio({ account }) {
   useEffect(() => {
     filesRef.current = files;
   }, [files]);
+
+  useEffect(() => {
+    if (!writerStorageKey) return;
+    const saved = readStorageJson(writerStorageKey, null);
+    if (saved?.form) setForm((current) => ({ ...current, ...saved.form }));
+    if (saved?.draft) setDraft(saved.draft);
+  }, [writerStorageKey]);
+
+  useEffect(() => {
+    if (writerStorageKey) writeStorageJson(writerStorageKey, { form, draft });
+  }, [writerStorageKey, form, draft]);
 
   useEffect(() => {
     return () => filesRef.current.forEach((item) => URL.revokeObjectURL(item.preview));
@@ -3065,6 +3050,7 @@ function TravelWritingStudio({ account }) {
   }
 
   async function generateDraft() {
+    if (!requireUserLogin(account)) return;
     if (!files.length) {
       setMessage('请先上传本地旅行图片，再生成文案。');
       return;
@@ -3214,7 +3200,7 @@ function TravelWritingStudio({ account }) {
     setMessage('');
     try {
       const imageUrls = await uploadImagesForSquare();
-      writeStorageJson(squareDraftKey, {
+      writeStorageJson(userSquareDraftKey(account.user.userId), {
         postType: draft.postType || 'NOTE',
         category: draft.category || '景点影像',
         title: draft.title,
@@ -3489,8 +3475,8 @@ function FriendlyPointShop({ data, onRedeem }) {
   const balance = data?.balance ?? 0;
   return (
     <aside className="panel friendly-shop">
-      <PanelTitle icon={ShoppingBag} title="积分商店" meta={`${balance} 分`} />
-      <p className="friendly-shop-copy">绿色路线、低拥堵打卡和本地文创消费可获得友好积分，在这里兑换演示权益。</p>
+      <PanelTitle icon={Star} title="积分兑换" meta={`${balance} 分`} />
+      <p className="friendly-shop-copy">绿色路线、低拥堵错峰打卡可以获得友好积分，并在这里兑换旅行权益。</p>
       <div className="friendly-reward-list">
         {rewards.map((reward) => (
           <article className="friendly-reward" key={reward.id}>
@@ -3575,7 +3561,7 @@ function SquarePostCard({ post, onSelect }) {
   );
 }
 
-function SquarePostDetail({ id }) {
+function SquarePostDetail({ id, account }) {
   const [commentText, setCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState(null);
   const [message, setMessage] = useState('');
@@ -3603,6 +3589,7 @@ function SquarePostDetail({ id }) {
   }, [activeImage]);
 
   async function likePost() {
+    if (!requireUserLogin(account)) return;
     try {
       const nextPost = await api(`/api/community/square/posts/${id}/like?userId=${currentUserId()}`, { method: 'POST' });
       setPost(nextPost);
@@ -3613,6 +3600,7 @@ function SquarePostDetail({ id }) {
 
   async function submitComment(event) {
     event.preventDefault();
+    if (!requireUserLogin(account)) return;
     const content = commentText.trim();
     if (!content) return;
     try {
@@ -3634,6 +3622,7 @@ function SquarePostDetail({ id }) {
   }
 
   async function likeComment(commentId) {
+    if (!requireUserLogin(account)) return;
     try {
       const saved = await api(`/api/community/square/comments/${commentId}/like?userId=${currentUserId()}`, { method: 'POST' });
       setComments((current) => current.map((item) => item.id === saved.id ? saved : item));
@@ -4057,7 +4046,7 @@ function FriendlyPointPanel({ data }) {
     <section className="panel friendly-point-panel">
       <div>
         <PanelTitle icon={Sparkles} title="城市友好积分" meta={`${balance} 分`} />
-        <p className="friendly-point-copy">步行、骑行、公交、低拥堵打卡和本地文创消费都会沉淀为友好积分。</p>
+        <p className="friendly-point-copy">步行、骑行、公交和低拥堵错峰打卡都会沉淀为友好积分。</p>
       </div>
       <div className="friendly-point-list">
         {records.slice(0, 4).map((record) => (
@@ -4119,7 +4108,6 @@ function SubmitSpot() {
   });
   const [imageUrls, setImageUrls] = useState([]);
   const [videoUrls, setVideoUrls] = useState([]);
-  const [products, setProducts] = useState([]);
   const [uploading, setUploading] = useState('');
   const [message, setMessage] = useState('');
   function update(key, value) {
@@ -4163,26 +4151,15 @@ function SubmitSpot() {
 
   async function submit(event) {
     event.preventDefault();
-    const culturalProducts = products
-      .map((product) => ({
-        ...product,
-        name: product.name.trim(),
-        category: product.category.trim(),
-        description: product.description.trim(),
-        tags: product.tags.trim(),
-        imageUrl: product.imageUrl.trim()
-      }))
-      .filter((product) => product.name);
     try {
       await api(`/api/community/submissions?userId=${currentUserId()}`, {
         method: 'POST',
-        body: JSON.stringify({ ...form, price: form.price === '' ? 0 : Number(form.price), photoUrls: imageUrls, videoUrls, culturalProducts })
+        body: JSON.stringify({ ...form, price: form.price === '' ? 0 : Number(form.price), photoUrls: imageUrls, videoUrls })
       });
       setMessage('提交成功，已进入平台审核。');
       setForm({ name: '', type: '', address: '', latitude: '', longitude: '', openHours: '', price: '', bestSeason: '', phone: '', description: '', reason: '' });
       setImageUrls([]);
       setVideoUrls([]);
-      setProducts([]);
     } catch (error) {
       setMessage(error.message);
     }
@@ -4228,66 +4205,10 @@ function SubmitSpot() {
         </div>
         <label className="wide">景点描述<textarea value={form.description} onChange={(e) => update('description', e.target.value)} required /></label>
         <label className="wide">推荐理由<textarea value={form.reason} onChange={(e) => update('reason', e.target.value)} required /></label>
-        <CulturalProductSubmission products={products} setProducts={setProducts} />
         <button>提交审核</button>
         {message && <div className="message">{message}</div>}
       </form>
     </main>
-  );
-}
-
-const emptySubmissionProduct = {
-  name: '',
-  category: '',
-  price: '',
-  stock: '',
-  imageUrl: '',
-  tags: '',
-  description: ''
-};
-
-function CulturalProductSubmission({ products, setProducts }) {
-  function addProduct() {
-    setProducts((current) => [...current, { ...emptySubmissionProduct }]);
-  }
-
-  function updateProduct(index, key, value) {
-    setProducts((current) => current.map((product, itemIndex) => itemIndex === index ? { ...product, [key]: value } : product));
-  }
-
-  function removeProduct(index) {
-    setProducts((current) => current.filter((_, itemIndex) => itemIndex !== index));
-  }
-
-  return (
-    <section className="submission-products wide">
-      <div className="submission-products-head">
-        <div>
-          <strong>文创商品</strong>
-          <small>有真实商品资料才填写；没有就留空，不会自动生成。</small>
-        </div>
-        <button type="button" className="secondary" onClick={addProduct}><Plus size={16} /> 添加商品</button>
-      </div>
-      {products.map((product, index) => (
-        <article className="submission-product-card" key={index}>
-          <div className="submission-product-title">
-            <strong>商品 {index + 1}</strong>
-            <button type="button" className="icon-button ghost" onClick={() => removeProduct(index)} aria-label="删除文创商品"><Trash2 size={16} /></button>
-          </div>
-          <div className="form-row">
-            <label>商品名称<input value={product.name} onChange={(e) => updateProduct(index, 'name', e.target.value)} placeholder="如 校区纪念冰箱贴" /></label>
-            <label>分类<input value={product.category} onChange={(e) => updateProduct(index, 'category', e.target.value)} placeholder="如 纪念品 / 纸品" /></label>
-          </div>
-          <div className="form-row">
-            <label>价格<input type="number" min="0" step="0.01" value={product.price} onChange={(e) => updateProduct(index, 'price', e.target.value)} /></label>
-            <label>库存<input type="number" min="0" value={product.stock} onChange={(e) => updateProduct(index, 'stock', e.target.value)} /></label>
-          </div>
-          <label>商品图片地址<input value={product.imageUrl} onChange={(e) => updateProduct(index, 'imageUrl', e.target.value)} placeholder="没有图片可留空" /></label>
-          <label>标签<input value={product.tags} onChange={(e) => updateProduct(index, 'tags', e.target.value)} placeholder="如 伴手礼,轻便" /></label>
-          <label>商品说明<textarea value={product.description} onChange={(e) => updateProduct(index, 'description', e.target.value)} rows={3} placeholder="有说明就写，没有可留空" /></label>
-        </article>
-      ))}
-    </section>
   );
 }
 
@@ -4491,7 +4412,7 @@ function Login({ refreshAccount }) {
   }
   return (
     <main className="login-stage">
-      <section className="login-showcase" aria-label="陌路寻景登录">
+      <section className="login-showcase" aria-label="陌路寻阡登录">
         <div className="login-image-scene" aria-hidden="true">
           <span className="image-kenburns" />
           <span className="scene-vignette" />
@@ -4516,7 +4437,7 @@ function Login({ refreshAccount }) {
         </div>
         <div className="login-scroll-seal" aria-hidden="true">
           <span>陌路</span>
-          <span>寻景</span>
+          <span>寻阡</span>
         </div>
         <div className="login-art-copy">
           <span>行旅画卷</span>
@@ -5023,6 +4944,7 @@ function App() {
   const [route, setRoute] = useState(() => readStorageJson(routeKey, []));
   const [theme, setThemeState] = useState(() => readStorageJson(themeKey, 'night'));
   const [account, setAccount] = useState({ admin: {}, user: {} });
+  const [accountReady, setAccountReady] = useState(false);
   function setTheme(nextTheme) {
     setThemeState(nextTheme);
     writeStorageJson(themeKey, nextTheme);
@@ -5042,13 +4964,21 @@ function App() {
   async function refreshAccount() {
     const admin = await api('/api/admin/auth/status').catch(() => ({ loggedIn: false }));
     const user = admin.loggedIn ? { loggedIn: false } : await api('/api/auth/status').catch(() => ({ loggedIn: false }));
-    window.travelCloudCurrentUserId = user.loggedIn && user.userId ? user.userId : defaultUserId;
+    window.travelCloudCurrentUserId = user.loggedIn && user.userId ? user.userId : null;
     setAccount({ admin, user });
+    setAccountReady(true);
   }
   useEffect(() => {
     document.querySelector('.html-theme-dock')?.remove();
+    window.localStorage?.removeItem(squareDraftKey);
   }, []);
   useEffect(() => { refreshAccount(); }, []);
+  useEffect(() => {
+    if (!accountReady || account.user?.loggedIn || path === '/login') return;
+    if (path === '/me' || path.startsWith('/me/') || path === '/submit-spot') {
+      navigateTo('/login');
+    }
+  }, [accountReady, account.user?.loggedIn, path]);
   useEffect(() => {
     const nextTheme = theme === 'day' ? 'day' : 'night';
     document.documentElement.dataset.theme = nextTheme;
@@ -5064,7 +4994,7 @@ function App() {
   if (path === '/square') page = <Square account={account} />;
   if (path === '/ai-writer') page = <TravelWritingStudio account={account} />;
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
-  if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} />;
+  if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} account={account} />;
   if (path === '/me') page = <Profile />;
   const travelGalleryMatch = path.match(/^\/me\/travel-gallery\/(\d+)$/);
   if (travelGalleryMatch) page = <TravelGalleryDetail spotId={travelGalleryMatch[1]} />;
@@ -5072,7 +5002,7 @@ function App() {
   if (path === '/login') page = <Login refreshAccount={refreshAccount} />;
   if (path === '/admin') page = <Admin />;
   const detailMatch = path.match(/^\/spots\/(\d+)$/);
-  if (detailMatch) page = <SpotDetail id={detailMatch[1]} addRoute={addRoute} />;
+  if (detailMatch) page = <SpotDetail id={detailMatch[1]} addRoute={addRoute} account={account} />;
 
   return (
     <>
@@ -5080,7 +5010,7 @@ function App() {
       {page}
       {path !== '/admin' && <TravelPetAssistant path={path} />}
       {path !== '/login' && path !== '/guide/locate' && <footer className="footer">
-        <span>陌路寻景 · 智慧文旅综合服务平台</span>
+        <span>陌路寻阡 · 智慧文旅综合服务平台</span>
         <button className="icon-button ghost" onClick={async () => {
           await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
           await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});

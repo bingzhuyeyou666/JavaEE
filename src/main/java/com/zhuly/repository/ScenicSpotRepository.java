@@ -6,6 +6,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ScenicSpotRepository extends JpaRepository<ScenicSpot, Long> {
     List<ScenicSpot> findByApprovedTrue();
@@ -23,4 +24,5 @@ public interface ScenicSpotRepository extends JpaRepository<ScenicSpot, Long> {
             + ")")
     List<ScenicSpot> searchApproved(@Param("keyword") String keyword);
     List<ScenicSpot> findByApprovedTrueAndHomeFeaturedTrueOrderByHomeFeaturedSortAsc();
+    Optional<ScenicSpot> findFirstByName(String name);
 }

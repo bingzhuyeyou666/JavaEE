@@ -45,7 +45,6 @@ public class SpotAssistantService {
     private final ScenicSpotRepository spotRepository;
     private final FacilityRepository facilityRepository;
     private final SpotKnowledgeBase knowledgeBase;
-    private final CulturalShopService culturalShopService;
     private final WeatherService weatherService;
     private final TravelCopyStyleRagService travelCopyStyleRagService;
     private final RestTemplateBuilder restTemplateBuilder;
@@ -276,7 +275,7 @@ public class SpotAssistantService {
             }
         }
         return new SpotAssistantResponse(answer, hits, webSuggestions(spot, question),
-                culturalShopService.recommend(spotId, question), source, "aliyun-bailian".equals(source) ? model : "local");
+                source, "aliyun-bailian".equals(source) ? model : "local");
     }
 
     public SpotAssistantResponse answerGeneral(String question) {
@@ -284,7 +283,7 @@ public class SpotAssistantService {
         String answer = buildGeneralFallback(question);
         String localAnswer = answerFromLocalIntent(question);
         if (StringUtils.hasText(localAnswer)) {
-            return new SpotAssistantResponse(localAnswer, Arrays.asList(), Arrays.asList(), Arrays.asList(), source, "local");
+            return new SpotAssistantResponse(localAnswer, Arrays.asList(), Arrays.asList(), source, "local");
         }
         if (aiEnabled && StringUtils.hasText(apiKey)) {
             try {
@@ -295,7 +294,7 @@ public class SpotAssistantService {
                 log.warn("Aliyun Bailian general assistant call failed, falling back to local answer: {}", ex.getMessage());
             }
         }
-        return new SpotAssistantResponse(answer, Arrays.asList(), Arrays.asList(), Arrays.asList(),
+        return new SpotAssistantResponse(answer, Arrays.asList(), Arrays.asList(),
                 source, "aliyun-bailian".equals(source) ? model : "local");
     }
 
@@ -335,7 +334,7 @@ public class SpotAssistantService {
 
     private String buildSpotPrompt(ScenicSpot spot, String question, List<String> hits) {
         StringBuilder builder = new StringBuilder();
-        builder.append("当前场景：用户正在陌路寻景的景点详情页咨询菲比。\n");
+        builder.append("当前场景：用户正在陌路寻阡的景点详情页咨询菲比。\n");
         builder.append("如果问题只涉及下列景点资料，请直接自然回答；如果用户询问附近搜索、实时天气、实时路况、外部餐厅或跨地点路线等真实数据，请按工具规则输出 JSON 或追问缺失参数。\n\n");
         builder.append("景点资料：\n");
         builder.append("名称：").append(spot.getName()).append("\n");
@@ -359,7 +358,7 @@ public class SpotAssistantService {
     }
 
     private String buildGeneralPrompt(String question) {
-        return "当前场景：用户正在陌路寻景应用内和菲比对话。\n"
+        return "当前场景：用户正在陌路寻阡应用内和菲比对话。\n"
                 + "请根据菲比角色规则判断：闲聊直接回答；需要真实数据且参数齐全时输出单行 JSON 工具调用；参数不足时自然追问；不能编造真实地点、距离、评分、天气或路况。\n\n"
                 + "如果用户问题里包含“当前定位：纬度,经度”，附近搜索、美食推荐、停车场等周边请求必须直接使用这组坐标作为 location，不要再追问位置。\n\n"
                 + "注意区分意图：用户只是说“我想去某地”“想看看某地”时，只确认地点并询问是否需要规划；只有用户明确说“规划路线”“导航”“怎么走”“怎么去”“带我去”时，才可以使用 plan_route。\n\n"
@@ -369,9 +368,7 @@ public class SpotAssistantService {
     private String buildAnswer(ScenicSpot spot, String question, List<String> hits) {
         StringBuilder builder = new StringBuilder();
         builder.append("关于“").append(spot.getName()).append("”，我结合当前景点知识库为你整理如下：\n\n");
-        if (isShopQuestion(question)) {
-            builder.append("这个景点适合购买带有本地文化符号的纪念品。你可以优先看轻便好带的冰箱贴、明信片套装，也可以选择帆布袋或亲子拼图作为礼物。\n\n");
-        } else if (question.contains("历史") || question.contains("发展") || question.contains("成立")) {
+        if (question.contains("历史") || question.contains("发展") || question.contains("成立")) {
             builder.append("它的发展脉络可以重点看这段：").append(spot.getHistory()).append("\n\n");
         } else if (question.contains("怎么玩") || question.contains("攻略") || question.contains("路线")) {
             builder.append("推荐玩法：").append(spot.getGuide()).append(" 重点体验：").append(spot.getHighlights()).append("\n\n");
@@ -1068,16 +1065,6 @@ public class SpotAssistantService {
                 || question.contains("不要")
                 || question.contains("避雷")
                 || question.contains("常去");
-    }
-
-    private boolean isShopQuestion(String question) {
-        return question.contains("文创")
-                || question.contains("商品")
-                || question.contains("购买")
-                || question.contains("买")
-                || question.contains("伴手礼")
-                || question.contains("纪念品")
-                || question.contains("礼物");
     }
 
     private List<String> webSuggestions(ScenicSpot spot, String question) {

@@ -49,9 +49,6 @@ public class SpotSubmission {
     @OrderColumn(name = "sort_order")
     private List<String> videoUrls = new ArrayList<>();
 
-    @javax.persistence.Column(length = 6000)
-    private String culturalProductsJson;
-
     private String status;
     private String auditRemark;
     private LocalDateTime createdAt;

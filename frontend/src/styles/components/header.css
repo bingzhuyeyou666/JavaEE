@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 Header — 站点头部 + 导航
+   陌路寻阡 Header — 站点头部 + 导航
    ======================================== */
 
 .site-header {
@@ -29,6 +29,7 @@
   gap: 14px;
   justify-self: start;
   color: var(--color-text-primary);
+  transform: translateX(100px);
 }
 
 .brand-mark {
@@ -79,6 +80,7 @@
   align-items: center;
   justify-self: end;
   gap: var(--space-4);
+  transform: translateX(-50px);
 }
 
 /* 主题切换 */
@@ -206,5 +208,13 @@
   .header-quote {
     max-width: 420px;
     font-size: var(--text-sm);
+  }
+
+  .brand {
+    transform: translateX(40px);
+  }
+
+  .header-right {
+    transform: translateX(-20px);
   }
 }

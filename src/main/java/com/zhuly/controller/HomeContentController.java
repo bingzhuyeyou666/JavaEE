@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import java.math.BigDecimal;
 import java.util.Comparator;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -40,7 +41,7 @@ public class HomeContentController {
     @GetMapping("/featured-spots")
     public List<Map<String, Object>> featuredSpots(@RequestParam(required = false) BigDecimal lat,
                                                    @RequestParam(required = false) BigDecimal lng,
-                                                   @RequestParam(defaultValue = "1") Long userId) {
+                                                   @RequestParam(required = false) Long userId) {
         List<ScenicSpot> spots = spotRepository.findByApprovedTrueAndHomeFeaturedTrueOrderByHomeFeaturedSortAsc();
         if (spots.isEmpty()) {
             spots = spotRepository.findByApprovedTrue().stream()
@@ -48,7 +49,7 @@ public class HomeContentController {
                     .limit(8)
                     .collect(Collectors.toList());
         }
-        Set<Long> checked = checkInService.checkedInIds(userId);
+        Set<Long> checked = userId == null ? Collections.emptySet() : checkInService.checkedInIds(userId);
         return spots.stream()
                 .map(spot -> toListItem(spot, lat, lng, checked.contains(spot.getId())))
                 .collect(Collectors.toList());
@@ -76,7 +77,7 @@ public class HomeContentController {
 
     private List<HeroSlide> defaultSlides() {
         return java.util.Arrays.asList(
-                slide(1, "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95", "山水漫游", "陌路寻景", "热门景点、路线规划、预约票务、足迹打卡与智能导览的一站式体验。", "进入导览", "/guide"),
+                slide(1, "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95", "山水漫游", "陌路寻阡", "热门景点、路线规划、预约票务、足迹打卡与智能导览的一站式体验。", "进入导览", "/guide"),
                 slide(2, "https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95", "湖光远山", "发现身边的文化风景", "把游玩建议、实时天气、周边设施和评论攻略提前准备好。", "进入导览", "/guide"),
                 slide(3, "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=2400&q=95", "轻松出行", "从收藏到路线，一键成行", "选择 2-5 个景点，系统自动给出合理游览顺序和分段路程。", "规划路线", "/route")
         );
@@ -105,9 +106,9 @@ public class HomeContentController {
     }
 
     private String normalizeBrandText(String text) {
-        return text.replace("\u65c5\u56fe\u4e91", "陌路寻景")
-                .replace("\u65c5\u9014\u4e91", "陌路寻景")
-                .replace("\u661f\u6d8c", "陌路寻景")
-                .replace("\u661f\u8e94", "陌路寻景");
+        return text.replace("\u65c5\u56fe\u4e91", "陌路寻阡")
+                .replace("\u65c5\u9014\u4e91", "陌路寻阡")
+                .replace("\u661f\u6d8c", "陌路寻阡")
+                .replace("\u661f\u8e94", "陌路寻阡");
     }
 }

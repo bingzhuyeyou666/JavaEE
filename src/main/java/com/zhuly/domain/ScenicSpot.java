@@ -32,9 +32,11 @@ public class ScenicSpot {
     private BigDecimal price;
     private double rating;
     private int maxCapacity;
+    @javax.persistence.Column(length = 1000)
     private String coverImage;
 
     @ElementCollection(fetch = FetchType.EAGER)
+    @javax.persistence.Column(name = "gallery", length = 1000)
     private List<String> gallery = new ArrayList<>();
 
     private String videoUrl;
@@ -53,6 +55,9 @@ public class ScenicSpot {
 
     private String bestSeason;
     private String notice;
+    private String tags;
+    private String sourceName;
+    private String sourceUrl;
     private boolean approved = true;
     private boolean homeFeatured = false;
     private int homeFeaturedSort = 0;

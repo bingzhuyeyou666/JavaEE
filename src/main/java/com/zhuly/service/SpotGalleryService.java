@@ -4,8 +4,6 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.zhuly.domain.ScenicSpot;
 import com.zhuly.repository.ScenicSpotRepository;
 import lombok.RequiredArgsConstructor;
-import org.springframework.boot.context.event.ApplicationReadyEvent;
-import org.springframework.context.event.EventListener;
 import org.springframework.http.HttpEntity;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
@@ -32,29 +30,6 @@ public class SpotGalleryService {
     private final RestTemplate restTemplate = restTemplate();
     private final Map<String, String> imageCache = new ConcurrentHashMap<>();
     private final Map<String, List<String>> galleryCache = new ConcurrentHashMap<>();
-
-    @EventListener(ApplicationReadyEvent.class)
-    @Transactional
-    public void backfillGalleryAfterStartup() {
-        List<ScenicSpot> spots = spotRepository.findByApprovedTrue();
-        boolean changed = false;
-        for (ScenicSpot spot : spots) {
-            boolean alreadyReady = spot.getGallery() != null && spot.getGallery().size() >= 3
-                    && isStrongImage(spot.getCoverImage()) && spot.getGallery().stream().allMatch(this::isStrongImage);
-            if (alreadyReady) {
-                continue;
-            }
-            List<String> gallery = ensureGallery(spot);
-            if (!sameGallery(spot.getGallery(), gallery) || !isStrongImage(spot.getCoverImage())) {
-                spot.setGallery(gallery);
-                spot.setCoverImage(gallery.get(0));
-                changed = true;
-            }
-        }
-        if (changed) {
-            spotRepository.saveAll(spots);
-        }
-    }
 
     public List<String> ensureGallery(ScenicSpot spot) {
         if (spot == null) {
@@ -215,7 +190,6 @@ public class SpotGalleryService {
         String normalized = url.toLowerCase();
         return !normalized.contains("images.unsplash.com")
                 && !normalized.contains("tse1.mm.bing.net")
-                && !normalized.contains("/api/images/spots/")
                 && !normalized.contains("query:");
     }
 

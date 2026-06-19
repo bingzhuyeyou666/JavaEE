@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 定位工具
+   陌路寻阡 定位工具
    ======================================== */
 
 import { readStorageJson, writeStorageJson, readSessionFlag, sessionLocatedKey, nearbyLocationKey } from './api';

@@ -24,7 +24,7 @@ public class WebMvcConfig implements WebMvcConfigurer {
                 .addPathPatterns("/admin", "/api/admin/**")
                 .excludePathPatterns("/api/admin/auth/**");
         registry.addInterceptor(userAuthInterceptor)
-                .addPathPatterns("/me", "/submit-spot");
+                .addPathPatterns("/me", "/me/**", "/submit-spot");
     }
 
     @Override

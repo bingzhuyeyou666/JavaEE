@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 Feibi Pet Assistant
+   陌路寻阡 Feibi Pet Assistant
    ======================================== */
 
 .floating-ai.travel-pet {
@@ -300,30 +300,6 @@
   align-self: flex-end;
   color: #2c1e05;
   background: linear-gradient(135deg, #ffe083, #f4bd4c);
-}
-
-.pet-product-list {
-  display: grid;
-  gap: 8px;
-  margin-top: 12px;
-  padding: 10px;
-  border: var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: rgba(246, 196, 79, .08);
-}
-
-.pet-product-list strong {
-  font-size: var(--text-sm);
-}
-
-.pet-product-button {
-  justify-content: flex-start;
-  min-height: 36px;
-  padding: 0 10px;
-  border-radius: var(--radius-md);
-  font-size: var(--text-sm);
-  white-space: normal;
-  text-align: left;
 }
 
 .pet-input {

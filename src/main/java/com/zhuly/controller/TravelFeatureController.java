@@ -1,5 +1,6 @@
 package com.zhuly.controller;
 
+import com.zhuly.config.UserAuthInterceptor;
 import com.zhuly.dto.CheckInResponse;
 import com.zhuly.dto.CrowdIndexResponse;
 import com.zhuly.dto.RoutePlanRequest;
@@ -21,6 +22,7 @@ import com.zhuly.service.SpotAssistantService;
 import com.zhuly.service.TtsService;
 import com.zhuly.service.WeatherService;
 import javax.validation.Valid;
+import javax.servlet.http.HttpSession;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
@@ -277,7 +279,12 @@ public class TravelFeatureController {
                                          @RequestParam(required = false) String style,
                                          @RequestParam(required = false) String length,
                                          @RequestParam(required = false) String notes,
+                                         HttpSession session,
                                          @RequestParam("images") MultipartFile[] images) throws java.io.IOException {
+        if (!Boolean.TRUE.equals(session.getAttribute(UserAuthInterceptor.USER_SESSION_KEY))) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.UNAUTHORIZED, "请先登录");
+        }
         return spotAssistantService.generateTravelCopy(locationName, tripDate, companions, style, length, notes, images);
     }
 

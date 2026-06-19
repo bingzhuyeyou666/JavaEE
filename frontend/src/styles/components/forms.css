@@ -1,5 +1,5 @@
 /* ========================================
-   陌路寻景 Forms — 表单增强
+   陌路寻阡 Forms — 表单增强
    ======================================== */
 
 .form {
@@ -266,51 +266,11 @@
   background: rgba(0, 0, 0, .5);
 }
 
-.submission-products {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-5);
-  border: var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-card);
-}
-
-.submission-products-head,
-.submission-product-title {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-4);
-}
-
-.submission-products-head strong,
-.submission-product-title strong {
-  display: block;
-  color: var(--color-text-primary);
-}
-
-.submission-products-head small {
-  display: block;
-  margin-top: 4px;
-  color: var(--color-text-secondary);
-}
-
-.submission-product-card {
-  display: grid;
-  gap: var(--space-4);
-  padding: var(--space-4);
-  border: var(--border-subtle);
-  border-radius: var(--radius-md);
-  background: var(--color-bg-elevated);
-}
-
 @media (max-width: 760px) {
   .location-picker-summary,
   .map-picker-head,
   .map-picker-search,
-  .map-picker-result,
-  .submission-products-head,
-  .submission-product-title {
+  .map-picker-result {
     align-items: stretch;
     flex-direction: column;
   }
