@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 DataInitializer 配置组件，负责应用启动、鉴权或框架配置
+ */
 package com.zhuly.config;
 
 import com.zhuly.domain.Facility;
@@ -18,6 +21,9 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
+/**
+ * DataInitializer 负责应用运行所需的框架配置或启动初始化
+ */
 @Component
 @RequiredArgsConstructor
 public class DataInitializer implements CommandLineRunner {
@@ -26,6 +32,7 @@ public class DataInitializer implements CommandLineRunner {
     private final FacilityRepository facilityRepository;
     private final UserProfileRepository userRepository;
 
+    // 在应用启动阶段执行本组件的初始化任务
     @Override
     public void run(String... args) {
         ensureDemoUser();
@@ -91,6 +98,7 @@ public class DataInitializer implements CommandLineRunner {
 
     }
 
+    // 创建、写入或提交 ensureDemoUser 对应的业务数据
     private void ensureDemoUser() {
         UserProfile demo = userRepository.findByUsername("demo").orElseGet(UserProfile::new);
         demo.setUsername("demo");
@@ -104,6 +112,7 @@ public class DataInitializer implements CommandLineRunner {
         userRepository.save(demo);
     }
 
+    // 组装 spot 所需的返回对象或业务数据
     private ScenicSpot spot(String name, String type, String address, String lat, String lng, String hours,
                             String phone, String price, double rating, int capacity, String description,
                             String guide, String history, String highlights, String season, String notice,
@@ -144,11 +153,13 @@ public class DataInitializer implements CommandLineRunner {
         return spot;
     }
 
+    // 组装 spotImage 所需的返回对象或业务数据
     private String spotImage(String name, String scene) {
         String query = UriUtils.encodeQueryParam(name + " " + scene, StandardCharsets.UTF_8);
         return "https://tse1.mm.bing.net/th?q=" + query + "&w=1200&h=675&c=7&rs=1&p=0&o=5&pid=1.7";
     }
 
+    // 执行 extraNationalSpots 方法对应的业务处理
     private List<ScenicSpot> extraNationalSpots() {
         List<ScenicSpot> spots = new ArrayList<>();
         addQuick(spots, "颐和园", "历史人文", "北京市海淀区新建宫门路19号", "39.9999", "116.2755", 4.8, "皇家园林、昆明湖与万寿山");
@@ -226,6 +237,7 @@ public class DataInitializer implements CommandLineRunner {
         return new ArrayList<>(spots.subList(0, Math.min(31, spots.size())));
     }
 
+    // 创建、写入或提交 addQuick 对应的业务数据
     private void addQuick(List<ScenicSpot> spots, String name, String type, String address,
                           String lat, String lng, double rating, String theme) {
         spots.add(spot(
@@ -240,6 +252,7 @@ public class DataInitializer implements CommandLineRunner {
         ));
     }
 
+    // 执行 nationalHotSpots 方法对应的业务处理
     private List<ScenicSpot> nationalHotSpots() {
         return Arrays.asList(
                 spot(
@@ -695,6 +708,7 @@ public class DataInitializer implements CommandLineRunner {
         );
     }
 
+    // 组装 facility 所需的返回对象或业务数据
     private Facility facility(FacilityType type, String name, String lat, String lng, String price,
                               Integer spaces, Double hygiene, String cuisine, String averageCost, double rating) {
         Facility facility = new Facility();

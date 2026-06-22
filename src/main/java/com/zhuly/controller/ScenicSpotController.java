@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 ScenicSpotController 控制器，负责接收相关页面或接口请求并返回处理结果
+ */
 package com.zhuly.controller;
 
 import com.zhuly.domain.ScenicSpot;
@@ -24,6 +27,9 @@ import java.util.Set;
 import java.util.stream.Collectors;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * ScenicSpotController 统一处理本模块的 HTTP 接口请求、参数校验和响应数据组织
+ */
 @RestController
 @RequestMapping("/api/spots")
 @RequiredArgsConstructor
@@ -34,6 +40,7 @@ public class ScenicSpotController {
     private final BaiduPlaceService baiduPlaceService;
     private final SpotRecommendationService recommendationService;
 
+    // 按关键字、类型和位置查询可展示的景点列表
     @GetMapping
     public List<Map<String, Object>> list(@RequestParam(required = false) String keyword,
                                           @RequestParam(required = false) String type,
@@ -60,11 +67,12 @@ public class ScenicSpotController {
                 .collect(Collectors.toList());
     }
 
+    // 查询指定景点的完整详情和图集信息
     @GetMapping("/{id}")
     @Transactional
     public ScenicSpot detail(@PathVariable Long id) {
         ScenicSpot spot = spotRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Scenic spot not found"));
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
         if (spot.getGallery() == null) {
             spot.setGallery(new ArrayList<>());
         }
@@ -75,17 +83,19 @@ public class ScenicSpotController {
         return spot;
     }
 
+    // 根据景点特征查询相似景点推荐
     @GetMapping("/{id}/recommendations")
     @Transactional(readOnly = true)
     public List<Map<String, Object>> recommendations(@PathVariable Long id,
                                                      @RequestParam(defaultValue = "6") int limit) {
         ScenicSpot target = spotRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Scenic spot not found"));
+                .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
         return recommendationService.recommend(target, limit).stream()
                 .map(spot -> toListItem(spot, target.getLatitude(), target.getLongitude(), false, ""))
                 .collect(Collectors.toList());
     }
 
+    // 校验 matchesSearchIntent 对应的条件并返回判断结果
     private boolean matchesSearchIntent(ScenicSpot spot, String keyword) {
         if (contains(spot.getName(), keyword)
                 || contains(spot.getType(), keyword)
@@ -105,6 +115,7 @@ public class ScenicSpotController {
                 || normalizedAddress.contains(normalizedKeyword + "\u81ea\u6cbb\u533a");
     }
 
+    // 校验 isGuideVisibleSpot 对应的条件并返回判断结果
     private boolean isGuideVisibleSpot(ScenicSpot spot) {
         String type = safe(spot.getType()).trim();
         if (type.isEmpty()) {
@@ -114,14 +125,17 @@ public class ScenicSpotController {
                 .contains(type);
     }
 
+    // 校验 contains 对应的条件并返回判断结果
     private boolean contains(String value, String keyword) {
         return safe(value).toLowerCase().contains(keyword.toLowerCase());
     }
 
+    // 执行 safe 方法对应的业务处理
     private String safe(String value) {
         return value == null ? "" : value;
     }
 
+    // 查询并返回 searchScore 对应的数据
     private int searchScore(ScenicSpot spot, String keyword) {
         if (keyword == null || keyword.trim().isEmpty()) return 0;
         int score = 0;
@@ -137,6 +151,7 @@ public class ScenicSpotController {
         return score;
     }
 
+    // 组装 toListItem 所需的返回对象或业务数据
     private Map<String, Object> toListItem(ScenicSpot spot, BigDecimal lat, BigDecimal lng, boolean checkedIn, String keyword) {
         Double distance = null;
         if (lat != null && lng != null) {

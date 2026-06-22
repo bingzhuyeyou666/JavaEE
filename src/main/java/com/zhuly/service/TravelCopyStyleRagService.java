@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 TravelCopyStyleRagService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import lombok.RequiredArgsConstructor;
@@ -29,6 +32,9 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
+/**
+ * TravelCopyStyleRagService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -43,6 +49,7 @@ public class TravelCopyStyleRagService {
     private final RestTemplateBuilder restTemplateBuilder;
     private final Map<String, List<String>> memoryCache = new LinkedHashMap<String, List<String>>();
 
+    // 执行 retrieve 方法对应的业务处理
     public List<String> retrieve(String requestedStyle, String place, String notes, int limit) {
         String style = normalizeStyle(requestedStyle);
         List<String> corpus = corpusForStyle(style);
@@ -50,6 +57,7 @@ public class TravelCopyStyleRagService {
         return ranked.stream().limit(Math.max(1, limit)).collect(Collectors.toList());
     }
 
+    // 组装 buildPromptBlock 所需的返回对象或业务数据
     public String buildPromptBlock(String requestedStyle, String place, String notes) {
         String style = normalizeStyle(requestedStyle);
         List<String> samples = retrieve(style, place, notes, 4);
@@ -62,6 +70,7 @@ public class TravelCopyStyleRagService {
         return builder.toString();
     }
 
+    // 执行 corpusForStyle 方法对应的业务处理
     private List<String> corpusForStyle(String style) {
         if (memoryCache.containsKey(style)) {
             return memoryCache.get(style);
@@ -78,6 +87,7 @@ public class TravelCopyStyleRagService {
         return corpus;
     }
 
+    // 解析或获取 crawlStyle 对应的数据
     private List<String> crawlStyle(String style) {
         List<String> result = new ArrayList<String>();
         RestTemplate restTemplate = restTemplateBuilder
@@ -108,6 +118,7 @@ public class TravelCopyStyleRagService {
         return dedupe(cleaned).stream().limit(40).collect(Collectors.toList());
     }
 
+    // 查询并返回 fetchPage 对应的数据
     private String fetchPage(RestTemplate restTemplate, String url) {
         try {
             return restTemplate.getForObject(URI.create(url), String.class);
@@ -116,6 +127,7 @@ public class TravelCopyStyleRagService {
         }
     }
 
+    // 解析或获取 extractSearchUrls 对应的数据
     private List<String> extractSearchUrls(String html) {
         if (!StringUtils.hasText(html)) {
             return Collections.emptyList();
@@ -143,6 +155,7 @@ public class TravelCopyStyleRagService {
         return new ArrayList<String>(urls);
     }
 
+    // 校验 isContentUrl 对应的条件并返回判断结果
     private boolean isContentUrl(String url) {
         String lower = url.toLowerCase(Locale.ROOT);
         return lower.startsWith("http")
@@ -154,6 +167,7 @@ public class TravelCopyStyleRagService {
                 && !lower.endsWith(".gif");
     }
 
+    // 解析或获取 extractParagraphs 对应的数据
     private List<String> extractParagraphs(String html) {
         if (!StringUtils.hasText(html)) {
             return Collections.emptyList();
@@ -175,6 +189,7 @@ public class TravelCopyStyleRagService {
         return paragraphs;
     }
 
+    // 校验 isUsefulSample 对应的条件并返回判断结果
     private boolean isUsefulSample(String value) {
         if (!StringUtils.hasText(value)) {
             return false;
@@ -195,6 +210,7 @@ public class TravelCopyStyleRagService {
                 && !value.contains("免责声明");
     }
 
+    // 解析或获取 rank 对应的数据
     private List<String> rank(List<String> corpus, String query) {
         String normalizedQuery = sanitize(query);
         List<String> terms = Arrays.stream(normalizedQuery.split("[\\s,，。！？、]+"))
@@ -205,6 +221,7 @@ public class TravelCopyStyleRagService {
                 .collect(Collectors.toList());
     }
 
+    // 计算 score 对应的业务结果
     private int score(String sample, List<String> terms) {
         int score = Math.min(80, sample.length() / 4);
         for (String term : terms) {
@@ -221,6 +238,7 @@ public class TravelCopyStyleRagService {
         return score;
     }
 
+    // 查询并返回 readFreshCache 对应的数据
     private List<String> readFreshCache(String style) {
         Path file = cacheFile(style);
         try {
@@ -236,6 +254,7 @@ public class TravelCopyStyleRagService {
         }
     }
 
+    // 上传或保存 writeCache 对应的文件和数据
     private void writeCache(String style, List<String> corpus) {
         try {
             Files.createDirectories(CACHE_DIR);
@@ -245,10 +264,12 @@ public class TravelCopyStyleRagService {
         }
     }
 
+    // 执行 cacheFile 方法对应的业务处理
     private Path cacheFile(String style) {
         return CACHE_DIR.resolve(style + ".txt");
     }
 
+    // 解析或获取 dedupe 对应的数据
     private List<String> dedupe(List<String> values) {
         LinkedHashSet<String> set = new LinkedHashSet<String>();
         for (String value : values) {
@@ -260,6 +281,7 @@ public class TravelCopyStyleRagService {
         return new ArrayList<String>(set);
     }
 
+    // 更新并规范化 sanitize 对应的数据
     private String sanitize(String value) {
         if (value == null) {
             return "";
@@ -270,6 +292,7 @@ public class TravelCopyStyleRagService {
                 .trim();
     }
 
+    // 执行 decodeHtml 方法对应的业务处理
     private String decodeHtml(String value) {
         return value == null ? "" : value
                 .replace("&nbsp;", " ")
@@ -280,6 +303,7 @@ public class TravelCopyStyleRagService {
                 .replace("&gt;", ">");
     }
 
+    // 执行 queriesForStyle 方法对应的业务处理
     private List<String> queriesForStyle(String style) {
         if ("xiaohongshu".equals(style)) {
             return Arrays.asList("小红书 旅行 文案 种草 攻略", "小红书 城市漫步 文案 拍照 打卡", "小红书 古镇 夜景 旅行 文案");
@@ -293,6 +317,7 @@ public class TravelCopyStyleRagService {
         return Arrays.asList("真实 游记 旅行 记录", "旅行攻略 游记 体验 记录", "城市漫步 游记 记录");
     }
 
+    // 执行 seedCorpus 方法对应的业务处理
     private List<String> seedCorpus(String style) {
         if ("xiaohongshu".equals(style)) {
             return Arrays.asList(
@@ -326,6 +351,7 @@ public class TravelCopyStyleRagService {
         );
     }
 
+    // 更新并规范化 normalizeStyle 对应的数据
     private String normalizeStyle(String style) {
         String text = StringUtils.hasText(style) ? style.trim().toLowerCase(Locale.ROOT) : "";
         if (text.contains("小红书") || text.contains("xiaohongshu")) {
@@ -340,6 +366,7 @@ public class TravelCopyStyleRagService {
         return "real";
     }
 
+    // 执行 styleLabel 方法对应的业务处理
     private String styleLabel(String style) {
         if ("xiaohongshu".equals(style)) {
             return "小红书风格";

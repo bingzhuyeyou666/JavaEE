@@ -138,6 +138,6 @@
   --color-surface-card: rgba(253, 250, 246, 0.9);
   --color-surface-hover: rgba(80, 65, 40, 0.04);
 
-  --hero-overlay: linear-gradient(90deg, rgba(247, 243, 236, 0.9), rgba(247, 243, 236, 0.5) 55%, rgba(247, 243, 236, 0.08));
-  --hero-overlay-bottom: linear-gradient(0deg, rgba(247, 243, 236, 0.95) 0%, rgba(247, 243, 236, 0.4) 40%, transparent 100%);
+  --hero-overlay: linear-gradient(90deg, rgba(16, 20, 22, 0.54) 0%, rgba(16, 20, 22, 0.24) 38%, rgba(16, 20, 22, 0.04) 68%, transparent 100%);
+  --hero-overlay-bottom: linear-gradient(0deg, rgba(12, 16, 18, 0.28) 0%, rgba(12, 16, 18, 0.08) 28%, transparent 58%);
 }

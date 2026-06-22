@@ -21,9 +21,6 @@ spring:
       hibernate:
         format_sql: true
     database-platform: org.hibernate.dialect.H2Dialect
-  thymeleaf:
-    cache: false
-    check-template-location: false
   servlet:
     multipart:
       max-file-size: 80MB
@@ -32,14 +29,11 @@ spring:
 travel:
   map:
     provider: baidu
-    enabled: true
-    api-key: kv4jx5DP6hyZadzwhBSfbTfy0PdZ6RIv
+    enabled: ${BAIDU_MAP_ENABLED:false}
+    api-key: ${BAIDU_MAP_API_KEY:}
   weather:
     provider: baidu
-    api-key: cQlQJ1UjBOWPN55NhemaQAwglQP0xAyl
-  tts:
-    provider: mock
-    cache-prefix: /audio/mock/
+    api-key: ${BAIDU_WEATHER_API_KEY:}
   ai:
     provider: bailian
     enabled: true
@@ -49,8 +43,8 @@ travel:
     vision-model: qwen-vl-plus
     timeout-seconds: 20
   admin:
-    username: admin
-    password: admin123
+    username: ${APP_ADMIN_USERNAME:admin}
+    password: ${APP_ADMIN_PASSWORD:admin123}
   user:
-    username: demo
-    password: demo123
+    username: ${APP_DEMO_USERNAME:demo}
+    password: ${APP_DEMO_PASSWORD:demo123}

@@ -438,6 +438,47 @@
   background: #ffffff;
 }
 
+.password-input {
+  position: relative;
+  display: block;
+}
+
+.login-form .password-input input {
+  padding-right: 54px;
+}
+
+.login-form .password-toggle {
+  position: absolute;
+  top: 50%;
+  right: 9px;
+  width: 38px;
+  min-width: 38px;
+  height: 38px;
+  min-height: 38px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #665b4b;
+  box-shadow: none;
+  transform: translateY(-50%);
+}
+
+.login-form .password-toggle:hover {
+  background: rgba(94, 78, 53, 0.07);
+  color: #2b251b;
+  box-shadow: none;
+}
+
+.login-form .password-toggle:active {
+  transform: translateY(-50%) scale(0.96);
+}
+
+.login-form .password-toggle:focus-visible {
+  outline: 2px solid rgba(155, 94, 62, 0.52);
+  outline-offset: 1px;
+}
+
 .login-submit {
   min-height: 56px;
   margin-top: 6px;

@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 SichuanSpotImporter 配置组件，负责应用启动、鉴权或框架配置
+ */
 package com.zhuly.config;
 
 import com.zhuly.domain.ScenicSpot;
@@ -18,6 +21,9 @@ import java.math.BigDecimal;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
+/**
+ * SichuanSpotImporter 负责应用运行所需的框架配置或启动初始化
+ */
 @Component
 @RequiredArgsConstructor
 @Order(Ordered.LOWEST_PRECEDENCE)
@@ -28,6 +34,7 @@ public class SichuanSpotImporter implements ApplicationRunner {
 
     private final ScenicSpotRepository spotRepository;
 
+    // 在应用启动阶段执行本组件的初始化任务
     @Override
     @Transactional
     public void run(ApplicationArguments args) throws Exception {
@@ -45,6 +52,7 @@ public class SichuanSpotImporter implements ApplicationRunner {
         }
     }
 
+    // 创建、写入或提交 upsert 对应的业务数据
     private void upsert(String[] value) {
         String name = value[0].trim();
         ScenicSpot spot = spotRepository.findFirstByName(name).orElseGet(ScenicSpot::new);
@@ -94,6 +102,7 @@ public class SichuanSpotImporter implements ApplicationRunner {
         spotRepository.save(spot);
     }
 
+    // 执行 scenicImages 方法对应的业务处理
     private java.util.List<String> scenicImages(String name) {
         return Arrays.asList(
                 bingThumbnailImage(name, "四川 景区 全景 实景", 1),
@@ -102,15 +111,18 @@ public class SichuanSpotImporter implements ApplicationRunner {
         );
     }
 
+    // 执行 bingThumbnailImage 方法对应的业务处理
     private String bingThumbnailImage(String name, String scene, int index) {
         String query = UriUtils.encodeQueryParam(name + " " + scene, StandardCharsets.UTF_8);
         return "https://tse1.mm.bing.net/th?q=" + query + "&w=1200&h=675&c=7&rs=1&p=0&o=5&pid=1.7";
     }
 
+    // 计算 decimal 对应的业务结果
     private BigDecimal decimal(String value) {
         return new BigDecimal(value.trim());
     }
 
+    // 计算 number 对应的业务结果
     private double number(String value, double fallback) {
         try {
             return Double.parseDouble(value.trim());
@@ -119,6 +131,7 @@ public class SichuanSpotImporter implements ApplicationRunner {
         }
     }
 
+    // 校验 blank 对应的条件并返回判断结果
     private boolean blank(String value) {
         return value == null || value.trim().isEmpty();
     }

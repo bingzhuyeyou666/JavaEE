@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 CheckInService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.zhuly.domain.CheckInRecord;
@@ -16,6 +19,9 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * CheckInService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 public class CheckInService {
@@ -27,6 +33,7 @@ public class CheckInService {
     private final CrowdIndexService crowdIndexService;
     private final FriendlyPointService friendlyPointService;
 
+    // 创建、写入或提交 checkIn 对应的业务数据
     @Transactional
     public CheckInResponse checkIn(Long userId, Long spotId, BigDecimal latitude, BigDecimal longitude, String imageUrl) {
         ScenicSpot spot = spotRepository.findById(spotId)
@@ -58,21 +65,25 @@ public class CheckInService {
         return profile(userId, spotId);
     }
 
+    // 查询并返回 profile 对应的数据
     public CheckInResponse profile(Long userId, Long spotId) {
         Set<Long> ids = checkedInIds(userId);
         return new CheckInResponse(userId, spotId, spotId != null && ids.contains(spotId), ids.size(), badges(ids.size()));
     }
 
+    // 校验 checkedInIds 对应的条件并返回判断结果
     public Set<Long> checkedInIds(Long userId) {
         return checkInRecordRepository.findByUserIdOrderByCheckedInAtDesc(userId).stream()
                 .map(CheckInRecord::getSpotId)
                 .collect(Collectors.toCollection(LinkedHashSet::new));
     }
 
+    // 执行 records 方法对应的业务处理
     public List<CheckInRecord> records(Long userId) {
         return checkInRecordRepository.findByUserIdOrderByCheckedInAtDesc(userId);
     }
 
+    // 创建、写入或提交 addGalleryImages 对应的业务数据
     @Transactional
     public CheckInRecord addGalleryImages(Long userId, Long spotId, List<String> imageUrls) {
         CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
@@ -86,6 +97,7 @@ public class CheckInService {
         return checkInRecordRepository.save(record);
     }
 
+    // 删除、取消或停用 deleteGalleryImage 对应的数据
     @Transactional
     public CheckInRecord deleteGalleryImage(Long userId, Long spotId, String imageUrl) {
         CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
@@ -100,6 +112,7 @@ public class CheckInService {
         return checkInRecordRepository.save(record);
     }
 
+    // 执行 gallery 方法对应的业务处理
     public CheckInRecord gallery(Long userId, Long spotId) {
         CheckInRecord record = checkInRecordRepository.findByUserIdAndSpotId(userId, spotId)
                 .orElseThrow(() -> new IllegalArgumentException("图库不存在"));
@@ -107,6 +120,7 @@ public class CheckInService {
         return record;
     }
 
+    // 执行 images 方法对应的业务处理
     public List<String> images(CheckInRecord record) {
         syncLegacyImage(record);
         List<String> result = new ArrayList<>(record.getImageUrls());
@@ -116,6 +130,7 @@ public class CheckInService {
         return result;
     }
 
+    // 创建、写入或提交 addImageToRecord 对应的业务数据
     private void addImageToRecord(CheckInRecord record, String imageUrl) {
         if (imageUrl == null || imageUrl.trim().isEmpty()) {
             return;
@@ -130,6 +145,7 @@ public class CheckInService {
         }
     }
 
+    // 更新并规范化 syncLegacyImage 对应的数据
     private void syncLegacyImage(CheckInRecord record) {
         if (record.getImageUrls() == null) {
             record.setImageUrls(new ArrayList<>());
@@ -140,6 +156,7 @@ public class CheckInService {
         }
     }
 
+    // 执行 badges 方法对应的业务处理
     public List<String> badges(int total) {
         List<String> badges = new ArrayList<>();
         if (total >= 1) {

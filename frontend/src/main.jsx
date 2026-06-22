@@ -1,3 +1,6 @@
+/**
+ * 本文件是前端应用主入口，包含页面路由、核心界面组件和主要交互逻辑
+ */
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 import { gsap } from 'gsap';
@@ -11,8 +14,9 @@ import {
   Copy,
   Download,
   Edit3,
+  Eye,
+  EyeOff,
   FileText,
-  Headphones,
   Heart,
   House,
   Image,
@@ -28,6 +32,7 @@ import {
   Moon,
   NotebookPen,
   Navigation,
+  Phone,
   Plus,
   RefreshCw,
   Search,
@@ -55,6 +60,7 @@ const nearbyLocationKey = 'travelCloudNearbyLocation';
 const sessionLocatedKey = 'travelCloudSessionLocated';
 const squareDraftKey = 'travelCloudSquareDraft';
 
+// 封装 userSquareDraftKey 所需的状态和副作用逻辑
 function userSquareDraftKey(userId) {
   return userId ? `${squareDraftKey}:${userId}` : '';
 }
@@ -253,6 +259,19 @@ const travelQuotes = [
   '生命不长不短，刚好够用来好好看看这个世界。——郭子鹰'
 ];
 
+// 将后端或浏览器返回的异常内容转换为适合页面展示的中文提示
+function localizeErrorMessage(message, fallback = '请求失败，请稍后重试') {
+  const text = String(message || '').trim();
+  if (!text) return fallback;
+  if (/failed to convert value|numberformatexception|type mismatch/i.test(text)) return '参数格式不正确，请检查后重新提交';
+  if (/json parse|not readable|unexpected character|cannot deserialize/i.test(text)) return '提交的数据格式不正确，请检查后重新提交';
+  if (/networkerror|failed to fetch|network request failed/i.test(text)) return '网络连接失败，请检查网络后重试';
+  if (/internal server error|whitelabel error page|servlet/i.test(text)) return '系统处理失败，请稍后重试';
+  if (/[一-龥]/.test(text)) return text;
+  return fallback;
+}
+
+// 执行 api 对应的前端处理逻辑
 async function api(url, options = {}) {
   const controller = new AbortController();
   const timer = window.setTimeout(() => controller.abort(), options.timeoutMs || 12000);
@@ -269,7 +288,7 @@ async function api(url, options = {}) {
     });
     if (!response.ok) {
       const error = await response.json().catch(() => ({ message: '请求失败' }));
-      throw new Error(error.message || '请求失败');
+      throw new Error(localizeErrorMessage(error.message));
     }
     if (response.status === 204) return null;
     const text = await response.text();
@@ -283,6 +302,7 @@ async function api(url, options = {}) {
   }
 }
 
+// 读取并返回 readStorageJson 对应的数据
 function readStorageJson(key, fallback) {
   try {
     const raw = window.localStorage?.getItem(key);
@@ -292,14 +312,16 @@ function readStorageJson(key, fallback) {
   }
 }
 
+// 更新并规范化 writeStorageJson 对应的数据
 function writeStorageJson(key, value) {
   try {
     window.localStorage?.setItem(key, JSON.stringify(value));
   } catch (error) {
-    // Storage can be unavailable in restricted browsers; keep the in-memory state.
+    // Storage can be unavailable in restricted browsers; keep the in-memory state
   }
 }
 
+// 读取并返回 readLocationState 对应的数据
 function readLocationState(key, fallback) {
   const value = readStorageJson(key, fallback);
   if (!value || typeof value !== 'object') return fallback;
@@ -309,10 +331,12 @@ function readLocationState(key, fallback) {
   return { lat, lng, label: value.label || fallback.label };
 }
 
+// 更新并规范化 saveLocationState 对应的数据
 function saveLocationState(key, location) {
   writeStorageJson(key, location);
 }
 
+// 读取并返回 readSessionFlag 对应的数据
 function readSessionFlag(key) {
   try {
     return window.sessionStorage?.getItem(key) === 'true';
@@ -321,6 +345,7 @@ function readSessionFlag(key) {
   }
 }
 
+// 更新并规范化 writeSessionFlag 对应的数据
 function writeSessionFlag(key, value) {
   try {
     if (value) {
@@ -329,10 +354,11 @@ function writeSessionFlag(key, value) {
       window.sessionStorage?.removeItem(key);
     }
   } catch (error) {
-    // Session storage can be unavailable; the UI still falls back to explicit location actions.
+    // Session storage can be unavailable; the UI still falls back to explicit location actions
   }
 }
 
+// 判断 isBlockedPresetLocation 对应的界面或业务条件
 function isBlockedPresetLocation(location) {
   if (!location) return false;
   const label = String(location.label || '');
@@ -342,29 +368,35 @@ function isBlockedPresetLocation(location) {
   });
 }
 
+// 执行 cx 对应的前端处理逻辑
 function cx(...names) {
   return names.filter(Boolean).join(' ');
 }
 
+// 执行 spotImageUrl 对应的前端处理逻辑
 function spotImageUrl(spot) {
   return spot?.coverImage || '';
 }
 
+// 读取并返回 currentUserId 对应的数据
 function currentUserId() {
   return window.travelCloudCurrentUserId || null;
 }
 
+// 读取并返回 optionalUserIdQuery 对应的数据
 function optionalUserIdQuery() {
   const userId = currentUserId();
   return userId ? `&userId=${userId}` : '';
 }
 
+// 判断 requireUserLogin 对应的界面或业务条件
 function requireUserLogin(account) {
   if (account?.user?.loggedIn) return true;
   navigateTo('/login');
   return false;
 }
 
+// 执行 ensureDaylightContrastStyle 对应的前端处理逻辑
 function ensureDaylightContrastStyle() {
   if (document.getElementById(daylightContrastStyleId)) return;
   const style = document.createElement('style');
@@ -373,10 +405,12 @@ function ensureDaylightContrastStyle() {
   document.head.appendChild(style);
 }
 
+// 更新并规范化 normalizeAppHref 对应的数据
 function normalizeAppHref(href) {
   return window.location.port === '8080' && href.startsWith('/') ? `/app${href === '/' ? '/' : href}` : href;
 }
 
+// 处理 navigateTo 对应的用户操作
 function navigateTo(href) {
   const nextHref = normalizeAppHref(href);
   window.history.pushState(null, '', nextHref);
@@ -384,10 +418,13 @@ function navigateTo(href) {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// 封装 usePath 所需的状态和副作用逻辑
 function usePath() {
+  // 更新并规范化 normalize 对应的数据
   const normalize = () => window.location.pathname.replace(/^\/app(?=\/|$)/, '') || '/';
   const [path, setPath] = useState(normalize);
   useEffect(() => {
+    // 更新并规范化 update 对应的数据
     const update = () => setPath(normalize());
     window.addEventListener('popstate', update);
     return () => window.removeEventListener('popstate', update);
@@ -395,6 +432,7 @@ function usePath() {
   return path;
 }
 
+// 渲染 Link 对应的页面或界面组件
 function Link({ href, children, className, ...props }) {
   const browserHref = normalizeAppHref(href);
   return (
@@ -413,6 +451,7 @@ function Link({ href, children, className, ...props }) {
   );
 }
 
+// 封装 useAsync 所需的状态和副作用逻辑
 function useAsync(loader, deps) {
   const [state, setState] = useState({ loading: true, data: null, error: '' });
   useEffect(() => {
@@ -428,12 +467,24 @@ function useAsync(loader, deps) {
   return state;
 }
 
-function Header({ account, refreshAccount, path, theme, setTheme }) {
+// 渲染 Header 对应的页面或界面组件
+function UserAvatar({ user, size = 'normal' }) {
+  const preset = user?.avatarPreset || 'mountain';
+  const frame = user?.avatarFrame || 'none';
+  return (
+    <span className={cx('user-avatar', `avatar-${size}`, `avatar-preset-${preset}`, `avatar-frame-${frame}`)}>
+      {user?.avatarUrl ? <img src={user.avatarUrl} alt="" /> : <span className="avatar-landscape" aria-hidden="true" />}
+    </span>
+  );
+}
+
+function Header({ account, logout, path, theme, setTheme }) {
   const isAdmin = account.admin?.loggedIn;
   const isUser = account.user?.loggedIn;
   const label = isAdmin ? `管理员 ${account.admin.username || 'admin'}` : isUser ? (account.user.username || 'demo') : '游客模式';
-  const hint = isAdmin ? '运营后台已登录' : isUser ? '足迹与预约已同步' : '免登录浏览景点';
+  const hint = isAdmin ? '运营后台已登录' : isUser ? '足迹与路线已同步' : '免登录浏览景点';
   const actionHref = isAdmin ? '/admin' : isUser ? '/me' : '/login';
+  // 判断 isActive 对应的界面或业务条件
   const isActive = (href) => href === '/' ? path === '/' : path === href || path.startsWith(`${href}/`);
   const [quoteIndex, setQuoteIndex] = useState(0);
 
@@ -465,15 +516,15 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
             </button>
           </div>
           <Link href={actionHref} className="account-entry">
-            <span className="avatar">{isAdmin ? <ShieldCheck size={18} /> : <UserRound size={18} />}</span>
+            {isAdmin ? <span className="avatar"><ShieldCheck size={18} /></span> : isUser ? <UserAvatar user={account.user} /> : <span className="avatar"><UserRound size={18} /></span>}
             <span>
               <strong>{label}</strong>
               <small>{hint}</small>
             </span>
           </Link>
           {(isAdmin || isUser) && (
-            <button className="icon-button ghost" onClick={refreshAccount} title="刷新登录状态">
-              <RefreshCw size={18} />
+            <button className="icon-button ghost" onClick={logout} title="退出登录" aria-label="退出登录">
+              <LogOut size={18} />
             </button>
           )}
         </div>
@@ -491,11 +542,13 @@ function Header({ account, refreshAccount, path, theme, setTheme }) {
 }
 
 const defaultHeroSlides = [
-  { imageUrl: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=2400&q=95', eyebrow: '山水漫游', title: '陌路寻阡', body: '把景点发现、路线规划、预约票务、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
-  { imageUrl: 'https://images.unsplash.com/photo-1470115636492-6d2b56f9146d?auto=format&fit=crop&w=2400&q=95', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
-  { imageUrl: 'https://images.unsplash.com/photo-1528127269322-539801943592?auto=format&fit=crop&w=2400&q=95', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
+  { imageUrl: '/app/hero/hero-snow-lake.png', eyebrow: '山水漫游', title: '陌路寻阡', body: '把景点发现、路线规划、预约热线、足迹打卡与智能导览收进一张清晰的旅行地图。', actionText: '进入导览', actionHref: '/guide' },
+  { imageUrl: '/app/hero/hero-green-lake.png', eyebrow: '湖光远山', title: '附近风景，即刻成行', body: '定位当前位置，筛出周边景点，提前看天气、拥挤、设施与真实评论。', actionText: '发现附近', actionHref: '/guide' },
+  { imageUrl: '/app/hero/hero-sunset-fields.png', eyebrow: '田野寻踪', title: '沿着风景，慢慢抵达', body: '从湖泊山川到梯田村落，收藏途中风景，留下自己的旅行足迹。', actionText: '发现景点', actionHref: '/guide' },
+  { imageUrl: '/app/hero/hero-mountain-lake.png', eyebrow: '轻松出行', title: '从收藏到路线，一步成行', body: '选择 2-5 个景点，生成合理游览顺序，并查看前往首站的交通方案。', actionText: '规划路线', actionHref: '/route' }
 ];
 
+// 渲染 Hero 对应的页面或界面组件
 function Hero({ spots, slides = defaultHeroSlides }) {
   const heroSlides = Array.isArray(slides) && slides.length ? slides : defaultHeroSlides;
   const [active, setActive] = useState(0);
@@ -540,6 +593,7 @@ function Hero({ spots, slides = defaultHeroSlides }) {
   );
 }
 
+// 渲染 SpotCard 对应的页面或界面组件
 function SpotCard({ spot, addRoute }) {
   return (
     <article
@@ -577,6 +631,7 @@ function SpotCard({ spot, addRoute }) {
   );
 }
 
+// 渲染 Home 对应的页面或界面组件
 function Home({ addRoute }) {
   const { data: slides = [] } = useAsync(() => api('/api/home/hero'), []);
   const { data: featured = [], loading } = useAsync(() => api(`/api/home/featured-spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}${optionalUserIdQuery()}`), []);
@@ -589,7 +644,7 @@ function Home({ addRoute }) {
           <div className="signature-copy">
             <span className="section-kicker">核心竞争力</span>
             <h2>不是景点列表，而是一张会行动的旅行星图</h2>
-            <p>把附近发现、路线排序、天气拥挤、预约票务、足迹打卡串成同一条体验链，让用户从“想去哪”直接走到“怎么去”。</p>
+            <p>把附近发现、路线排序、天气拥挤、预约热线、足迹打卡串成同一条体验链，让用户从“想去哪”直接走到“怎么去”。</p>
           </div>
           <div className="constellation-board" aria-hidden="true">
             <span className="constellation-line c-line-a" />
@@ -608,7 +663,7 @@ function Home({ addRoute }) {
             ['/guide', Compass, '景点导览', '按位置、评分和类型快速找到适合游玩的景点。'],
             ['/route', Navigation, '路线规划', '选择多个景点，生成合理顺序和分段路程。'],
             ['/square', Users, '旅行广场', '发布影像、拼团、心得和注意事项，与游客交流。'],
-            ['/me', UserRound, '个人中心', '查看足迹、勋章、预约和景点申报。'],
+            ['/me', UserRound, '个人中心', '查看足迹、勋章、积分和景点申报。'],
             ['/submit-spot', Plus, '景点申报', '把你发现的非官方好去处推荐给平台审核。']
           ].map(([href, Icon, title, body]) => (
             <Link href={href} className="feature-entry" key={title}>
@@ -636,6 +691,7 @@ function Home({ addRoute }) {
   );
 }
 
+// 渲染 SectionTitle 对应的页面或界面组件
 function SectionTitle({ title, href }) {
   return (
     <div className="section-title">
@@ -645,6 +701,7 @@ function SectionTitle({ title, href }) {
   );
 }
 
+// 渲染 Loading 对应的页面或界面组件
 function Loading() {
   return (
     <div className="skeleton-grid" aria-label="正在加载">
@@ -653,6 +710,7 @@ function Loading() {
   );
 }
 
+// 封装 useNearbyLocation 所需的状态和副作用逻辑
 function useNearbyLocation() {
   return useMemo(() => {
     const saved = readStorageJson(nearbyLocationKey, null);
@@ -661,6 +719,7 @@ function useNearbyLocation() {
   }, []);
 }
 
+// 处理 locateByBrowser 对应的用户操作
 function locateByBrowser(onSuccess, onStatus) {
   if (!navigator.geolocation) {
     onStatus?.('浏览器不支持定位，请手动选择城市。');
@@ -682,6 +741,7 @@ function locateByBrowser(onSuccess, onStatus) {
   );
 }
 
+// 执行 nearestVisibleRadius 对应的前端处理逻辑
 function nearestVisibleRadius(spots, currentRadius) {
   const distances = (Array.isArray(spots) ? spots : [])
     .map((spot) => Number(spot.distanceKm))
@@ -691,6 +751,7 @@ function nearestVisibleRadius(spots, currentRadius) {
   return Math.min(1000, Math.max(currentRadius, Math.ceil(distances[0] / 25) * 25));
 }
 
+// 执行 spreadSignalLabels 对应的前端处理逻辑
 function spreadSignalLabels(points) {
   const placed = [];
   return points.map((spot, index) => {
@@ -741,6 +802,7 @@ function spreadSignalLabels(points) {
 
 let baiduMapLoader;
 
+// 封装 useBaiduMap 所需的状态和副作用逻辑
 function useBaiduMap() {
   const [status, setStatus] = useState({ ready: Boolean(window.BMap), error: '' });
   useEffect(() => {
@@ -751,8 +813,8 @@ function useBaiduMap() {
     let alive = true;
     if (!baiduMapLoader) {
       baiduMapLoader = api('/api/config').then((config) => new Promise((resolve, reject) => {
-        if (!config.baiduMapEnabled) throw new Error('百度地图暂未启用，请在百度控制台启用 Web JS API 后，将 travel.map.enabled 改为 true。');
-        if (!config.baiduMapAk) throw new Error('百度地图 AK 未配置。');
+        if (!config.baiduMapEnabled) throw new Error('百度地图暂未启用，请先完成地图服务配置。');
+        if (!config.baiduMapAk) throw new Error('百度地图服务密钥未配置。');
         if (window.BMap) {
           resolve(window.BMap);
           return;
@@ -761,7 +823,7 @@ function useBaiduMap() {
         const script = document.createElement('script');
         script.dataset.baiduMap = 'true';
         script.src = `https://api.map.baidu.com/api?v=3.0&ak=${config.baiduMapAk}&callback=__travelCloudBaiduReady`;
-        script.onerror = () => reject(new Error('百度地图 SDK 加载失败，请检查 AK 服务状态、Referer 白名单和网络。'));
+        script.onerror = () => reject(new Error('百度地图组件加载失败，请检查服务密钥、网站白名单和网络连接。'));
         document.head.appendChild(script);
       }));
     }
@@ -775,10 +837,12 @@ function useBaiduMap() {
   return status;
 }
 
+// 读取并返回 fetchNearbySpots 对应的数据
 function fetchNearbySpots(location) {
   return api(`/api/spots?keyword=&type=&lat=${location.lat}&lng=${location.lng}${optionalUserIdQuery()}`);
 }
 
+// 整理并生成 formatDistanceKm 所需的展示数据
 function formatDistanceKm(distanceKm) {
   const value = Number(distanceKm);
   if (!Number.isFinite(value) || value === 99999) return '距离计算中';
@@ -787,12 +851,14 @@ function formatDistanceKm(distanceKm) {
   }).format(value)} km`;
 }
 
+// 整理并生成 formatTicketPrice 所需的展示数据
 function formatTicketPrice(price) {
   const value = Number(price || 0);
   if (!Number.isFinite(value) || value <= 0) return '免费';
   return `¥${new Intl.NumberFormat('zh-CN', { maximumFractionDigits: 0 }).format(value)}`;
 }
 
+// 渲染 BaiduMap 对应的页面或界面组件
 function BaiduMap({ center = defaultLocation, markers = [], route = false, polyline = false, className = '' }) {
   const ref = React.useRef(null);
   const mapRef = React.useRef(null);
@@ -805,6 +871,7 @@ function BaiduMap({ center = defaultLocation, markers = [], route = false, polyl
     container.innerHTML = '';
     const map = new BMap.Map(container);
     mapRef.current = map;
+    // 执行 toPoint 对应的前端处理逻辑
     const toPoint = (item) => new BMap.Point(Number(item.longitude ?? item.lng), Number(item.latitude ?? item.lat));
     const centerPoint = toPoint(center);
     map.centerAndZoom(centerPoint, markers.length > 1 ? 11 : 14);
@@ -834,17 +901,47 @@ function BaiduMap({ center = defaultLocation, markers = [], route = false, polyl
       try {
         map.clearOverlays();
       } catch (ignore) {
-        // Baidu SDK has no stable destroy API; clear overlays and detach DOM safely.
+        // Baidu SDK has no stable destroy API; clear overlays and detach DOM safely
       }
       if (mapRef.current === map) mapRef.current = null;
       if (container.isConnected) container.innerHTML = '';
     };
   }, [ready, center.lat, center.lng, JSON.stringify(markers), route, polyline]);
 
-  if (error) return <div className={cx('map-box', className)}>{error}</div>;
+  if (error) {
+    const points = (markers.length ? markers : [center])
+      .map((item) => ({
+        lat: Number(item.latitude ?? item.lat),
+        lng: Number(item.longitude ?? item.lng)
+      }))
+      .filter((item) => Number.isFinite(item.lat) && Number.isFinite(item.lng));
+    const fallbackCenter = points[0] || {
+      lat: Number(center.latitude ?? center.lat),
+      lng: Number(center.longitude ?? center.lng)
+    };
+    const latitudes = points.map((item) => item.lat);
+    const longitudes = points.map((item) => item.lng);
+    const minLat = latitudes.length ? Math.min(...latitudes) : fallbackCenter.lat - 0.04;
+    const maxLat = latitudes.length ? Math.max(...latitudes) : fallbackCenter.lat + 0.04;
+    const minLng = longitudes.length ? Math.min(...longitudes) : fallbackCenter.lng - 0.06;
+    const maxLng = longitudes.length ? Math.max(...longitudes) : fallbackCenter.lng + 0.06;
+    const latPadding = Math.max(0.025, (maxLat - minLat) * 0.25);
+    const lngPadding = Math.max(0.04, (maxLng - minLng) * 0.25);
+    const mapUrl = `https://www.openstreetmap.org/export/embed.html?bbox=${encodeURIComponent(`${minLng - lngPadding},${minLat - latPadding},${maxLng + lngPadding},${maxLat + latPadding}`)}&layer=mapnik&marker=${fallbackCenter.lat},${fallbackCenter.lng}`;
+    return (
+      <div className={cx('map-box map-fallback', className)}>
+        <iframe title="位置地图" src={mapUrl} loading="lazy" />
+        <div className="map-fallback-note">
+          <span>公共地图</span>
+          <small>{route ? '当前显示位置范围，完整道路路线需配置百度地图服务' : '百度地图未配置，已自动切换公共地图'}</small>
+        </div>
+      </div>
+    );
+  }
   return <div ref={ref} className={cx('map-box baidu-map', className)}>{ready ? '' : '百度地图加载中...'}</div>;
 }
 
+// 渲染 GuideLanding 对应的页面或界面组件
 function GuideLanding() {
   const [location, setLocation] = useState(null);
   const [allNearbySignals, setAllNearbySignals] = useState([]);
@@ -881,6 +978,7 @@ function GuideLanding() {
     };
   }, [readyToEnter, location]);
 
+  // 处理 handleLocate 对应的用户操作
   function handleLocate() {
     if (suppressLocateClickRef.current) {
       suppressLocateClickRef.current = false;
@@ -920,6 +1018,7 @@ function GuideLanding() {
 
   const starPoints = useMemo(() => {
     let seed = 928371;
+    // 执行 random 对应的前端处理逻辑
     const random = () => {
       seed = (seed * 1664525 + 1013904223) % 4294967296;
       return seed / 4294967296;
@@ -943,6 +1042,7 @@ function GuideLanding() {
 
   const shootingStars = useMemo(() => {
     let seed = 462819;
+    // 执行 random 对应的前端处理逻辑
     const random = () => {
       seed = (seed * 1103515245 + 12345) % 2147483648;
       return seed / 2147483648;
@@ -972,6 +1072,7 @@ function GuideLanding() {
     return () => document.body.classList.remove('guide-open');
   }, []);
 
+  // 执行 startPanDrag 对应的前端处理逻辑
   function startPanDrag(event) {
     if (event.target.closest('.center-locate-button')) return;
     if (!hasLocated || event.target.closest('button, a, input, textarea, select, .signal-preview')) return;
@@ -985,6 +1086,7 @@ function GuideLanding() {
     event.currentTarget.setPointerCapture?.(event.pointerId);
   }
 
+  // 执行 movePanDrag 对应的前端处理逻辑
   function movePanDrag(event) {
     if (!panDragRef.current) return;
     const nextX = panDragRef.current.x + event.clientX - panDragRef.current.startX;
@@ -998,6 +1100,7 @@ function GuideLanding() {
     });
   }
 
+  // 执行 endPanDrag 对应的前端处理逻辑
   function endPanDrag(event) {
     if (panDragRef.current?.moved) {
       suppressSignalClickRef.current = true;
@@ -1013,6 +1116,7 @@ function GuideLanding() {
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
 
+  // 执行 zoomStarMap 对应的前端处理逻辑
   function zoomStarMap(event) {
     if (!hasLocated || event.target.closest('button, a, input, textarea, select, .signal-preview')) return;
     event.preventDefault();
@@ -1244,6 +1348,7 @@ function GuideLanding() {
   );
 }
 
+// 渲染 Guide 对应的页面或界面组件
 function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = false }) {
   const savedNearbyLocation = useNearbyLocation();
   const nearbyLocation = savedNearbyLocation;
@@ -1263,6 +1368,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
     if (sort === 'price') list.sort((a, b) => Number(a.price || 0) - Number(b.price || 0));
     return list;
   }, [data, sort]);
+  // 处理 handleGuidePanelWheel 对应的用户操作
   function handleGuidePanelWheel(event) {
     const target = event.currentTarget;
     if (target.scrollHeight <= target.clientHeight) return;
@@ -1353,6 +1459,7 @@ function Guide({ route, addRoute, removeRoute, clearRoute, useSavedLocation = fa
   );
 }
 
+// 渲染 SelectedRoute 对应的页面或界面组件
 function SelectedRoute({ route, removeRoute }) {
   if (!route.length) return <div className="empty-state compact">还没有选择景点，先从导览页加入路线。</div>;
   return (
@@ -1368,26 +1475,36 @@ function SelectedRoute({ route, removeRoute }) {
   );
 }
 
+// 渲染 RoutePage 对应的页面或界面组件
 function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
   const { data: spots = [] } = useAsync(() => api(`/api/spots?lat=${defaultLocation.lat}&lng=${defaultLocation.lng}${optionalUserIdQuery()}`), []);
   const [result, setResult] = useState(null);
   const [message, setMessage] = useState('');
   const [origin, setOrigin] = useState(defaultLocation);
   const [mode, setMode] = useState('driving');
+  // 处理 locateOrigin 对应的用户操作
   function locateOrigin() {
     locateByBrowser(
       (nextOrigin) => setOrigin({ ...nextOrigin, label: '当前位置' }),
       setMessage
     );
   }
+  // 执行 plan 对应的前端处理逻辑
   async function plan() {
-    if (route.length < 2) {
+    const validRoute = route.filter((item) => Number.isSafeInteger(Number(item?.id)) && Number(item.id) > 0);
+    if (validRoute.length !== route.length) {
+      saveRoute(validRoute);
+      setResult(null);
+      setMessage('已清理失效的景点记录，请重新选择景点');
+      return;
+    }
+    if (validRoute.length < 2) {
       setMessage('请至少选择 2 个景点。');
       return;
     }
     setMessage('正在生成路线...');
     try {
-      const data = await api(`/api/routes/plan?userId=${currentUserId()}`, { method: 'POST', body: JSON.stringify({ spotIds: route.map((item) => item.id), mode }) });
+      const data = await api(`/api/routes/plan?userId=${currentUserId()}`, { method: 'POST', body: JSON.stringify({ spotIds: validRoute.map((item) => Number(item.id)), mode }) });
       setResult(data);
       setMessage(mode === 'driving' ? '' : '已记录绿色出行积分，可在个人中心查看。');
     } catch (error) {
@@ -1445,6 +1562,7 @@ function RoutePage({ route, addRoute, removeRoute, clearRoute }) {
   );
 }
 
+// 渲染 RouteResult 对应的页面或界面组件
 function RouteResult({ result, origin }) {
   if (!result) return <div className="empty-state route-map">路线结果会显示在这里</div>;
   const firstSpot = result.orderedSpots?.[0];
@@ -1473,6 +1591,7 @@ function RouteResult({ result, origin }) {
   );
 }
 
+// 渲染 TripOptions 对应的页面或界面组件
 function TripOptions({ origin, destination }) {
   const { ready, error } = useBaiduMap();
   const mapHostRef = React.useRef(null);
@@ -1533,13 +1652,13 @@ function TripOptions({ origin, destination }) {
         try {
           route.clearResults();
         } catch (ignore) {
-          // Some Baidu route objects do not expose cleanup consistently.
+          // Some Baidu route objects do not expose cleanup consistently
         }
       });
       try {
         transitMap.clearOverlays();
       } catch (ignore) {
-        // Baidu SDK has no stable destroy API.
+        // Baidu SDK has no stable destroy API
       }
       if (mapHostRef.current) mapHostRef.current.innerHTML = '';
     };
@@ -1564,6 +1683,7 @@ function TripOptions({ origin, destination }) {
   );
 }
 
+// 渲染 SpotDetail 对应的页面或界面组件
 function SpotDetail({ id, addRoute, account }) {
   const { data: spot, loading, error } = useAsync(() => api(`/api/spots/${id}`), [id]);
   const [weatherTick, setWeatherTick] = useState(0);
@@ -1573,7 +1693,6 @@ function SpotDetail({ id, addRoute, account }) {
   const recommendations = useAsync(() => api(`/api/spots/${id}/recommendations?limit=6`), [id]);
   const [reviewTick, setReviewTick] = useState(0);
   const reviews = useAsync(() => api(`/api/community/spots/${id}/reviews`), [id, reviewTick]);
-  const [reservation, setReservation] = useState({ visitDate: new Date().toISOString().slice(0, 10), timeSlot: '09:00-12:00', people: 1 });
   const [reviewForm, setReviewForm] = useState({ score: 5, content: '' });
   const [replyTarget, setReplyTarget] = useState(null);
   const [question, setQuestion] = useState('');
@@ -1605,12 +1724,13 @@ function SpotDetail({ id, addRoute, account }) {
   const currentWeather = weatherList[0] || {};
   const nextWeather = weatherList.slice(1, 4);
   const weatherSummary = summarizeWeather(weatherList);
-  const hasReservation = Number(spot.price) > 0;
+  // 处理 openCheckInDialog 对应的用户操作
   function openCheckInDialog() {
     if (!requireUserLogin(account)) return;
     setCheckInOpen(true);
     setMessage('');
   }
+  // 处理 closeCheckInDialog 对应的用户操作
   function closeCheckInDialog() {
     if (checkInBusy) return;
     setCheckInOpen(false);
@@ -1618,6 +1738,7 @@ function SpotDetail({ id, addRoute, account }) {
     if (checkInPreview) URL.revokeObjectURL(checkInPreview);
     setCheckInPreview('');
   }
+  // 处理 pickCheckInImage 对应的用户操作
   function pickCheckInImage(file) {
     if (!file || !file.type.startsWith('image/')) {
       setMessage('请选择 JPG、PNG、WebP 等图片作为打卡凭证。');
@@ -1628,6 +1749,7 @@ function SpotDetail({ id, addRoute, account }) {
     setCheckInPreview(URL.createObjectURL(file));
     setMessage('');
   }
+  // 处理 submitCheckIn 对应的用户操作
   async function submitCheckIn(event) {
     event.preventDefault();
     if (!requireUserLogin(account)) {
@@ -1663,18 +1785,7 @@ function SpotDetail({ id, addRoute, account }) {
       setCheckInBusy(false);
     }
   }
-  async function reserveSpot(event) {
-    event.preventDefault();
-    const result = await api(`/api/reservations?userId=${currentUserId()}`, {
-      method: 'POST',
-      body: JSON.stringify({ spotId: Number(id), ...reservation, people: Number(reservation.people) })
-    });
-    setMessage(`预约成功，核销码：${result.qrCode}`);
-  }
-  async function playTts() {
-    const result = await api(`/api/spots/${id}/tts`);
-    setMessage(`语音导览地址：${result.audioUrl}`);
-  }
+  // 处理 askAssistant 对应的用户操作
   async function askAssistant(nextQuestion = question) {
     const normalized = nextQuestion.trim();
     if (!normalized || assistantLoading) return;
@@ -1702,6 +1813,7 @@ function SpotDetail({ id, addRoute, account }) {
       setAssistantLoading(false);
     }
   }
+  // 执行 startAssistantDrag 对应的前端处理逻辑
   function startAssistantDrag(event) {
     if (event.button !== 0) return;
     const isPetHandle = event.currentTarget.classList?.contains('pet-sprite-button');
@@ -1727,6 +1839,7 @@ function SpotDetail({ id, addRoute, account }) {
     shell.style.top = `${box.top}px`;
     event.currentTarget.setPointerCapture?.(event.pointerId);
   }
+  // 执行 moveAssistantDrag 对应的前端处理逻辑
   function moveAssistantDrag(event) {
     const drag = assistantDragRef.current;
     if (!drag) return;
@@ -1757,6 +1870,7 @@ function SpotDetail({ id, addRoute, account }) {
       assistantShellRef.current.style.top = `${nextPosition.y}px`;
     }
   }
+  // 执行 endAssistantDrag 对应的前端处理逻辑
   function endAssistantDrag(event) {
     assistantShellRef.current?.classList.remove('pet-moving', 'pet-moving-left', 'pet-moving-right');
     if (assistantDragRef.current?.moved) {
@@ -1781,6 +1895,7 @@ function SpotDetail({ id, addRoute, account }) {
     assistantPositionRef.current = null;
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
+  // 处理 submitReview 对应的用户操作
   async function submitReview(event) {
     event.preventDefault();
     await api(`/api/community/reviews?userId=${currentUserId()}`, {
@@ -1795,6 +1910,7 @@ function SpotDetail({ id, addRoute, account }) {
     setReplyTarget(null);
     setReviewTick((value) => value + 1);
   }
+  // 处理 likeReview 对应的用户操作
   async function likeReview(reviewId) {
     await api(`/api/community/reviews/${reviewId}/like?userId=${currentUserId()}`, { method: 'POST' });
     setReviewTick((value) => value + 1);
@@ -1825,7 +1941,6 @@ function SpotDetail({ id, addRoute, account }) {
           {message && <div className="message">{message}</div>}
           <div className="actions">
             <button onClick={openCheckInDialog}><BadgeCheck size={16} /> 到达打卡</button>
-            <button className="secondary" onClick={playTts}><Headphones size={16} /> 语音导览</button>
             <a className="button-like" target="_blank" href={`https://api.map.baidu.com/marker?location=${spot.latitude},${spot.longitude}&title=${encodeURIComponent(spot.name)}&content=${encodeURIComponent('陌路寻阡景点导航')}&output=html`} rel="noreferrer"><Car size={16} /> 百度导航</a>
           </div>
           {checkInOpen && (
@@ -1858,9 +1973,7 @@ function SpotDetail({ id, addRoute, account }) {
           <p>{spot.history}</p>
           <h3>附近设施地图</h3>
           <BaiduMap center={spotMarker} markers={[spotMarker, ...(facilities.data || [])]} className="detail-map" />
-          <div className="list facility-list">{(facilities.data || []).map((item) => <div className="list-item" key={item.id}><strong>{item.name}</strong><p>{item.type} · {item.distanceKm ?? '-'} km · {item.rating} 分</p></div>)}</div>
           <h3>相似景点推荐</h3>
-          <p className="muted">根据景点类型、文化主题与自然特征匹配。</p>
           <div className="cards recommendation-grid">
             {(recommendations.data || []).map((item) => (
               <article className="card" key={item.id}>
@@ -1874,21 +1987,13 @@ function SpotDetail({ id, addRoute, account }) {
               </article>
             ))}
           </div>
-          {hasReservation && (
-            <>
-              <h3>预约票务</h3>
-              <form className="inline-form" onSubmit={reserveSpot}>
-                <input type="date" value={reservation.visitDate} onChange={(e) => setReservation({ ...reservation, visitDate: e.target.value })} />
-                <select value={reservation.timeSlot} onChange={(e) => setReservation({ ...reservation, timeSlot: e.target.value })}>
-                  <option>09:00-12:00</option>
-                  <option>12:00-15:00</option>
-                  <option>15:00-18:00</option>
-                </select>
-                <input type="number" min="1" max="10" value={reservation.people} onChange={(e) => setReservation({ ...reservation, people: e.target.value })} />
-                <button>立即预约</button>
-              </form>
-            </>
-          )}
+          <section className="panel reservation-box">
+            <PanelTitle icon={Phone} title="预约热线" />
+            <p>本平台不提供在线预约、签到或核销服务。如需预约，请拨打景点官方热线咨询。</p>
+            <a className="button-like" href={spot.phone ? `tel:${spot.phone}` : undefined}>
+              <Phone size={16} /> {spot.phone || '暂无官方预约热线'}
+            </a>
+          </section>
           <section className="comment-section">
             <PanelTitle icon={MessageCircle} title="游客评论" meta={`${rootReviews.length} 条讨论`} />
             <form className="review-composer" onSubmit={submitReview}>
@@ -1930,7 +2035,14 @@ function SpotDetail({ id, addRoute, account }) {
         </section>
         <aside className="panel sticky">
           <div className="weather-panel-head">
-            <PanelTitle icon={Sparkles} title="天气与拥挤" />
+            <div className="weather-heading">
+              <PanelTitle icon={Sparkles} title="天气与拥挤" />
+              <small className="weather-source">
+                {currentWeather.source
+                  ? `${currentWeather.source} · 更新于 ${currentWeather.updatedAt || '--'}`
+                  : '天气服务暂不可用'}
+              </small>
+            </div>
             <button type="button" className="secondary weather-refresh" onClick={() => setWeatherTick((value) => value + 1)} disabled={weather.loading || crowd.loading}>
               <RefreshCw size={16} /> {weather.loading || crowd.loading ? '刷新中' : '刷新'}
             </button>
@@ -1944,7 +2056,7 @@ function SpotDetail({ id, addRoute, account }) {
               </div>
               <div className="weather-icon"><WeatherSymbol icon={currentWeather.icon} /></div>
             </div>
-            <div className="metrics single weather-metrics">
+            <div className="metrics weather-metrics">
               <Metric value={crowd.data?.level || '--'} label="拥挤指数" />
               <Metric value={currentWeather.rainfall || '--'} label="降水" />
             </div>
@@ -1966,7 +2078,9 @@ function SpotDetail({ id, addRoute, account }) {
   );
 }
 
+// 渲染 TravelPetAssistant 对应的页面或界面组件
 function TravelPetAssistant({ path }) {
+  const [assistantHidden, setAssistantHidden] = useState(() => window.localStorage?.getItem('travelCloudAssistantHidden') === 'true');
   const detailMatch = path.match(/^\/spots\/(\d+)$/);
   const spotId = detailMatch?.[1] || null;
   const { data: spot } = useAsync(() => (spotId ? api(`/api/spots/${spotId}`) : Promise.resolve(null)), [spotId]);
@@ -2018,12 +2132,14 @@ function TravelPetAssistant({ path }) {
     });
   }, [assistantMessages, assistantLoading, assistantOpen]);
 
+  // 处理 handlePetScroll 对应的用户操作
   function handlePetScroll(event) {
     const scrollBox = event.currentTarget;
     const distanceToBottom = scrollBox.scrollHeight - scrollBox.scrollTop - scrollBox.clientHeight;
     assistantStickToBottomRef.current = distanceToBottom < 56;
   }
 
+  // 处理 askAssistant 对应的用户操作
   async function askAssistant(nextQuestion = question) {
     const normalized = nextQuestion.trim();
     if (!normalized || assistantLoading) return;
@@ -2067,6 +2183,7 @@ function TravelPetAssistant({ path }) {
     }
   }
 
+  // 执行 requestAssistantLocation 对应的前端处理逻辑
   function requestAssistantLocation(originalQuestion) {
     assistantStickToBottomRef.current = true;
     setAssistantLoading(true);
@@ -2093,6 +2210,7 @@ function TravelPetAssistant({ path }) {
     );
   }
 
+  // 执行 continueAssistantAfterLocation 对应的前端处理逻辑
   async function continueAssistantAfterLocation(originalQuestion, payloadQuestion) {
     try {
       const data = await api('/api/assistant', {
@@ -2113,6 +2231,7 @@ function TravelPetAssistant({ path }) {
     }
   }
 
+  // 执行 startAssistantDrag 对应的前端处理逻辑
   function startAssistantDrag(event) {
     if (event.button !== 0) return;
     const isPetHandle = event.currentTarget.classList?.contains('pet-sprite-button');
@@ -2140,6 +2259,7 @@ function TravelPetAssistant({ path }) {
     event.currentTarget.setPointerCapture?.(event.pointerId);
   }
 
+  // 执行 moveAssistantDrag 对应的前端处理逻辑
   function moveAssistantDrag(event) {
     const drag = assistantDragRef.current;
     if (!drag) return;
@@ -2177,6 +2297,7 @@ function TravelPetAssistant({ path }) {
     }
   }
 
+  // 执行 endAssistantDrag 对应的前端处理逻辑
   function endAssistantDrag(event) {
     assistantShellRef.current?.classList.remove('pet-moving', 'pet-moving-left', 'pet-moving-right');
     if (assistantDragRef.current?.moved) {
@@ -2202,6 +2323,17 @@ function TravelPetAssistant({ path }) {
     event.currentTarget.releasePointerCapture?.(event.pointerId);
   }
 
+  useEffect(() => {
+    const show = () => setAssistantHidden(false);
+    window.addEventListener('travel-cloud-show-assistant', show);
+    return () => window.removeEventListener('travel-cloud-show-assistant', show);
+  }, []);
+  function hideAssistant() {
+    window.localStorage?.setItem('travelCloudAssistantHidden', 'true');
+    setAssistantOpen(false);
+    setAssistantHidden(true);
+  }
+  if (assistantHidden) return null;
   return (
     <div ref={assistantShellRef} className={cx('floating-ai travel-pet', assistantOpen && 'open', assistantLoading && 'thinking', assistantPosition && 'dragged')} style={assistantPosition ? { left: assistantPosition.x, top: assistantPosition.y } : undefined}>
       {assistantOpen && (
@@ -2212,9 +2344,10 @@ function TravelPetAssistant({ path }) {
               <strong>菲比导览助手</strong>
               <small>{assistantLoading ? '我想一下' : contextName}</small>
             </div>
-            <button className="icon-button ghost pet-close" type="button" onClick={() => setAssistantOpen(false)} aria-label="收起菲比">
-              <X size={17} />
-            </button>
+            <div className="pet-head-actions">
+              <button className="icon-button ghost pet-close" type="button" onClick={hideAssistant} aria-label="隐藏菲比" title="隐藏，可在个人中心重新开启"><EyeOff size={17} /></button>
+              <button className="icon-button ghost pet-close" type="button" onClick={() => setAssistantOpen(false)} aria-label="收起菲比"><X size={17} /></button>
+            </div>
           </div>
           <div ref={petScrollRef} className="pet-scroll" onScroll={handlePetScroll}>
             <div className="pet-messages">
@@ -2262,6 +2395,7 @@ function TravelPetAssistant({ path }) {
   );
 }
 
+// 整理并生成 buildAssistantReply 所需的展示数据
 function buildAssistantReply(answer) {
   const raw = String(answer || '');
   const actionUrl = extractBaiduMapUrl(raw);
@@ -2275,11 +2409,13 @@ function buildAssistantReply(answer) {
   };
 }
 
+// 执行 extractBaiduMapUrl 对应的前端处理逻辑
 function extractBaiduMapUrl(text) {
   const match = String(text || '').match(/https:\/\/api\.map\.baidu\.com\/[^\s，。；;）)]+/);
   return match ? match[0] : '';
 }
 
+// 更新并规范化 cleanMapUrlFromAnswer 对应的数据
 function cleanMapUrlFromAnswer(text, url) {
   return String(text || '')
     .split('\n')
@@ -2290,6 +2426,7 @@ function cleanMapUrlFromAnswer(text, url) {
     .trim();
 }
 
+// 处理 openAssistantMapAction 对应的用户操作
 function openAssistantMapAction(reply) {
   if (!reply?.actionUrl) return;
   window.setTimeout(() => {
@@ -2300,6 +2437,7 @@ function openAssistantMapAction(reply) {
   }, 80);
 }
 
+// 整理并生成 buildAssistantQuestion 所需的展示数据
 function buildAssistantQuestion(question, messages, location) {
   const recentMessages = (messages || [])
     .slice(-6)
@@ -2312,6 +2450,7 @@ function buildAssistantQuestion(question, messages, location) {
   return `${locationText}最近对话：\n${recentMessages}\n\n用户当前输入：${question}`;
 }
 
+// 读取并返回 readAssistantLocation 对应的数据
 function readAssistantLocation() {
   if (!readSessionFlag(sessionLocatedKey)) return null;
   const saved = readStorageJson(nearbyLocationKey, null);
@@ -2319,6 +2458,7 @@ function readAssistantLocation() {
   return isBlockedPresetLocation(location) || location?.source === 'explore-fallback' ? null : location;
 }
 
+// 执行 needsAssistantLocation 对应的前端处理逻辑
 function needsAssistantLocation(question, messages = []) {
   const normalized = question.trim();
   if (/^(你好|您好|嗨|hi|hello|在吗|菲比)$/i.test(normalized)) return false;
@@ -2334,6 +2474,7 @@ function needsAssistantLocation(question, messages = []) {
     && !/天气/.test(question);
 }
 
+// 渲染 CommentItem 对应的页面或界面组件
 function CommentItem({ review, replies, onLike, onReply }) {
   const liked = (review.likedUserIds || []).includes(currentUserId());
   const displayName = review.source === 'BAIDU_MAP' ? '百度地图游客' : `游客${review.userId || ''}`;
@@ -2400,16 +2541,19 @@ function CommentItem({ review, replies, onLike, onReply }) {
   );
 }
 
+// 整理并生成 splitMediaUrls 所需的展示数据
 function splitMediaUrls(value) {
   return value.split(/\n|,/).map((item) => item.trim()).filter(Boolean);
 }
 
+// 整理并生成 postTypeLabel 所需的展示数据
 function postTypeLabel(type) {
   if (type === 'QUESTION') return '提问求助';
   if (type === 'DISCUSSION') return '旅游心得';
   return '旅行分享';
 }
 
+// 更新并规范化 normalizeDateInput 对应的数据
 function normalizeDateInput(value) {
   return value
     .replace(/[^\d/-]/g, '')
@@ -2417,6 +2561,7 @@ function normalizeDateInput(value) {
     .slice(0, 10);
 }
 
+// 渲染 Square 对应的页面或界面组件
 function Square({ account }) {
   const currentSquareDraftKey = userSquareDraftKey(account?.user?.userId);
   const squareRootRef = useRef(null);
@@ -2471,7 +2616,7 @@ function Square({ account }) {
     try {
       window.localStorage?.removeItem(currentSquareDraftKey);
     } catch (error) {
-      // Ignore unavailable storage.
+      // Ignore unavailable storage
     }
   }, [account?.user?.loggedIn, currentSquareDraftKey]);
 
@@ -2514,6 +2659,7 @@ function Square({ account }) {
 
   useEffect(() => {
     if (!composerOpen) return undefined;
+    // 处理 closeOnEscape 对应的用户操作
     const closeOnEscape = (event) => {
       if (event.key === 'Escape') setComposerOpen(false);
     };
@@ -2521,10 +2667,12 @@ function Square({ account }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [composerOpen]);
 
+  // 更新并规范化 update 对应的数据
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  // 执行 uploadMedia 对应的前端处理逻辑
   async function uploadMedia(files, type) {
     const selected = Array.from(files || []);
     if (!selected.length) return;
@@ -2555,6 +2703,7 @@ function Square({ account }) {
     }
   }
 
+  // 处理 submitPost 对应的用户操作
   async function submitPost(event) {
     event.preventDefault();
     try {
@@ -2579,6 +2728,7 @@ function Square({ account }) {
     }
   }
 
+  // 处理 openComposer 对应的用户操作
   function openComposer() {
     if (!account?.user?.loggedIn) {
       navigateTo('/login');
@@ -2589,6 +2739,7 @@ function Square({ account }) {
   }
 
 
+  // 处理 redeemReward 对应的用户操作
   async function redeemReward(rewardId) {
     try {
       await api(`/api/friendly-points/redeem?userId=${currentUserId()}&rewardId=${encodeURIComponent(rewardId)}`, { method: 'POST' });
@@ -2618,9 +2769,10 @@ function Square({ account }) {
           <strong>旅行社区</strong>
           <span>{category === '全部' ? '正在浏览全部内容' : `正在浏览「${category}」`}</span>
         </div>
-        <button type="button" onClick={openComposer}>
-          <Plus size={16} /> 发布
-        </button>
+        <div className="square-command-actions">
+          <button type="button" className="secondary" onClick={() => navigateTo('/points-shop')}><Star size={16} /> 积分商店</button>
+          <button type="button" onClick={openComposer}><Plus size={16} /> 发布</button>
+        </div>
       </div>
       <div className="square-shell">
         <section className="square-feed" ref={feedRef}>
@@ -2643,7 +2795,6 @@ function Square({ account }) {
             </div>
           ) : <div className="empty-state compact">这个分类还没有帖子，来发布第一条。</div>}
         </section>
-        <FriendlyPointShop data={friendlyState.data} onRedeem={redeemReward} />
       </div>
       {composerOpen && (
         <div className="square-modal-backdrop" ref={composerRef} role="presentation" onMouseDown={(event) => {
@@ -2746,6 +2897,7 @@ const writerLengthOptions = [
   { key: 'long', label: '长文攻略' }
 ];
 
+// 执行 inferImageMood 对应的前端处理逻辑
 function inferImageMood(files, imageInsight) {
   const names = files.map((item) => item.file?.name || '').join(' ').toLowerCase();
   const hints = [];
@@ -2758,6 +2910,7 @@ function inferImageMood(files, imageInsight) {
   return [...new Set(hints)].slice(0, 5);
 }
 
+// 读取并返回 readImageBitmapSource 对应的数据
 function readImageBitmapSource(file) {
   return new Promise((resolve, reject) => {
     const image = new window.Image();
@@ -2767,6 +2920,7 @@ function readImageBitmapSource(file) {
   });
 }
 
+// 执行 analyzeImageContent 对应的前端处理逻辑
 async function analyzeImageContent(files) {
   const selectedFiles = files.slice(0, 4).map((item) => item.file).filter(Boolean);
   if (!selectedFiles.length) {
@@ -2823,6 +2977,7 @@ async function analyzeImageContent(files) {
     URL.revokeObjectURL(image.src);
   }
 
+  // 执行 ratio 对应的前端处理逻辑
   const ratio = (value) => value / Math.max(1, totals.count);
   const greenRatio = ratio(totals.green);
   const blueRatio = ratio(totals.blue);
@@ -2869,6 +3024,7 @@ async function analyzeImageContent(files) {
   };
 }
 
+// 整理并生成 buildTravelCopy 所需的展示数据
 function buildTravelCopy({ form, files, imageInsight }) {
   const place = form.locationName.trim() || '这次旅行地';
   const dateText = form.tripDate ? `${form.tripDate} 出行` : '近期出行';
@@ -2921,6 +3077,7 @@ ${moodText}在光影里一层层铺开，近处有温度，远处有留白，风
   };
 }
 
+// 执行 applyWriterLength 对应的前端处理逻辑
 function applyWriterLength(content, length, style) {
   const paragraphs = String(content || '').split(/\n{2,}/).filter(Boolean);
   if (length === 'short') {
@@ -2936,12 +3093,14 @@ function applyWriterLength(content, length, style) {
   return content;
 }
 
+// 处理 pickEmoji 对应的用户操作
 function pickEmoji(list) {
   const items = Array.isArray(list) ? list.filter(Boolean) : [];
   if (!items.length) return '';
   return items[Math.floor(Math.random() * items.length)];
 }
 
+// 更新并规范化 normalizeTravelCompanion 对应的数据
 function normalizeTravelCompanion(value) {
   const text = String(value || '').trim();
   const normalized = text.replace(/\s/g, '');
@@ -2963,6 +3122,7 @@ function normalizeTravelCompanion(value) {
   };
 }
 
+// 执行 escapeHtml 对应的前端处理逻辑
 function escapeHtml(value) {
   return String(value || '')
     .replace(/&/g, '&amp;')
@@ -2972,6 +3132,7 @@ function escapeHtml(value) {
     .replace(/'/g, '&#039;');
 }
 
+// 渲染 TravelWritingStudio 对应的页面或界面组件
 function TravelWritingStudio({ account }) {
   const writerStorageKey = account?.user?.userId ? `travelCloudWriterDraft:${account.user.userId}` : '';
   const [form, setForm] = useState({
@@ -3020,10 +3181,12 @@ function TravelWritingStudio({ account }) {
     return () => context.revert();
   }, []);
 
+  // 更新并规范化 update 对应的数据
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  // 处理 pickFiles 对应的用户操作
   function pickFiles(fileList) {
     const selected = Array.from(fileList || []).filter((file) => file.type.startsWith('image/')).slice(0, 12);
     if (!selected.length) return;
@@ -3041,6 +3204,7 @@ function TravelWritingStudio({ account }) {
     setMessage('');
   }
 
+  // 处理 removeFile 对应的用户操作
   function removeFile(id) {
     setFiles((current) => {
       const removed = current.find((item) => item.id === id);
@@ -3049,6 +3213,7 @@ function TravelWritingStudio({ account }) {
     });
   }
 
+  // 处理 generateDraft 对应的用户操作
   async function generateDraft() {
     if (!requireUserLogin(account)) return;
     if (!files.length) {
@@ -3077,6 +3242,7 @@ function TravelWritingStudio({ account }) {
     }
   }
 
+  // 执行 requestModelTravelCopy 对应的前端处理逻辑
   async function requestModelTravelCopy() {
     const body = new FormData();
     files.forEach((item) => body.append('images', item.file));
@@ -3094,6 +3260,7 @@ function TravelWritingStudio({ account }) {
     return response.json();
   }
 
+  // 更新并规范化 normalizeGeneratedDraft 对应的数据
   function normalizeGeneratedDraft(value) {
     const tags = Array.isArray(value?.tags) ? value.tags.join(', ') : (value?.tags || '');
     const content = cleanPublishCopy(value?.content || '');
@@ -3107,6 +3274,7 @@ function TravelWritingStudio({ account }) {
     };
   }
 
+  // 更新并规范化 cleanPublishCopy 对应的数据
   function cleanPublishCopy(value) {
     return String(value || '')
       .replace(/图片|照片|上传|AI|模型|生成|标签[:：]?/gi, '')
@@ -3115,10 +3283,12 @@ function TravelWritingStudio({ account }) {
       .trim();
   }
 
+  // 执行 applyDraft 对应的前端处理逻辑
   function applyDraft(key, value) {
     setDraft((current) => ({ ...(current || {}), [key]: value }));
   }
 
+  // 处理 copyText 对应的用户操作
   async function copyText() {
     if (!draft) return;
     const text = `${draft.title}\n\n${draft.content}`;
@@ -3126,6 +3296,7 @@ function TravelWritingStudio({ account }) {
     setMessage('文案已复制，可以粘贴到其他应用。');
   }
 
+  // 执行 downloadText 对应的前端处理逻辑
   function downloadText() {
     if (!draft) return;
     const blob = new Blob([`${draft.title}\n\n${draft.content}`], { type: 'text/plain;charset=utf-8' });
@@ -3138,6 +3309,7 @@ function TravelWritingStudio({ account }) {
     setMessage('TXT 已导出。');
   }
 
+  // 处理 exportPdf 对应的用户操作
   function exportPdf() {
     if (!draft) return;
     const imageHtml = files.slice(0, 6).map((item) => `<img src="${item.preview}" alt="">`).join('');
@@ -3178,6 +3350,7 @@ function TravelWritingStudio({ account }) {
     setMessage('已打开 PDF 打印窗口，可选择“另存为 PDF”。');
   }
 
+  // 执行 uploadImagesForSquare 对应的前端处理逻辑
   async function uploadImagesForSquare() {
     const body = new FormData();
     files.forEach((item) => body.append('files', item.file));
@@ -3190,6 +3363,7 @@ function TravelWritingStudio({ account }) {
     return data.urls || [];
   }
 
+  // 处理 publishToSquare 对应的用户操作
   async function publishToSquare() {
     if (!draft) return;
     if (!account?.user?.loggedIn) {
@@ -3342,6 +3516,7 @@ function TravelWritingStudio({ account }) {
   );
 }
 
+// 渲染 DatePickerField 对应的页面或界面组件
 function DatePickerField({ label, value, onChange }) {
   const [open, setOpen] = useState(false);
   const [placement, setPlacement] = useState('top');
@@ -3352,9 +3527,11 @@ function DatePickerField({ label, value, onChange }) {
 
   useEffect(() => {
     if (!open) return undefined;
+    // 处理 handlePointerDown 对应的用户操作
     const handlePointerDown = (event) => {
       if (!pickerRef.current?.contains(event.target)) setOpen(false);
     };
+    // 处理 handleKeyDown 对应的用户操作
     const handleKeyDown = (event) => {
       if (event.key === 'Escape') setOpen(false);
     };
@@ -3372,6 +3549,7 @@ function DatePickerField({ label, value, onChange }) {
 
   useEffect(() => {
     if (!open || !pickerRef.current) return undefined;
+    // 更新并规范化 updatePlacement 对应的数据
     const updatePlacement = () => {
       const rect = pickerRef.current.getBoundingClientRect();
       const popoverHeight = 520;
@@ -3399,6 +3577,7 @@ function DatePickerField({ label, value, onChange }) {
     return day;
   });
 
+  // 整理并生成 formatDate 所需的展示数据
   function formatDate(date) {
     const yyyy = date.getFullYear();
     const mm = String(date.getMonth() + 1).padStart(2, '0');
@@ -3406,10 +3585,12 @@ function DatePickerField({ label, value, onChange }) {
     return `${yyyy}-${mm}-${dd}`;
   }
 
+  // 执行 sameDay 对应的前端处理逻辑
   function sameDay(a, b) {
     return a && b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
   }
 
+  // 执行 changeMonth 对应的前端处理逻辑
   function changeMonth(offset) {
     setViewDate(new Date(year, month + offset, 1));
   }
@@ -3469,6 +3650,7 @@ function DatePickerField({ label, value, onChange }) {
   );
 }
 
+// 渲染 FriendlyPointShop 对应的页面或界面组件
 function FriendlyPointShop({ data, onRedeem }) {
   const rewards = data?.rewards || [];
   const records = data?.records || [];
@@ -3476,7 +3658,7 @@ function FriendlyPointShop({ data, onRedeem }) {
   return (
     <aside className="panel friendly-shop">
       <PanelTitle icon={Star} title="积分兑换" meta={`${balance} 分`} />
-      <p className="friendly-shop-copy">绿色路线、低拥堵错峰打卡可以获得友好积分，并在这里兑换旅行权益。</p>
+      <p className="friendly-shop-copy">打卡、发帖、评论和使用图生游记都可获得积分，在这里兑换山水主题头像框。</p>
       <div className="friendly-reward-list">
         {rewards.map((reward) => (
           <article className="friendly-reward" key={reward.id}>
@@ -3501,6 +3683,54 @@ function FriendlyPointShop({ data, onRedeem }) {
   );
 }
 
+function PointsShop({ account, refreshAccount }) {
+  const [tick, setTick] = useState(0);
+  const [message, setMessage] = useState('');
+  const state = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), [tick]);
+  const data = state.data || {};
+  const owned = data.ownedFrames || [];
+  async function redeem(reward) {
+    try {
+      await api(`/api/friendly-points/redeem?userId=${currentUserId()}&rewardId=${encodeURIComponent(reward.id)}`, { method: 'POST' });
+      await refreshAccount();
+      setMessage(`已兑换并佩戴「${reward.name}」。`);
+      setTick((value) => value + 1);
+    } catch (error) {
+      setMessage(error.message);
+    }
+  }
+  async function equip(frame) {
+    await api(`/api/friendly-points/equip-frame?userId=${currentUserId()}&frame=${encodeURIComponent(frame)}`, { method: 'POST' });
+    await refreshAccount();
+    setMessage('头像框已更换。');
+    setTick((value) => value + 1);
+  }
+  return (
+    <main className="container points-shop-page">
+      <button type="button" className="back-nav" onClick={() => navigateTo('/square')}><ArrowLeft size={16} /> 返回旅行广场</button>
+      <PageHero icon={Star} title="积分商店" body="预览并兑换山水行旅主题头像框，已拥有的头像框可随时更换。" />
+      <div className="points-shop-balance"><Sparkles size={20} /><strong>{data.balance ?? '--'} 分</strong><span>当前友好积分</span></div>
+      {message && <div className="message">{message}</div>}
+      <div className="frame-shop-grid">
+        {(data.rewards || []).map((reward) => {
+          const isOwned = owned.includes(reward.frame);
+          const equipped = account.user?.avatarFrame === reward.frame;
+          return (
+            <article className="panel frame-shop-card" key={reward.id}>
+              <div className="frame-preview"><UserAvatar user={{ ...account.user, avatarFrame: reward.frame }} size="large" /></div>
+              <div><h2>{reward.name}</h2><p>{reward.description}</p></div>
+              <button type="button" disabled={equipped || (!isOwned && data.balance < reward.cost)} onClick={() => isOwned ? equip(reward.frame) : redeem(reward)}>
+                {equipped ? '正在佩戴' : isOwned ? '立即佩戴' : `${reward.cost} 分兑换`}
+              </button>
+            </article>
+          );
+        })}
+      </div>
+    </main>
+  );
+}
+
+// 渲染 SquarePostCard 对应的页面或界面组件
 function SquarePostCard({ post, onSelect }) {
   const time = post.createdAt ? String(post.createdAt).replace('T', ' ').slice(0, 16) : '';
   const cover = post.imageUrls?.[0];
@@ -3530,7 +3760,12 @@ function SquarePostCard({ post, onSelect }) {
       </div>
       <h2>{isQuestion ? `问：${post.title}` : post.title}</h2>
       <p>{post.content}</p>
-      {!!post.tags?.length && <div className="square-tag-row">{post.tags.slice(0, 5).map((tag) => <span key={tag}>#{tag}</span>)}</div>}
+      {!!post.tags?.length && (
+        <div className="square-tag-row">
+          {post.tags.slice(0, 3).map((tag) => <span key={tag}>#{tag}</span>)}
+          {post.tags.length > 3 && <span className="square-tag-more" aria-label={`另有 ${post.tags.length - 3} 个标签`}>…</span>}
+        </div>
+      )}
       {(post.locationName || post.tripDate) && (
         <div className="square-meta">
           {post.locationName && <span><MapPin size={14} /> {post.locationName}</span>}
@@ -3561,6 +3796,7 @@ function SquarePostCard({ post, onSelect }) {
   );
 }
 
+// 渲染 SquarePostDetail 对应的页面或界面组件
 function SquarePostDetail({ id, account }) {
   const [commentText, setCommentText] = useState('');
   const [replyTarget, setReplyTarget] = useState(null);
@@ -3581,6 +3817,7 @@ function SquarePostDetail({ id, account }) {
 
   useEffect(() => {
     if (!activeImage) return undefined;
+    // 处理 closeOnEscape 对应的用户操作
     const closeOnEscape = (event) => {
       if (event.key === 'Escape') setActiveImage(null);
     };
@@ -3588,6 +3825,7 @@ function SquarePostDetail({ id, account }) {
     return () => window.removeEventListener('keydown', closeOnEscape);
   }, [activeImage]);
 
+  // 处理 likePost 对应的用户操作
   async function likePost() {
     if (!requireUserLogin(account)) return;
     try {
@@ -3598,6 +3836,7 @@ function SquarePostDetail({ id, account }) {
     }
   }
 
+  // 处理 submitComment 对应的用户操作
   async function submitComment(event) {
     event.preventDefault();
     if (!requireUserLogin(account)) return;
@@ -3621,6 +3860,7 @@ function SquarePostDetail({ id, account }) {
     }
   }
 
+  // 处理 likeComment 对应的用户操作
   async function likeComment(commentId) {
     if (!requireUserLogin(account)) return;
     try {
@@ -3762,6 +4002,7 @@ function SquarePostDetail({ id, account }) {
   );
 }
 
+// 渲染 SquareThreadComment 对应的页面或界面组件
 function SquareThreadComment({ comment, replies, index, isDiscussion, onLike, onReply }) {
   const liked = (comment.likedUserIds || []).includes(currentUserId());
   const name = comment.authorName || `游客${comment.userId || ''}`;
@@ -3818,6 +4059,7 @@ function SquareThreadComment({ comment, replies, index, isDiscussion, onLike, on
   );
 }
 
+// 渲染 MediaUploader 对应的页面或界面组件
 function MediaUploader({ icon: Icon, title, hint, accept, uploading, urls, onFiles, onRemove }) {
   const inputId = `${title}-${accept}`;
   return (
@@ -3852,6 +4094,7 @@ function MediaUploader({ icon: Icon, title, hint, accept, uploading, urls, onFil
   );
 }
 
+// 整理并生成 summarizeWeather 所需的展示数据
 function summarizeWeather(list) {
   const rows = Array.isArray(list) ? list : [];
   if (!rows.length) {
@@ -3863,6 +4106,7 @@ function summarizeWeather(list) {
   return { label, text: rows[0]?.advice || '' };
 }
 
+// 渲染 WeatherSymbol 对应的页面或界面组件
 function WeatherSymbol({ icon }) {
   const shape = {
     rain: 'M8 18h16M11 22h10M13 26h6M12 10c2.2-4.4 9.8-4.4 12 0 4.8.6 7.5 5.8 5.2 10H6.8C4.5 15.8 7.2 10.6 12 10Z',
@@ -3878,21 +4122,83 @@ function WeatherSymbol({ icon }) {
   );
 }
 
-function Profile() {
+// 渲染 Profile 对应的页面或界面组件
+function Profile({ account, refreshAccount }) {
+  const [profileMessage, setProfileMessage] = useState('');
   const footprints = useAsync(() => api(`/api/users/${currentUserId()}/footprints`), []);
-  const reservations = useAsync(() => api(`/api/reservations/mine?userId=${currentUserId()}`), []);
   const friendlyPoints = useAsync(() => api(`/api/friendly-points/profile?userId=${currentUserId()}`), []);
   const submissions = useAsync(() => api(`/api/community/submissions/mine?userId=${currentUserId()}`), []);
   const checkedTotal = footprints.data?.total || 0;
+  async function selectAvatar(avatarPreset) {
+    await api('/api/auth/profile', { method: 'PUT', body: JSON.stringify({ avatarPreset }) });
+    await refreshAccount();
+    setProfileMessage('默认头像已更新。');
+  }
+  async function uploadAvatar(file) {
+    if (!file) return;
+    const body = new FormData();
+    body.append('file', file);
+    const response = await fetch('/api/auth/profile/avatar', { method: 'POST', body });
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: '头像上传失败' }));
+      setProfileMessage(error.message || '头像上传失败');
+      return;
+    }
+    await refreshAccount();
+    setProfileMessage('头像上传成功。');
+  }
+  function showAssistant() {
+    window.localStorage?.removeItem('travelCloudAssistantHidden');
+    window.dispatchEvent(new Event('travel-cloud-show-assistant'));
+    setProfileMessage('菲比小助手已重新开启。');
+  }
+  async function equipFrame(frame) {
+    await api(`/api/friendly-points/equip-frame?userId=${currentUserId()}&frame=${encodeURIComponent(frame)}`, { method: 'POST' });
+    await refreshAccount();
+    setProfileMessage('头像框已更换。');
+  }
   return (
     <main className="container">
-      <PageHero icon={UserRound} title="个人中心" body="集中查看打卡足迹、预约记录、勋章和申报进度。" />
+      <PageHero icon={UserRound} title="个人中心" body="集中查看打卡足迹、勋章、友好积分和申报进度。" />
       <div className="dashboard">
         <Metric value={checkedTotal || '--'} label="已打卡" />
         <Metric value={footprintBadgeCatalog.filter((badge) => checkedTotal >= badge.required).length} label="勋章" />
-        <Metric value={reservations.data?.length ?? '--'} label="预约" />
+        <Metric value={(submissions.data || []).length || '--'} label="申报" />
         <Metric value={friendlyPoints.data?.balance ?? '--'} label="友好积分" />
       </div>
+      <section className="panel profile-appearance">
+        <div className="profile-avatar-preview">
+          <UserAvatar user={account.user} size="large" />
+          <div><strong>{account.user?.username}</strong><span>选择默认头像或上传自己的旅行头像</span></div>
+        </div>
+        <div className="avatar-preset-list">
+          {['mountain', 'river', 'lantern', 'cloud'].map((preset) => (
+            <button type="button" key={preset} className={account.user?.avatarPreset === preset && !account.user?.avatarUrl ? 'active' : ''} onClick={() => selectAvatar(preset)}>
+              <UserAvatar user={{ avatarPreset: preset, avatarFrame: 'none' }} />
+            </button>
+          ))}
+          <label className="avatar-upload-button"><ImagePlus size={18} /> 上传图片<input type="file" accept="image/*" onChange={(event) => uploadAvatar(event.target.files?.[0])} /></label>
+          <button type="button" className="secondary" onClick={showAssistant}><Sparkles size={16} /> 开启菲比小助手</button>
+        </div>
+        <div className="profile-frame-list">
+          <strong>我的头像框</strong>
+          <button type="button" className={account.user?.avatarFrame === 'none' ? 'active' : ''} onClick={() => equipFrame('none')}>
+            <UserAvatar user={{ ...account.user, avatarFrame: 'none' }} />
+            <span>无头像框</span>
+          </button>
+          {(friendlyPoints.data?.ownedFrames || []).map((frame) => (
+            <button type="button" key={frame} className={account.user?.avatarFrame === frame ? 'active' : ''} onClick={() => equipFrame(frame)}>
+              <UserAvatar user={{ ...account.user, avatarFrame: frame }} />
+              <span>{({ bamboo: '青竹行旅', sunset: '赤霞远山', starlight: '星河寻阡' })[frame]}</span>
+            </button>
+          ))}
+          {!(friendlyPoints.data?.ownedFrames || []).length && (
+            <span className="profile-frame-empty">尚未兑换头像框，可前往积分商店预览并兑换。</span>
+          )}
+          <button type="button" className="secondary" onClick={() => navigateTo('/points-shop')}><Star size={16} /> 获取更多头像框</button>
+        </div>
+        {profileMessage && <div className="message">{profileMessage}</div>}
+      </section>
       <FriendlyPointPanel data={friendlyPoints.data} />
       <FootprintBadges total={checkedTotal} />
       <section className="panel">
@@ -3915,7 +4221,6 @@ function Profile() {
           emptyActionText="去景点导览"
           onEmptyAction={() => navigateTo('/guide')}
         />
-        <ListPanel title="我的预约" icon={CalendarDays} className="profile-list-panel" items={(reservations.data || []).map((item) => ({ title: `景点 ID ${item.spotId}`, body: `${item.visitDate} ${item.timeSlot} · ${item.status}` }))} empty="暂无预约" />
       </div>
       <ListPanel
         title="我的申报"
@@ -3930,6 +4235,7 @@ function Profile() {
   );
 }
 
+// 渲染 TravelPhotoGallery 对应的页面或界面组件
 function TravelPhotoGallery({ photos }) {
   return (
     <section className="panel travel-photo-panel">
@@ -3953,11 +4259,13 @@ function TravelPhotoGallery({ photos }) {
   );
 }
 
+// 渲染 TravelGalleryDetail 对应的页面或界面组件
 function TravelGalleryDetail({ spotId }) {
   const [tick, setTick] = useState(0);
   const gallery = useAsync(() => api(`/api/users/${currentUserId()}/travel-galleries/${spotId}`), [spotId, tick]);
   const [uploading, setUploading] = useState(false);
   const [message, setMessage] = useState('');
+  // 执行 uploadGalleryImages 对应的前端处理逻辑
   async function uploadGalleryImages(files) {
     const selected = Array.from(files || []).filter((file) => file.type.startsWith('image/'));
     if (!selected.length) {
@@ -3987,6 +4295,7 @@ function TravelGalleryDetail({ spotId }) {
       setUploading(false);
     }
   }
+  // 处理 deleteGalleryImage 对应的用户操作
   async function deleteGalleryImage(imageUrl) {
     if (!window.confirm('确认删除这张图片？')) return;
     await api(`/api/users/${currentUserId()}/travel-galleries/${spotId}/images?imageUrl=${encodeURIComponent(imageUrl)}`, { method: 'DELETE' });
@@ -4033,12 +4342,14 @@ function TravelGalleryDetail({ spotId }) {
   );
 }
 
+// 整理并生成 formatDateTime 所需的展示数据
 function formatDateTime(value) {
   if (!value) return '刚刚打卡';
   const text = String(value).replace('T', ' ');
   return text.length > 16 ? text.slice(0, 16) : text;
 }
 
+// 渲染 FriendlyPointPanel 对应的页面或界面组件
 function FriendlyPointPanel({ data }) {
   const records = data?.records || [];
   const balance = data?.balance ?? 0;
@@ -4046,7 +4357,7 @@ function FriendlyPointPanel({ data }) {
     <section className="panel friendly-point-panel">
       <div>
         <PanelTitle icon={Sparkles} title="城市友好积分" meta={`${balance} 分`} />
-        <p className="friendly-point-copy">步行、骑行、公交和低拥堵错峰打卡都会沉淀为友好积分。</p>
+        <p className="friendly-point-copy">打卡、发布帖子、发表评论和使用图生游记都会获得友好积分。</p>
       </div>
       <div className="friendly-point-list">
         {records.slice(0, 4).map((record) => (
@@ -4063,6 +4374,7 @@ function FriendlyPointPanel({ data }) {
   );
 }
 
+// 渲染 FootprintBadges 对应的页面或界面组件
 function FootprintBadges({ total }) {
   return (
     <section className="panel badge-showcase">
@@ -4092,6 +4404,7 @@ function FootprintBadges({ total }) {
   );
 }
 
+// 渲染 SubmitSpot 对应的页面或界面组件
 function SubmitSpot() {
   const [form, setForm] = useState({
     name: '',
@@ -4110,10 +4423,12 @@ function SubmitSpot() {
   const [videoUrls, setVideoUrls] = useState([]);
   const [uploading, setUploading] = useState('');
   const [message, setMessage] = useState('');
+  // 更新并规范化 update 对应的数据
   function update(key, value) {
     setForm((current) => ({ ...current, [key]: value }));
   }
 
+  // 执行 applyLocation 对应的前端处理逻辑
   function applyLocation(location) {
     setForm((current) => ({
       ...current,
@@ -4123,6 +4438,7 @@ function SubmitSpot() {
     }));
   }
 
+  // 执行 uploadFiles 对应的前端处理逻辑
   async function uploadFiles(type, files) {
     const selected = Array.from(files || []);
     if (!selected.length) return;
@@ -4149,6 +4465,7 @@ function SubmitSpot() {
     }
   }
 
+  // 处理 submit 对应的用户操作
   async function submit(event) {
     event.preventDefault();
     try {
@@ -4212,6 +4529,7 @@ function SubmitSpot() {
   );
 }
 
+// 渲染 LocationPickerField 对应的页面或界面组件
 function LocationPickerField({ value, onSelect }) {
   const [open, setOpen] = useState(false);
   const [keyword, setKeyword] = useState(value.name || value.address || '');
@@ -4241,6 +4559,7 @@ function LocationPickerField({ value, onSelect }) {
       map.addOverlay(marker);
       setPicked({ lat: value.latitude, lng: value.longitude, address: value.address });
     }
+    // 处理 handleClick 对应的用户操作
     const handleClick = (event) => selectPoint(event.point);
     map.addEventListener('click', handleClick);
     return () => {
@@ -4248,7 +4567,7 @@ function LocationPickerField({ value, onSelect }) {
         map.removeEventListener('click', handleClick);
         map.clearOverlays();
       } catch (ignore) {
-        // Baidu SDK cleanup is best-effort.
+        // Baidu SDK cleanup is best-effort
       }
       mapRef.current = null;
       markerRef.current = null;
@@ -4257,6 +4576,7 @@ function LocationPickerField({ value, onSelect }) {
     };
   }, [open, ready]);
 
+  // 执行 selectPoint 对应的前端处理逻辑
   function selectPoint(point, fallbackAddress = '') {
     if (!point || !mapRef.current || !window.BMap) return;
     const BMap = window.BMap;
@@ -4266,6 +4586,7 @@ function LocationPickerField({ value, onSelect }) {
     mapRef.current.addOverlay(marker);
     mapRef.current.panTo(point);
     setStatus('正在解析地址...');
+    // 执行 commit 对应的前端处理逻辑
     const commit = (address) => {
       const next = {
         lat: Number(point.lat).toFixed(6),
@@ -4282,6 +4603,7 @@ function LocationPickerField({ value, onSelect }) {
     }
   }
 
+  // 读取并返回 searchPlace 对应的数据
   function searchPlace() {
     if (!keyword.trim() || !mapRef.current || !window.BMap) return;
     const BMap = window.BMap;
@@ -4300,6 +4622,7 @@ function LocationPickerField({ value, onSelect }) {
     local.search(keyword.trim());
   }
 
+  // 执行 confirmLocation 对应的前端处理逻辑
   function confirmLocation() {
     if (!picked) {
       setStatus('请先搜索或点击地图选择一个位置。');
@@ -4352,6 +4675,7 @@ function LocationPickerField({ value, onSelect }) {
   );
 }
 
+// 渲染 SubmissionMediaUploader 对应的页面或界面组件
 function SubmissionMediaUploader({ type, icon: Icon, title, accept, urls, uploading, onFiles, onRemove }) {
   const inputId = `submission-${type}-upload`;
   return (
@@ -4379,6 +4703,7 @@ function SubmissionMediaUploader({ type, icon: Icon, title, accept, urls, upload
   );
 }
 
+// 渲染 Login 对应的页面或界面组件
 function Login({ refreshAccount }) {
   const [authMode, setAuthMode] = useState('login');
   const [adminUsername, setAdminUsername] = useState('admin');
@@ -4386,6 +4711,8 @@ function Login({ refreshAccount }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [message, setMessage] = useState('');
   const isRegister = authMode === 'register';
   useEffect(() => {
@@ -4393,6 +4720,7 @@ function Login({ refreshAccount }) {
       if (config.adminUsername) setAdminUsername(config.adminUsername);
     }).catch(() => {});
   }, []);
+  // 处理 submit 对应的用户操作
   async function submit(event) {
     event.preventDefault();
     try {
@@ -4442,7 +4770,7 @@ function Login({ refreshAccount }) {
         <div className="login-art-copy">
           <span>行旅画卷</span>
           <strong data-text="山水有路 远行有迹">山水有路 远行有迹</strong>
-          <p>登录后继续整理你的路线、预约与足迹。</p>
+          <p>登录后继续整理你的路线与足迹。</p>
         </div>
         <div className="login-art-notes" aria-hidden="true">
           <span>路线规划</span>
@@ -4456,7 +4784,7 @@ function Login({ refreshAccount }) {
           <span className="login-head-icon">{isRegister ? <UserPlus size={26} /> : <UserRound size={26} />}</span>
           <div>
             <h1>{isRegister ? '创建账户' : '欢迎回来'}</h1>
-            <p>登录后同步预约、足迹与路线。</p>
+            <p>登录后同步足迹与路线。</p>
           </div>
         </div>
         <div className="segmented login-role-switch login-mode-switch" role="group" aria-label="选择账户操作">
@@ -4476,12 +4804,34 @@ function Login({ refreshAccount }) {
           )}
           <label>
             <span>密码</span>
-            <input type="password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isRegister ? '至少6位' : '请输入密码'} required />
+            <span className="password-input">
+              <input type={showPassword ? 'text' : 'password'} value={password} onChange={(e) => setPassword(e.target.value)} placeholder={isRegister ? '至少6位' : '请输入密码'} required />
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={() => setShowPassword((visible) => !visible)}
+                aria-label={showPassword ? '隐藏密码' : '显示密码'}
+                aria-pressed={showPassword}
+              >
+                {showPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+              </button>
+            </span>
           </label>
           {isRegister && (
             <label>
               <span>确认密码</span>
-              <input type="password" value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入密码" required />
+              <span className="password-input">
+                <input type={showConfirmPassword ? 'text' : 'password'} value={confirmPassword} onChange={(e) => setConfirmPassword(e.target.value)} placeholder="再次输入密码" required />
+                <button
+                  type="button"
+                  className="password-toggle"
+                  onClick={() => setShowConfirmPassword((visible) => !visible)}
+                  aria-label={showConfirmPassword ? '隐藏确认密码' : '显示确认密码'}
+                  aria-pressed={showConfirmPassword}
+                >
+                  {showConfirmPassword ? <EyeOff size={19} /> : <Eye size={19} />}
+                </button>
+              </span>
             </label>
           )}
           <button className="login-submit">{isRegister ? <UserPlus size={18} /> : <LogIn size={18} />} {isRegister ? '注册' : '登录'}</button>
@@ -4495,6 +4845,7 @@ function Login({ refreshAccount }) {
   );
 }
 
+// 渲染 Admin 对应的页面或界面组件
 function Admin() {
   const [reloadKey, setReloadKey] = useState(0);
   const [activePanel, setActivePanel] = useState('submissions');
@@ -4505,6 +4856,7 @@ function Admin() {
   const submissionList = submissions.data || [];
   const pendingCount = submissionList.filter((item) => item.status === 'PENDING').length;
   const featuredCount = spotList.filter((item) => item.homeFeatured).length;
+  // 执行 refreshAdmin 对应的前端处理逻辑
   const refreshAdmin = () => setReloadKey((key) => key + 1);
 
   return (
@@ -4571,6 +4923,7 @@ const emptySpotDraft = {
   homeFeaturedSort: 0
 };
 
+// 更新并规范化 normalizeSpotDraft 对应的数据
 function normalizeSpotDraft(spot = {}) {
   return {
     ...emptySpotDraft,
@@ -4579,6 +4932,7 @@ function normalizeSpotDraft(spot = {}) {
   };
 }
 
+// 执行 serializeSpotDraft 对应的前端处理逻辑
 function serializeSpotDraft(draft) {
   return {
     ...draft,
@@ -4595,6 +4949,7 @@ function serializeSpotDraft(draft) {
   };
 }
 
+// 渲染 SpotLibraryManager 对应的页面或界面组件
 function SpotLibraryManager({ spots, loading, onChanged }) {
   const [query, setQuery] = useState('');
   const [editing, setEditing] = useState(null);
@@ -4604,6 +4959,7 @@ function SpotLibraryManager({ spots, loading, onChanged }) {
     return text.includes(query.trim().toLowerCase());
   });
 
+  // 更新并规范化 saveSpot 对应的数据
   async function saveSpot(draft) {
     const payload = serializeSpotDraft(draft);
     const endpoint = payload.id ? `/api/admin/spots/${payload.id}` : '/api/admin/spots';
@@ -4613,6 +4969,7 @@ function SpotLibraryManager({ spots, loading, onChanged }) {
     onChanged();
   }
 
+  // 处理 deleteSpot 对应的用户操作
   async function deleteSpot(id) {
     if (!window.confirm('确认删除这个景点？相关详情页将不再显示。')) return;
     await api(`/api/admin/spots/${id}`, { method: 'DELETE' });
@@ -4670,9 +5027,12 @@ function SpotLibraryManager({ spots, loading, onChanged }) {
   );
 }
 
+// 渲染 SpotEditorForm 对应的页面或界面组件
 function SpotEditorForm({ draft, setDraft, onSave, onCancel }) {
   const [saving, setSaving] = useState(false);
+  // 更新并规范化 update 对应的数据
   const update = (key, value) => setDraft((current) => ({ ...current, [key]: value }));
+  // 处理 submit 对应的用户操作
   async function submit(event) {
     event.preventDefault();
     setSaving(true);
@@ -4717,12 +5077,14 @@ function SpotEditorForm({ draft, setDraft, onSave, onCancel }) {
   );
 }
 
+// 渲染 SubmissionManager 对应的页面或界面组件
 function SubmissionManager({ submissions, loading, onChanged }) {
   const [filter, setFilter] = useState('PENDING');
   const [remarks, setRemarks] = useState({});
   const [message, setMessage] = useState('');
   const shown = submissions.filter((item) => filter === 'ALL' || item.status === filter);
 
+  // 执行 audit 对应的前端处理逻辑
   async function audit(id, action) {
     const remark = remarks[id] || '';
     await api(`/api/admin/submissions/${id}/${action}`, {
@@ -4780,12 +5142,14 @@ function SubmissionManager({ submissions, loading, onChanged }) {
   );
 }
 
+// 渲染 HomeContentManager 对应的页面或界面组件
 function HomeContentManager({ spots }) {
   const heroState = useAsync(() => api('/api/admin/home/hero'), []);
   const featuredState = useAsync(() => api('/api/admin/home/featured'), []);
   const [slides, setSlides] = useState(defaultHeroSlides.map((slide, index) => ({ ...slide, sortOrder: index + 1, enabled: true })));
   const [featuredIds, setFeaturedIds] = useState([]);
   const [message, setMessage] = useState('');
+  const [uploadingSlide, setUploadingSlide] = useState(null);
 
   useEffect(() => {
     if (heroState.data?.length) {
@@ -4799,22 +5163,49 @@ function HomeContentManager({ spots }) {
     }
   }, [featuredState.data]);
 
+  // 更新并规范化 updateSlide 对应的数据
   function updateSlide(index, key, value) {
     setSlides((current) => current.map((slide, i) => i === index ? { ...slide, [key]: value } : slide));
   }
 
+  // 处理 addSlide 对应的用户操作
   function addSlide() {
     setSlides((current) => [...current, { ...defaultHeroSlides[0], sortOrder: current.length + 1, enabled: true }]);
   }
 
+  // 处理 removeSlide 对应的用户操作
   function removeSlide(index) {
     setSlides((current) => current.filter((_, i) => i !== index));
   }
 
+  // 上传轮播图片并将返回地址写入对应轮播项
+  async function uploadSlideImage(index, file) {
+    if (!file) return;
+    setUploadingSlide(index);
+    setMessage('');
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const response = await fetch('/api/admin/home/hero/uploads', { method: 'POST', body });
+      const result = await response.json().catch(() => ({ message: '轮播图片上传失败' }));
+      if (!response.ok) {
+        throw new Error(result.message || '轮播图片上传失败');
+      }
+      updateSlide(index, 'imageUrl', result.url);
+      setMessage('轮播图片上传成功，保存首页内容后生效');
+    } catch (error) {
+      setMessage(error.message || '轮播图片上传失败');
+    } finally {
+      setUploadingSlide(null);
+    }
+  }
+
+  // 处理 toggleFeatured 对应的用户操作
   function toggleFeatured(id) {
     setFeaturedIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
   }
 
+  // 更新并规范化 saveHomeContent 对应的数据
   async function saveHomeContent() {
     await api('/api/admin/home/hero', {
       method: 'PUT',
@@ -4844,7 +5235,18 @@ function HomeContentManager({ spots }) {
               <span>#{index + 1}</span>
             </div>
             <div className="hero-admin-fields">
-              <input value={slide.imageUrl || ''} onChange={(e) => updateSlide(index, 'imageUrl', e.target.value)} placeholder="高清图片 URL" />
+              <label className="hero-upload-control">
+                <span>{uploadingSlide === index ? '上传中' : '上传轮播图片'}</span>
+                <input
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
+                  disabled={uploadingSlide === index}
+                  onChange={(event) => {
+                    uploadSlideImage(index, event.target.files?.[0]);
+                    event.target.value = '';
+                  }}
+                />
+              </label>
               <div className="form-row">
                 <input value={slide.eyebrow || ''} onChange={(e) => updateSlide(index, 'eyebrow', e.target.value)} placeholder="角标" />
                 <input value={slide.title || ''} onChange={(e) => updateSlide(index, 'title', e.target.value)} placeholder="标题" />
@@ -4883,6 +5285,7 @@ function HomeContentManager({ spots }) {
   );
 }
 
+// 渲染 PageHero 对应的页面或界面组件
 function PageHero({ icon: Icon, title, body }) {
   return (
     <section className="page-hero">
@@ -4895,6 +5298,7 @@ function PageHero({ icon: Icon, title, body }) {
   );
 }
 
+// 渲染 PanelTitle 对应的页面或界面组件
 function PanelTitle({ icon: Icon, title, meta }) {
   return (
     <div className="panel-title">
@@ -4904,14 +5308,17 @@ function PanelTitle({ icon: Icon, title, meta }) {
   );
 }
 
+// 渲染 Metric 对应的页面或界面组件
 function Metric({ value, label }) {
   return <div className="metric"><strong>{value}</strong><span>{label}</span></div>;
 }
 
+// 渲染 InfoGrid 对应的页面或界面组件
 function InfoGrid({ items }) {
   return <div className="info-grid">{items.map(([label, value]) => <div key={label}><strong>{label}</strong><span>{value || '--'}</span></div>)}</div>;
 }
 
+// 渲染 ListPanel 对应的页面或界面组件
 function ListPanel({ title, icon: Icon, items, empty, className = '', actionText, onAction, emptyActionText, onEmptyAction, panelActionText, onPanelAction }) {
   return (
     <section className={cx('panel list-panel', className)}>
@@ -4939,28 +5346,43 @@ function ListPanel({ title, icon: Icon, items, empty, className = '', actionText
   );
 }
 
+// 渲染 App 对应的页面或界面组件
 function App() {
   const path = usePath();
-  const [route, setRoute] = useState(() => readStorageJson(routeKey, []));
+  const [route, setRoute] = useState(() => {
+    const stored = readStorageJson(routeKey, []);
+    return Array.isArray(stored)
+      ? stored.filter((item) => Number.isSafeInteger(Number(item?.id)) && Number(item.id) > 0)
+      : [];
+  });
   const [theme, setThemeState] = useState(() => readStorageJson(themeKey, 'night'));
   const [account, setAccount] = useState({ admin: {}, user: {} });
   const [accountReady, setAccountReady] = useState(false);
+  // 更新并规范化 setTheme 对应的数据
   function setTheme(nextTheme) {
     setThemeState(nextTheme);
     writeStorageJson(themeKey, nextTheme);
   }
+  // 更新并规范化 saveRoute 对应的数据
   function saveRoute(next) {
     setRoute(next);
     writeStorageJson(routeKey, next);
   }
+  // 处理 addRoute 对应的用户操作
   function addRoute(spot) {
+    if (!Number.isSafeInteger(Number(spot?.id)) || Number(spot.id) <= 0) {
+      alert('当前景点数据无效，请刷新页面后重试');
+      return;
+    }
     if (route.some((item) => item.id === spot.id)) return;
     if (route.length >= 5) return alert('最多选择 5 个景点。');
-    saveRoute([...route, { id: spot.id, name: spot.name, lat: Number(spot.latitude), lng: Number(spot.longitude) }]);
+    saveRoute([...route, { id: Number(spot.id), name: spot.name, lat: Number(spot.latitude), lng: Number(spot.longitude) }]);
   }
+  // 处理 removeRoute 对应的用户操作
   function removeRoute(id) {
     saveRoute(route.filter((item) => item.id !== id));
   }
+  // 执行 refreshAccount 对应的前端处理逻辑
   async function refreshAccount() {
     const admin = await api('/api/admin/auth/status').catch(() => ({ loggedIn: false }));
     const user = admin.loggedIn ? { loggedIn: false } : await api('/api/auth/status').catch(() => ({ loggedIn: false }));
@@ -4975,7 +5397,7 @@ function App() {
   useEffect(() => { refreshAccount(); }, []);
   useEffect(() => {
     if (!accountReady || account.user?.loggedIn || path === '/login') return;
-    if (path === '/me' || path.startsWith('/me/') || path === '/submit-spot') {
+    if (path === '/me' || path.startsWith('/me/') || path === '/submit-spot' || path === '/points-shop') {
       navigateTo('/login');
     }
   }, [accountReady, account.user?.loggedIn, path]);
@@ -4992,10 +5414,11 @@ function App() {
   if (path === '/guide/nearby') page = <Guide {...props} useSavedLocation />;
   if (path === '/route') page = <RoutePage {...props} />;
   if (path === '/square') page = <Square account={account} />;
+  if (path === '/points-shop') page = <PointsShop account={account} refreshAccount={refreshAccount} />;
   if (path === '/ai-writer') page = <TravelWritingStudio account={account} />;
   const squarePostMatch = path.match(/^\/square\/posts\/(\d+)$/);
   if (squarePostMatch) page = <SquarePostDetail id={squarePostMatch[1]} account={account} />;
-  if (path === '/me') page = <Profile />;
+  if (path === '/me') page = <Profile account={account} refreshAccount={refreshAccount} />;
   const travelGalleryMatch = path.match(/^\/me\/travel-gallery\/(\d+)$/);
   if (travelGalleryMatch) page = <TravelGalleryDetail spotId={travelGalleryMatch[1]} />;
   if (path === '/submit-spot') page = <SubmitSpot />;
@@ -5006,7 +5429,12 @@ function App() {
 
   return (
     <>
-      {path !== '/login' && path !== '/guide/locate' && <Header account={account} refreshAccount={refreshAccount} path={path} theme={theme} setTheme={setTheme} />}
+      {path !== '/login' && path !== '/guide/locate' && <Header account={account} logout={async () => {
+        await api('/api/auth/logout', { method: 'POST' }).catch(() => {});
+        await api('/api/admin/auth/logout', { method: 'POST' }).catch(() => {});
+        await refreshAccount();
+        navigateTo('/login');
+      }} path={path} theme={theme} setTheme={setTheme} />}
       {page}
       {path !== '/admin' && <TravelPetAssistant path={path} />}
       {path !== '/login' && path !== '/guide/locate' && <footer className="footer">

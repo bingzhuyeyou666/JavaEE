@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 SpotImageController 控制器，负责接收相关页面或接口请求并返回处理结果
+ */
 package com.zhuly.controller;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,6 +25,9 @@ import java.nio.charset.StandardCharsets;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * SpotImageController 统一处理本模块的 HTTP 接口请求、参数校验和响应数据组织
+ */
 @RestController
 @RequiredArgsConstructor
 public class SpotImageController {
@@ -30,6 +36,7 @@ public class SpotImageController {
     private final RestTemplate restTemplate = restTemplate();
     private final Map<String, String> cache = new ConcurrentHashMap<>();
 
+    // 查询景点网络图片，无法获取时返回本地生成的占位图
     @GetMapping("/api/images/spots/{name}")
     public ResponseEntity<?> spotImage(@PathVariable String name) {
         String imageUrl = cache.computeIfAbsent(name, this::resolveWikiImage);
@@ -42,6 +49,7 @@ public class SpotImageController {
         return fallbackSvg(name);
     }
 
+    // 上传或保存 persistResolvedImage 对应的文件和数据
     private void persistResolvedImage(String name, String imageUrl) {
         spotRepository.findFirstByName(name).ifPresent(spot -> {
             if (spot.getCoverImage() == null || spot.getCoverImage().startsWith("/api/images/spots/")) {
@@ -57,6 +65,7 @@ public class SpotImageController {
         });
     }
 
+    // 解析或获取 resolveWikiImage 对应的数据
     private String resolveWikiImage(String name) {
         String imageUrl = resolveWikipediaSummaryImage(name);
         if (!imageUrl.isEmpty()) {
@@ -69,11 +78,13 @@ public class SpotImageController {
         return bingThumbnailImage(name);
     }
 
+    // 执行 bingThumbnailImage 方法对应的业务处理
     private String bingThumbnailImage(String name) {
         String query = UriUtils.encodeQueryParam(name + " 四川 景区 实景", StandardCharsets.UTF_8);
         return "https://tse1.mm.bing.net/th?q=" + query + "&w=1200&h=675&c=7&rs=1&p=0&o=5&pid=1.7";
     }
 
+    // 解析或获取 resolveWikipediaSummaryImage 对应的数据
     private String resolveWikipediaSummaryImage(String name) {
         try {
             String encoded = UriUtils.encodePathSegment(name, StandardCharsets.UTF_8);
@@ -86,6 +97,7 @@ public class SpotImageController {
         }
     }
 
+    // 解析或获取 resolveCommonsImage 对应的数据
     private String resolveCommonsImage(String name) {
         try {
             String url = UriComponentsBuilder.fromHttpUrl("https://commons.wikimedia.org/w/api.php")
@@ -126,12 +138,14 @@ public class SpotImageController {
         return "";
     }
 
+    // 查询并返回 getJson 对应的数据
     private JsonNode getJson(String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.USER_AGENT, "TravelCloudMap/1.0 (scenic spot image resolver)");
         return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class).getBody();
     }
 
+    // 执行 restTemplate 方法对应的业务处理
     private RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
@@ -139,6 +153,7 @@ public class SpotImageController {
         return new RestTemplate(factory);
     }
 
+    // 执行 fallbackSvg 方法对应的业务处理
     private ResponseEntity<String> fallbackSvg(String name) {
         ScenicSpot spot = spotRepository.findByApprovedTrue().stream()
                 .filter(item -> name.equals(item.getName()))
@@ -179,6 +194,7 @@ public class SpotImageController {
                 .body(body);
     }
 
+    // 执行 escapeXml 方法对应的业务处理
     private String escapeXml(String value) {
         return value == null ? "" : value.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;");
     }

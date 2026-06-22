@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 TravelFeatureController 控制器，负责接收相关页面或接口请求并返回处理结果
+ */
 package com.zhuly.controller;
 
 import com.zhuly.config.UserAuthInterceptor;
@@ -19,7 +22,6 @@ import com.zhuly.service.FriendlyPointService;
 import com.zhuly.service.GeoUtils;
 import com.zhuly.service.RoutePlanService;
 import com.zhuly.service.SpotAssistantService;
-import com.zhuly.service.TtsService;
 import com.zhuly.service.WeatherService;
 import javax.validation.Valid;
 import javax.servlet.http.HttpSession;
@@ -51,6 +53,9 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+/**
+ * TravelFeatureController 统一处理本模块的 HTTP 接口请求、参数校验和响应数据组织
+ */
 @RestController
 @RequestMapping("/api")
 @RequiredArgsConstructor
@@ -58,7 +63,6 @@ public class TravelFeatureController {
 
     private final CheckInService checkInService;
     private final CrowdIndexService crowdIndexService;
-    private final TtsService ttsService;
     private final WeatherService weatherService;
     private final RoutePlanService routePlanService;
     private final SpotAssistantService spotAssistantService;
@@ -75,6 +79,7 @@ public class TravelFeatureController {
     @Value("${travel.admin.username:admin}")
     private String adminUsername;
 
+    // 查询前端运行所需的公开配置，不返回服务端密钥
     @GetMapping("/config")
     public Map<String, Object> config() {
         Map<String, Object> body = new HashMap<>();
@@ -84,6 +89,7 @@ public class TravelFeatureController {
         return body;
     }
 
+    // 校验用户位置和图片凭证后完成景点打卡
     @PostMapping("/spots/{spotId}/check-ins")
     public CheckInResponse checkIn(@PathVariable Long spotId,
                                    @RequestParam(defaultValue = "1") Long userId,
@@ -93,6 +99,7 @@ public class TravelFeatureController {
         return checkInService.checkIn(userId, spotId, lat, lng, imageUrl);
     }
 
+    // 上传并保存景点打卡凭证图片
     @PostMapping(value = "/check-ins/uploads", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public Map<String, Object> uploadCheckInImage(@RequestParam("files") MultipartFile[] files) throws IOException {
         if (files == null || files.length == 0) {
@@ -118,6 +125,7 @@ public class TravelFeatureController {
         return Collections.singletonMap("urls", urls);
     }
 
+    // 查询指定用户的打卡足迹、徽章和统计数据
     @GetMapping("/users/{userId}/footprints")
     public Map<String, Object> footprints(@PathVariable Long userId) {
         CheckInResponse profile = checkInService.profile(userId, null);
@@ -169,6 +177,7 @@ public class TravelFeatureController {
         return body;
     }
 
+    // 查询用户在指定景点建立的旅行图库
     @GetMapping("/users/{userId}/travel-galleries/{spotId}")
     public Map<String, Object> travelGallery(@PathVariable Long userId, @PathVariable Long spotId) {
         CheckInRecord record = checkInService.gallery(userId, spotId);
@@ -177,6 +186,7 @@ public class TravelFeatureController {
         return galleryBody(record, spot);
     }
 
+    // 向用户指定景点的旅行图库追加图片
     @PostMapping("/users/{userId}/travel-galleries/{spotId}/images")
     public Map<String, Object> addTravelGalleryImages(@PathVariable Long userId,
                                                       @PathVariable Long spotId,
@@ -196,6 +206,7 @@ public class TravelFeatureController {
         return galleryBody(record, spot);
     }
 
+    // 从用户指定景点的旅行图库中删除图片
     @DeleteMapping("/users/{userId}/travel-galleries/{spotId}/images")
     public Map<String, Object> deleteTravelGalleryImage(@PathVariable Long userId,
                                                         @PathVariable Long spotId,
@@ -206,6 +217,7 @@ public class TravelFeatureController {
         return galleryBody(record, spot);
     }
 
+    // 按位置、半径和设施类型查询周边设施
     @GetMapping("/facilities")
     public List<Map<String, Object>> facilities(@RequestParam(required = false) BigDecimal lat,
                                                 @RequestParam(required = false) BigDecimal lng,
@@ -233,19 +245,14 @@ public class TravelFeatureController {
                 .collect(Collectors.toList());
     }
 
+    // 查询指定景点在目标日期的拥挤指数
     @GetMapping("/spots/{spotId}/crowd-index")
     public CrowdIndexResponse crowd(@PathVariable Long spotId,
                                     @RequestParam(required = false) LocalDate visitDate) {
         return crowdIndexService.getCrowdIndex(spotId, visitDate);
     }
 
-    @GetMapping("/spots/{spotId}/tts")
-    public Map<String, String> tts(@PathVariable Long spotId) {
-        Map<String, String> body = new HashMap<>();
-        body.put("audioUrl", ttsService.audioUrl(spotId));
-        return body;
-    }
-
+    // 查询指定景点的实时天气和未来预报
     @GetMapping("/spots/{spotId}/weather")
     public List<WeatherForecast> weather(@PathVariable Long spotId) {
         return spotRepository.findById(spotId)
@@ -253,6 +260,7 @@ public class TravelFeatureController {
                 .orElseGet(() -> weatherService.threeDays(null, null));
     }
 
+    // 根据用户选择的景点和出行方式生成游览路线
     @PostMapping("/routes/plan")
     public RoutePlanResponse planRoute(@Valid @RequestBody RoutePlanRequest request,
                                        @RequestParam(defaultValue = "1") Long userId) {
@@ -261,17 +269,20 @@ public class TravelFeatureController {
         return response;
     }
 
+    // 围绕指定景点回答用户的导览问题
     @PostMapping("/spots/{spotId}/assistant")
     public SpotAssistantResponse assistant(@PathVariable Long spotId,
                                            @Valid @RequestBody SpotAssistantRequest request) {
         return spotAssistantService.answer(spotId, request.getQuestion());
     }
 
+    // 回答不限定具体景点的通用旅行问题
     @PostMapping("/assistant")
     public SpotAssistantResponse generalAssistant(@Valid @RequestBody SpotAssistantRequest request) {
         return spotAssistantService.answerGeneral(request.getQuestion());
     }
 
+    // 根据用户上传的旅行图片生成可编辑游记文案
     @PostMapping(value = "/ai/travel-copy", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public TravelCopyResponse travelCopy(@RequestParam(required = false) String locationName,
                                          @RequestParam(required = false) String tripDate,
@@ -285,9 +296,15 @@ public class TravelFeatureController {
             throw new org.springframework.web.server.ResponseStatusException(
                     org.springframework.http.HttpStatus.UNAUTHORIZED, "请先登录");
         }
-        return spotAssistantService.generateTravelCopy(locationName, tripDate, companions, style, length, notes, images);
+        TravelCopyResponse response = spotAssistantService.generateTravelCopy(locationName, tripDate, companions, style, length, notes, images);
+        Object userId = session.getAttribute(UserAuthInterceptor.USER_ID_KEY);
+        if (userId instanceof Long) {
+            friendlyPointService.award((Long) userId, 8, "AI_TRAVEL_COPY", "使用图生游记", "把旅行照片整理成可分享的故事", null);
+        }
+        return response;
     }
 
+    // 校验 validateCheckInImage 对应的条件并返回判断结果
     private void validateCheckInImage(MultipartFile file) {
         String contentType = file.getContentType();
         if (contentType == null || !contentType.toLowerCase().startsWith("image/")) {
@@ -298,6 +315,7 @@ public class TravelFeatureController {
         }
     }
 
+    // 组装 galleryBody 所需的返回对象或业务数据
     private Map<String, Object> galleryBody(CheckInRecord record, ScenicSpot spot) {
         List<String> images = checkInService.images(record);
         Map<String, Object> body = new HashMap<>();
@@ -313,8 +331,4 @@ public class TravelFeatureController {
         return body;
     }
 
-    @GetMapping(value = "/audio/mock/{name}", produces = MediaType.TEXT_PLAIN_VALUE)
-    public String mockAudio(@PathVariable String name) {
-        return "学生项目演示接口：此处可替换为阿里云或腾讯云TTS生成的MP3对象存储地址。" + name;
-    }
 }

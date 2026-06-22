@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 SpotAssistantService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -37,6 +40,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+/**
+ * SpotAssistantService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -101,6 +107,7 @@ public class SpotAssistantService {
             "颜文字只在特别适合时少量使用，不要每句话都用。可用例如 (＾▽＾)、(｡･ω･｡)、(￣▽￣)。",
             "不要说“根据系统规则”“作为AI模型”这类生硬表述。");
 
+    // 生成 generateTravelCopy 对应的导览、路线或文案结果
     public TravelCopyResponse generateTravelCopy(String locationName,
                                                  String tripDate,
                                                  String companions,
@@ -109,7 +116,7 @@ public class SpotAssistantService {
                                                  String notes,
                                                  MultipartFile[] images) throws java.io.IOException {
         if (!aiEnabled || !StringUtils.hasText(apiKey)) {
-            throw new IllegalStateException("AI vision service is not configured");
+            throw new IllegalStateException("图像识别服务尚未配置");
         }
         String prompt = buildTravelCopyPrompt(locationName, tripDate, companions, style, length, notes);
         String raw = askVisionModel(prompt, images);
@@ -118,6 +125,7 @@ public class SpotAssistantService {
         return response;
     }
 
+    // 组装 buildTravelCopyPrompt 所需的返回对象或业务数据
     private String buildTravelCopyPrompt(String locationName,
                                          String tripDate,
                                          String companions,
@@ -155,6 +163,7 @@ public class SpotAssistantService {
                 "14. 返回严格 JSON：{\"title\":\"标题\",\"content\":\"正文自然分段\",\"tags\":[\"标签1\",\"标签2\"],\"category\":\"景点影像\",\"postType\":\"NOTE\"}");
     }
 
+    // 生成 askVisionModel 对应的导览、路线或文案结果
     private String askVisionModel(String userPrompt, MultipartFile[] images) throws java.io.IOException {
         RestTemplate restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(Math.max(3, timeoutSeconds)))
@@ -206,11 +215,12 @@ public class SpotAssistantService {
         ResponseEntity<JsonNode> response = restTemplate.postForEntity(baseUrl, new HttpEntity<Map<String, Object>>(body, headers), JsonNode.class);
         JsonNode contentNode = response.getBody() == null ? null : response.getBody().at("/choices/0/message/content");
         if (contentNode == null || contentNode.isMissingNode() || !StringUtils.hasText(contentNode.asText())) {
-            throw new IllegalStateException("Vision model returned empty content");
+            throw new IllegalStateException("图像识别服务未返回有效内容");
         }
         return contentNode.asText().trim();
     }
 
+    // 解析或获取 parseTravelCopy 对应的数据
     private TravelCopyResponse parseTravelCopy(String raw) throws java.io.IOException {
         String json = raw == null ? "" : raw.trim();
         if (json.startsWith("```")) {
@@ -241,6 +251,7 @@ public class SpotAssistantService {
         return response;
     }
 
+    // 更新并规范化 cleanGeneratedCopy 对应的数据
     private String cleanGeneratedCopy(String value) {
         if (value == null) {
             return "";
@@ -256,10 +267,12 @@ public class SpotAssistantService {
                 .trim();
     }
 
+    // 执行 safePromptText 方法对应的业务处理
     private String safePromptText(String value, String fallback) {
         return StringUtils.hasText(value) ? value.trim() : fallback;
     }
 
+    // 生成 answer 对应的导览、路线或文案结果
     public SpotAssistantResponse answer(Long spotId, String question) {
         ScenicSpot spot = spotRepository.findById(spotId)
                 .orElseThrow(() -> new IllegalArgumentException("景点不存在"));
@@ -278,6 +291,7 @@ public class SpotAssistantService {
                 source, "aliyun-bailian".equals(source) ? model : "local");
     }
 
+    // 生成 answerGeneral 对应的导览、路线或文案结果
     public SpotAssistantResponse answerGeneral(String question) {
         String source = "local-assistant";
         String answer = buildGeneralFallback(question);
@@ -298,6 +312,7 @@ public class SpotAssistantService {
                 source, "aliyun-bailian".equals(source) ? model : "local");
     }
 
+    // 生成 askBailian 对应的导览、路线或文案结果
     private String askBailian(String systemPrompt, String userPrompt) {
         RestTemplate restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(Math.max(3, timeoutSeconds)))
@@ -325,6 +340,7 @@ public class SpotAssistantService {
         return sanitizeAssistantText(content.asText().trim());
     }
 
+    // 组装 message 所需的返回对象或业务数据
     private Map<String, String> message(String role, String content) {
         Map<String, String> message = new HashMap<>();
         message.put("role", role);
@@ -332,6 +348,7 @@ public class SpotAssistantService {
         return message;
     }
 
+    // 组装 buildSpotPrompt 所需的返回对象或业务数据
     private String buildSpotPrompt(ScenicSpot spot, String question, List<String> hits) {
         StringBuilder builder = new StringBuilder();
         builder.append("当前场景：用户正在陌路寻阡的景点详情页咨询菲比。\n");
@@ -357,6 +374,7 @@ public class SpotAssistantService {
         return builder.toString();
     }
 
+    // 组装 buildGeneralPrompt 所需的返回对象或业务数据
     private String buildGeneralPrompt(String question) {
         return "当前场景：用户正在陌路寻阡应用内和菲比对话。\n"
                 + "请根据菲比角色规则判断：闲聊直接回答；需要真实数据且参数齐全时输出单行 JSON 工具调用；参数不足时自然追问；不能编造真实地点、距离、评分、天气或路况。\n\n"
@@ -365,6 +383,7 @@ public class SpotAssistantService {
                 + "用户问题：" + question;
     }
 
+    // 组装 buildAnswer 所需的返回对象或业务数据
     private String buildAnswer(ScenicSpot spot, String question, List<String> hits) {
         StringBuilder builder = new StringBuilder();
         builder.append("关于“").append(spot.getName()).append("”，我结合当前景点知识库为你整理如下：\n\n");
@@ -385,6 +404,7 @@ public class SpotAssistantService {
         return builder.toString();
     }
 
+    // 生成 answerFromLocalIntent 对应的导览、路线或文案结果
     private String answerFromLocalIntent(String question) {
         String currentInput = extractCurrentInput(question);
         if (!StringUtils.hasText(currentInput)) {
@@ -407,6 +427,7 @@ public class SpotAssistantService {
         return "";
     }
 
+    // 生成 answerFoodIntentWithContext 对应的导览、路线或文案结果
     private String answerFoodIntentWithContext(String question, String currentInput) {
         String foodKeyword = extractFoodKeyword(currentInput);
         List<String> recentUserInputs = extractRecentUserInputs(question);
@@ -440,6 +461,7 @@ public class SpotAssistantService {
         return answer;
     }
 
+    // 解析或获取 extractRecentUserInputs 对应的数据
     private List<String> extractRecentUserInputs(String question) {
         List<String> inputs = new ArrayList<>();
         if (!StringUtils.hasText(question)) {
@@ -457,6 +479,7 @@ public class SpotAssistantService {
         return inputs;
     }
 
+    // 校验 isLocationSupplement 对应的条件并返回判断结果
     private boolean isLocationSupplement(String text) {
         if (!StringUtils.hasText(text)) {
             return false;
@@ -465,6 +488,7 @@ public class SpotAssistantService {
         return normalized.matches(".*(我在|我就在|就在|本地|当地|宜宾|成都|重庆|北京|上海|广州|深圳|杭州|南京|武汉|西安|长沙|苏州).*");
     }
 
+    // 解析或获取 extractFoodKeyword 对应的数据
     private String extractFoodKeyword(String text) {
         if (!StringUtils.hasText(text)) {
             return "";
@@ -495,6 +519,7 @@ public class SpotAssistantService {
         return StringUtils.hasText(keyword) ? keyword : "";
     }
 
+    // 解析或获取 extractCurrentInput 对应的数据
     private String extractCurrentInput(String question) {
         if (!StringUtils.hasText(question)) {
             return "";
@@ -507,11 +532,13 @@ public class SpotAssistantService {
         return question.trim();
     }
 
+    // 校验 isSimpleGreeting 对应的条件并返回判断结果
     private boolean isSimpleGreeting(String text) {
         String normalized = text.trim().toLowerCase();
         return normalized.matches("^(你好|您好|嗨|hi|hello|在吗|菲比)$");
     }
 
+    // 校验 isDirectDestinationIntent 对应的条件并返回判断结果
     private boolean isDirectDestinationIntent(String text) {
         return text.contains("我想去")
                 || text.contains("想去")
@@ -523,6 +550,7 @@ public class SpotAssistantService {
                 || text.contains("怎么走");
     }
 
+    // 校验 isRoutePlanningIntent 对应的条件并返回判断结果
     private boolean isRoutePlanningIntent(String text) {
         return text.contains("规划路线")
                 || text.contains("帮我规划")
@@ -533,6 +561,7 @@ public class SpotAssistantService {
                 || text.contains("带我去");
     }
 
+    // 解析或获取 extractCurrentLocation 对应的数据
     private LocationPoint extractCurrentLocation(String question) {
         if (!StringUtils.hasText(question)) {
             return null;
@@ -550,6 +579,7 @@ public class SpotAssistantService {
         }
     }
 
+    // 生成 destinationAnswer 对应的导览、路线或文案结果
     private String destinationAnswer(PlaceTarget target, LocationPoint origin, boolean shouldOpenRoute) {
         StringBuilder builder = new StringBuilder();
         builder.append("李庄古镇".equals(target.name) ? "李庄古镇我找到了。" : "我找到了“" + target.name + "”。");
@@ -573,6 +603,7 @@ public class SpotAssistantService {
         return builder.toString();
     }
 
+    // 组装 buildGeneralFallback 所需的返回对象或业务数据
     private String buildGeneralFallback(String question) {
         if (question == null || !StringUtils.hasText(question.trim())) {
             return "我在呢。你可以直接告诉我想去哪儿、想吃什么，或者只是随便聊两句也可以 (＾▽＾)";
@@ -587,6 +618,7 @@ public class SpotAssistantService {
         return "收到，我在。你可以再多说一点你的场景，比如现在的位置、想去的地方、预算或口味，我会帮你把下一步理清楚。";
     }
 
+    // 更新并规范化 sanitizeAssistantText 对应的数据
     private String sanitizeAssistantText(String answer) {
         if (!StringUtils.hasText(answer)) {
             return answer;
@@ -597,6 +629,7 @@ public class SpotAssistantService {
                 .trim();
     }
 
+    // 执行 executeSupportedTool 方法对应的业务处理
     private String executeSupportedTool(String answer) {
         if (!StringUtils.hasText(answer)) {
             return answer;
@@ -633,6 +666,7 @@ public class SpotAssistantService {
         }
     }
 
+    // 解析或获取 extractToolJson 对应的数据
     private String extractToolJson(String answer) {
         String text = answer.trim();
         int toolIndex = text.indexOf("\"tool\"");
@@ -675,6 +709,7 @@ public class SpotAssistantService {
         return "";
     }
 
+    // 查询并返回 searchPlacesAnswer 对应的数据
     private String searchPlacesAnswer(JsonNode params) {
         String location = params.path("location").asText("");
         String category = params.path("category").asText("");
@@ -710,6 +745,7 @@ public class SpotAssistantService {
         return "这个类别我暂时没法直接查到。你可以换成景点、餐馆、停车场这类我能识别的地点。";
     }
 
+    // 执行 recommendFoodAnswer 方法对应的业务处理
     private String recommendFoodAnswer(JsonNode params) {
         String location = params.path("location").asText("");
         String cuisine = params.path("cuisine").asText("");
@@ -722,6 +758,7 @@ public class SpotAssistantService {
         return "我暂时没在项目数据里找到合适的餐馆。你可以告诉我更具体的位置或口味，我再换个方式帮你找。";
     }
 
+    // 生成 planRouteAnswer 对应的导览、路线或文案结果
     private String planRouteAnswer(JsonNode params) {
         String origin = params.path("origin").asText("");
         String destination = params.path("destination").asText("");
@@ -748,6 +785,7 @@ public class SpotAssistantService {
         return builder.toString().trim();
     }
 
+    // 执行 nearbyFacilities 方法对应的业务处理
     private List<Facility> nearbyFacilities(LocationPoint point, FacilityType type, String cuisine, int limit) {
         return facilityRepository.findAll().stream()
                 .filter(facility -> facility.getType() == type)
@@ -761,6 +799,7 @@ public class SpotAssistantService {
                 .collect(Collectors.toList());
     }
 
+    // 查询并返回 facilitiesAnswer 对应的数据
     private String facilitiesAnswer(List<Facility> facilities, LocationPoint point, String title, String emptyText) {
         if (facilities.isEmpty()) {
             return emptyText;
@@ -785,6 +824,7 @@ public class SpotAssistantService {
         return builder.toString().trim();
     }
 
+    // 组装 facilityTypeForCategory 所需的返回对象或业务数据
     private FacilityType facilityTypeForCategory(String category) {
         if ("restaurant".equals(category)) {
             return FacilityType.RESTAURANT;
@@ -795,6 +835,7 @@ public class SpotAssistantService {
         return null;
     }
 
+    // 查询并返回 findPlaceTarget 对应的数据
     private PlaceTarget findPlaceTarget(String destination) {
         if (!StringUtils.hasText(destination)) {
             return null;
@@ -815,6 +856,7 @@ public class SpotAssistantService {
         return null;
     }
 
+    // 执行 placeNameMatches 方法对应的业务处理
     private boolean placeNameMatches(String query, String name) {
         if (!StringUtils.hasText(query) || !StringUtils.hasText(name)) {
             return false;
@@ -823,6 +865,7 @@ public class SpotAssistantService {
         return query.contains(normalizedName) || normalizedName.contains(query);
     }
 
+    // 更新并规范化 normalizePlaceName 对应的数据
     private String normalizePlaceName(String value) {
         return value == null ? "" : value
                 .replace("帮我规划路线到", "")
@@ -844,6 +887,7 @@ public class SpotAssistantService {
                 .trim();
     }
 
+    // 执行 baiduDirectionUrl 方法对应的业务处理
     private String baiduDirectionUrl(LocationPoint origin, PlaceTarget target, String mode) {
         if (origin == null || target == null || target.lat == null || target.lng == null) {
             return "";
@@ -856,6 +900,7 @@ public class SpotAssistantService {
                 + "&region=全国&output=html";
     }
 
+    // 查询并返回 getWeatherAnswer 对应的数据
     private String getWeatherAnswer(JsonNode params) {
         String location = params.path("location").asText("");
         int days = Math.max(0, Math.min(3, params.path("days").asInt(0)));
@@ -895,6 +940,7 @@ public class SpotAssistantService {
         }
     }
 
+    // 计算 pickWeatherForecast 对应的业务结果
     private WeatherForecast pickWeatherForecast(List<WeatherForecast> forecasts, int days) {
         String targetDate = LocalDate.now().plusDays(days).toString();
         return forecasts.stream()
@@ -903,6 +949,7 @@ public class SpotAssistantService {
                 .orElseGet(() -> forecasts.get(Math.min(days == 0 ? 0 : days + 1, forecasts.size() - 1)));
     }
 
+    // 校验 isRainfallText 对应的条件并返回判断结果
     private boolean isRainfallText(String rainfall) {
         return rainfall.contains("降水")
                 || rainfall.contains("mm")
@@ -910,6 +957,7 @@ public class SpotAssistantService {
                 || rainfall.contains("雨量");
     }
 
+    // 执行 districtIdForWeather 方法对应的业务处理
     private String districtIdForWeather(String location) {
         String text = location == null ? "" : location
                 .replace("四川省", "四川")
@@ -952,9 +1000,10 @@ public class SpotAssistantService {
                 .orElse("");
     }
 
+    // 解析或获取 geocode 对应的数据
     private BigDecimal[] geocode(String location) {
         if (!StringUtils.hasText(baiduMapAk)) {
-            throw new IllegalStateException("Baidu map api key is not configured");
+            throw new IllegalStateException("百度地图服务密钥尚未配置");
         }
         RestTemplate restTemplate = restTemplateBuilder
                 .setConnectTimeout(Duration.ofSeconds(4))
@@ -970,7 +1019,9 @@ public class SpotAssistantService {
                 .toUriString();
         JsonNode root = restTemplate.getForObject(url, JsonNode.class);
         if (root == null || root.path("status").asInt(-1) != 0) {
-            throw new IllegalStateException(root == null ? "empty geocode response" : root.path("message").asText("geocode failed"));
+            throw new IllegalStateException(root == null
+                    ? "地理编码服务未返回内容"
+                    : "地理编码失败：" + root.path("message").asText("未返回失败原因"));
         }
         JsonNode locationNode = root.path("result").path("location");
         return new BigDecimal[]{
@@ -979,16 +1030,19 @@ public class SpotAssistantService {
         };
     }
 
+    // 执行 safeText 方法对应的业务处理
     private String safeText(String value, String fallback) {
         return StringUtils.hasText(value) ? value : fallback;
     }
 
+    // 校验 containsText 对应的条件并返回判断结果
     private boolean containsText(String value, String keyword) {
         return StringUtils.hasText(value)
                 && StringUtils.hasText(keyword)
                 && value.toLowerCase().contains(keyword.toLowerCase());
     }
 
+    // 执行 appendDistance 方法对应的业务处理
     private void appendDistance(StringBuilder builder, LocationPoint point, BigDecimal lat, BigDecimal lng) {
         double distance = distanceOrLarge(point, lat, lng);
         if (distance < 9999) {
@@ -996,6 +1050,7 @@ public class SpotAssistantService {
         }
     }
 
+    // 计算 distanceOrLarge 对应的业务结果
     private double distanceOrLarge(LocationPoint point, BigDecimal lat, BigDecimal lng) {
         if (point == null || lat == null || lng == null) {
             return 99999;
@@ -1003,6 +1058,7 @@ public class SpotAssistantService {
         return GeoUtils.distanceKm(point.lat, point.lng, lat, lng);
     }
 
+    // 解析或获取 parseLocationPoint 对应的数据
     private LocationPoint parseLocationPoint(String location) {
         if (!StringUtils.hasText(location)) {
             return null;
@@ -1042,6 +1098,7 @@ public class SpotAssistantService {
         }
     }
 
+    // 校验 needsLocationData 对应的条件并返回判断结果
     private boolean needsLocationData(String question) {
         return question.contains("附近")
                 || question.contains("路线")
@@ -1058,6 +1115,7 @@ public class SpotAssistantService {
                 || question.contains("医院");
     }
 
+    // 校验 mentionsPreference 对应的条件并返回判断结果
     private boolean mentionsPreference(String question) {
         return question.contains("我喜欢")
                 || question.contains("我爱吃")
@@ -1067,6 +1125,7 @@ public class SpotAssistantService {
                 || question.contains("常去");
     }
 
+    // 解析或获取 webSuggestions 对应的数据
     private List<String> webSuggestions(ScenicSpot spot, String question) {
         return Arrays.asList(
                 "https://www.baidu.com/s?wd=" + spot.getName() + "%20" + question,

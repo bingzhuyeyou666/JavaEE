@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 CheckInRecord 领域实体，用于保存对应业务数据及其数据库映射
+ */
 package com.zhuly.domain;
 
 import java.time.LocalDateTime;
@@ -16,6 +19,9 @@ import javax.persistence.UniqueConstraint;
 import lombok.Getter;
 import lombok.Setter;
 
+/**
+ * CheckInRecord 表示本模块的持久化业务实体及其字段结构
+ */
 @Getter
 @Setter
 @Entity

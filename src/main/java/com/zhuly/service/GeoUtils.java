@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 GeoUtils 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import java.math.BigDecimal;
@@ -7,6 +10,7 @@ public final class GeoUtils {
     private GeoUtils() {
     }
 
+    // 计算 distanceKm 对应的业务结果
     public static double distanceKm(BigDecimal lat1, BigDecimal lon1, BigDecimal lat2, BigDecimal lon2) {
         double earthRadius = 6371.0088;
         double dLat = Math.toRadians(lat2.doubleValue() - lat1.doubleValue());

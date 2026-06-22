@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 SpotKnowledgeBase 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.zhuly.domain.ScenicSpot;
@@ -9,9 +12,13 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+/**
+ * SpotKnowledgeBase 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Component
 public class SpotKnowledgeBase {
 
+    // 执行 documents 方法对应的业务处理
     public List<String> documents(ScenicSpot spot) {
         List<String> docs = new ArrayList<>();
         docs.add("景点名称：" + spot.getName());
@@ -31,6 +38,7 @@ public class SpotKnowledgeBase {
         return docs;
     }
 
+    // 查询并返回 search 对应的数据
     public List<String> search(ScenicSpot spot, String question) {
         String normalized = question.toLowerCase(Locale.ROOT);
         List<String> docs = documents(spot);
@@ -45,6 +53,7 @@ public class SpotKnowledgeBase {
         return hits;
     }
 
+    // 计算 score 对应的业务结果
     private int score(String doc, String question) {
         int score = 0;
         for (String token : tokens(question)) {
@@ -60,12 +69,14 @@ public class SpotKnowledgeBase {
         return score;
     }
 
+    // 组装 tokens 所需的返回对象或业务数据
     private List<String> tokens(String question) {
         return Arrays.stream(question.replaceAll("[，。？！、；：,.!?;:]", " ").split("\\s+"))
                 .filter(token -> !token.trim().isEmpty())
                 .collect(Collectors.toList());
     }
 
+    // 执行 extraDocuments 方法对应的业务处理
     private List<String> extraDocuments(String spotName) {
         if (spotName.contains("蜀南竹海")) {
             return Arrays.asList(

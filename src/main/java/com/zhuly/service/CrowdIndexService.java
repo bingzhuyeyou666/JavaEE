@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 CrowdIndexService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.zhuly.domain.ScenicSpot;
@@ -8,6 +11,9 @@ import java.time.LocalDate;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+/**
+ * CrowdIndexService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 public class CrowdIndexService {
@@ -17,15 +23,17 @@ public class CrowdIndexService {
 
     /**
      * Kept for older call sites. Crowd index is derived from persisted
-     * reservations so restart/cancel/date changes do not pollute the result.
+     * reservations so restart/cancel/date changes do not pollute the result
      */
     public void addPeople(Long spotId, int people) {
     }
 
+    // 查询并返回 getCrowdIndex 对应的数据
     public CrowdIndexResponse getCrowdIndex(Long spotId) {
         return getCrowdIndex(spotId, LocalDate.now());
     }
 
+    // 查询并返回 getCrowdIndex 对应的数据
     public CrowdIndexResponse getCrowdIndex(Long spotId, LocalDate visitDate) {
         ScenicSpot spot = spotRepository.findById(spotId)
                 .orElseThrow(() -> new IllegalArgumentException("景点不存在"));

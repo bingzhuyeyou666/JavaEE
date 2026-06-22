@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 RoutePlanService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.zhuly.domain.ScenicSpot;
@@ -13,16 +16,21 @@ import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+/**
+ * RoutePlanService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 public class RoutePlanService {
 
     private final ScenicSpotRepository spotRepository;
 
+    // 生成 plan 对应的导览、路线或文案结果
     public RoutePlanResponse plan(List<Long> spotIds) {
         return plan(spotIds, "driving");
     }
 
+    // 生成 plan 对应的导览、路线或文案结果
     public RoutePlanResponse plan(List<Long> spotIds, String mode) {
         List<ScenicSpot> spots = spotRepository.findAllById(spotIds);
         if (spots.size() < 2) {
@@ -52,6 +60,7 @@ public class RoutePlanService {
         return new RoutePlanResponse(routeSpots, segments, round(totalDistance), totalMinutes);
     }
 
+    // 计算 speedKmh 对应的业务结果
     private double speedKmh(String mode) {
         String normalized = mode == null ? "" : mode.trim().toLowerCase();
         if ("walking".equals(normalized) || "walk".equals(normalized)) {
@@ -66,6 +75,7 @@ public class RoutePlanService {
         return 35;
     }
 
+    // 计算 nearestNeighbor 对应的业务结果
     private List<ScenicSpot> nearestNeighbor(List<ScenicSpot> spots) {
         List<ScenicSpot> result = new ArrayList<>();
         Set<Long> used = new HashSet<>();
@@ -86,6 +96,7 @@ public class RoutePlanService {
         return result;
     }
 
+    // 计算 round 对应的业务结果
     private double round(double value) {
         return Math.round(value * 10.0) / 10.0;
     }

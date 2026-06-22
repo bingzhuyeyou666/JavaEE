@@ -92,38 +92,49 @@
 
 /* 选项列表 */
 .choice {
-  display: flex;
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
   align-items: center;
-  gap: var(--space-3);
+  justify-content: stretch;
+  gap: var(--space-4);
   width: 100%;
+  min-height: 104px;
   text-align: left;
-  padding: var(--space-4);
+  padding: 15px 18px;
   border: var(--border-subtle);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
 }
 
 .choice img {
-  width: 58px;
-  height: 58px;
-  flex: 0 0 58px;
+  width: 72px;
+  height: 72px;
   object-fit: cover;
   border-radius: var(--radius-md);
 }
 
 .choice span {
+  width: 100%;
   min-width: 0;
   display: grid;
-  gap: 2px;
+  align-content: center;
+  justify-items: start;
+  gap: 4px;
 }
 
 .choice strong {
+  display: block;
+  width: 100%;
   font-size: var(--text-lg);
+  line-height: 1.25;
   color: var(--color-accent);
 }
 
 .choice small {
+  display: block;
+  width: 100%;
   font-size: var(--text-xs);
+  line-height: 1.4;
   color: var(--color-text-secondary);
 }
 

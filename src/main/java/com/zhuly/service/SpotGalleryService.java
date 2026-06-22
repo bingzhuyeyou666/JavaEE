@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 SpotGalleryService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -22,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * SpotGalleryService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 public class SpotGalleryService {
@@ -31,6 +37,7 @@ public class SpotGalleryService {
     private final Map<String, String> imageCache = new ConcurrentHashMap<>();
     private final Map<String, List<String>> galleryCache = new ConcurrentHashMap<>();
 
+    // 创建、写入或提交 ensureGallery 对应的业务数据
     public List<String> ensureGallery(ScenicSpot spot) {
         if (spot == null) {
             return new ArrayList<>();
@@ -43,10 +50,12 @@ public class SpotGalleryService {
         return galleryCache.computeIfAbsent(cacheKey, key -> buildGallery(spot));
     }
 
+    // 解析或获取 resolvePrimaryImage 对应的数据
     public String resolvePrimaryImage(String name) {
         return imageCache.computeIfAbsent("primary:" + name, this::resolveWikiImage);
     }
 
+    // 组装 buildGallery 所需的返回对象或业务数据
     private List<String> buildGallery(ScenicSpot spot) {
         LinkedHashSet<String> urls = new LinkedHashSet<>();
         if (isStrongImage(spot.getCoverImage())) {
@@ -84,11 +93,13 @@ public class SpotGalleryService {
         return new ArrayList<>(urls).subList(0, Math.max(3, urls.size()));
     }
 
+    // 解析或获取 resolveForQuery 对应的数据
     private String resolveForQuery(String query) {
         String cacheKey = "query:" + query;
         return imageCache.computeIfAbsent(cacheKey, ignored -> resolveImage(query));
     }
 
+    // 解析或获取 resolveImage 对应的数据
     private String resolveImage(String query) {
         String imageUrl = resolveWikipediaSummaryImage(query);
         if (!imageUrl.isEmpty()) {
@@ -101,15 +112,18 @@ public class SpotGalleryService {
         return bingThumbnailImage(query);
     }
 
+    // 解析或获取 resolveWikiImage 对应的数据
     private String resolveWikiImage(String name) {
         return resolveImage(name);
     }
 
+    // 执行 bingThumbnailImage 方法对应的业务处理
     private String bingThumbnailImage(String name) {
         String query = UriUtils.encodeQueryParam(name + " 景区图片", StandardCharsets.UTF_8);
         return "https://tse1.mm.bing.net/th?q=" + query + "&w=1200&h=675&c=7&rs=1&p=0&o=5&pid=1.7";
     }
 
+    // 解析或获取 resolveWikipediaSummaryImage 对应的数据
     private String resolveWikipediaSummaryImage(String name) {
         try {
             String encoded = UriUtils.encodePathSegment(name, StandardCharsets.UTF_8);
@@ -122,6 +136,7 @@ public class SpotGalleryService {
         }
     }
 
+    // 解析或获取 resolveCommonsImage 对应的数据
     private String resolveCommonsImage(String name) {
         try {
             for (String query : new String[]{name, name + " 风景", name + " 景区", name + " 实拍"}) {
@@ -164,12 +179,14 @@ public class SpotGalleryService {
         return "";
     }
 
+    // 查询并返回 getJson 对应的数据
     private JsonNode getJson(String url) {
         HttpHeaders headers = new HttpHeaders();
         headers.set(HttpHeaders.USER_AGENT, "TravelCloudMap/1.0 (scenic spot gallery resolver)");
         return restTemplate.exchange(url, HttpMethod.GET, new HttpEntity<>(headers), JsonNode.class).getBody();
     }
 
+    // 执行 restTemplate 方法对应的业务处理
     private RestTemplate restTemplate() {
         SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
         factory.setConnectTimeout(2000);
@@ -177,12 +194,14 @@ public class SpotGalleryService {
         return new RestTemplate(factory);
     }
 
+    // 创建、写入或提交 addIfPresent 对应的业务数据
     private void addIfPresent(LinkedHashSet<String> urls, String url) {
         if (url != null && !url.trim().isEmpty()) {
             urls.add(url);
         }
     }
 
+    // 校验 isStrongImage 对应的条件并返回判断结果
     private boolean isStrongImage(String url) {
         if (url == null || url.trim().isEmpty()) {
             return false;
@@ -193,6 +212,7 @@ public class SpotGalleryService {
                 && !normalized.contains("query:");
     }
 
+    // 校验 sameGallery 对应的条件并返回判断结果
     private boolean sameGallery(List<String> existing, List<String> updated) {
         if (existing == null) {
             return false;

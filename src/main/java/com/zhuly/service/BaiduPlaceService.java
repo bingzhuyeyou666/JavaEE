@@ -1,3 +1,6 @@
+/**
+ * 本文件定义 BaiduPlaceService 服务，负责封装对应业务规则和数据处理流程
+ */
 package com.zhuly.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -16,6 +19,9 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
+/**
+ * BaiduPlaceService 集中实现本模块的业务规则，并协调数据访问或第三方服务
+ */
 @Service
 @RequiredArgsConstructor
 @Slf4j
@@ -27,6 +33,7 @@ public class BaiduPlaceService {
     @Value("${travel.map.api-key:}")
     private String baiduMapAk;
 
+    // 执行 phoneFor 方法对应的业务处理
     public String phoneFor(ScenicSpot spot) {
         String known = knownPhone(spot.getName());
         if (StringUtils.hasText(known)) {
@@ -38,6 +45,7 @@ public class BaiduPlaceService {
         return phoneCache.computeIfAbsent(spot.getId(), id -> findBaiduPhone(spot));
     }
 
+    // 查询并返回 findBaiduPhone 对应的数据
     private String findBaiduPhone(ScenicSpot spot) {
         try {
             RestTemplate restTemplate = restTemplateBuilder
@@ -68,6 +76,7 @@ public class BaiduPlaceService {
         }
     }
 
+    // 执行 text 方法对应的业务处理
     private String text(JsonNode node, String field) {
         if (node == null || node.get(field) == null || node.get(field).isNull()) {
             return "";
@@ -75,6 +84,7 @@ public class BaiduPlaceService {
         return node.get(field).asText("");
     }
 
+    // 解析或获取 knownPhone 对应的数据
     private String knownPhone(String spotName) {
         Map<String, String> phones = new HashMap<>();
         phones.put("李庄古镇", "0831-7897357");
